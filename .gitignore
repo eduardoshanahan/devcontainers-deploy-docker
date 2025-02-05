@@ -1,0 +1,14 @@
+# Environment variables
+.devcontainer/.env
+
+# Ignore log files
+*.log
+
+# Ignore temporary files
+tmp/
+
+# Ignore the real inventory file
+src/inventory/hosts.yml
+
+# Ignore Ansible lock files
+*.lock
