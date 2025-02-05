@@ -1,0 +1,7 @@
+remoteservers:
+  hosts:
+    "bananas.com":
+      ansible_initial_user: "initial_username"
+      ansible_deployment_user: "deployment_username"
+      ansible_ssh_common_args: "-o ForwardAgent=yes"
+      ansible_python_interpreter: "/usr/bin/python3.10"
