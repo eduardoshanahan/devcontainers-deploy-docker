@@ -1,0 +1,16 @@
+---
+- name: Ensure PasswordAuthentication is set to 'no'
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?PasswordAuthentication"
+    line: "PasswordAuthentication no"
+    backup: true
+  notify: Restart SSH
+
+- name: Ensure ChallengeResponseAuthentication is set to 'no'
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "^#?ChallengeResponseAuthentication"
+    line: "ChallengeResponseAuthentication no"
+    backup: true
+  notify: Restart SSH

@@ -1,0 +1,15 @@
+---
+- name: Update the apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Upgrade all installed packages and remove unused ones
+  ansible.builtin.apt:
+    upgrade: dist
+    autoremove: true
+
+- name: Reboot the server if required
+  ansible.builtin.reboot:
+    msg: "Reboot initiated by Ansible update playbook"
+  when: ansible_facts.reboot_required | default(false)

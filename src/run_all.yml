@@ -1,0 +1,9 @@
+---
+- name: Execute all roles
+  hosts: remoteservers
+  become: true
+  remote_user: "{{ ansible_initial_user }}"
+  roles:
+    - update_ubuntu
+    - disable_password_authentication
+    - create_deployment_user

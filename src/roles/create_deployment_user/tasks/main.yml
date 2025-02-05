@@ -1,0 +1,21 @@
+---
+- name: Ensure the deployment user exists
+  ansible.builtin.user:
+    name: "{{ ansible_deployment_user }}"
+    state: present
+    shell: /bin/bash
+    create_home: true
+
+- name: Ensure .ssh directory exists for the deployment user
+  ansible.builtin.file:
+    path: "/home/{{ ansible_deployment_user }}/.ssh"
+    state: directory
+    owner: "{{ ansible_deployment_user }}"
+    group: "{{ ansible_deployment_user }}"
+    mode: "0700"
+
+- name: Install the deployment user's public SSH key from SSH agent
+  ansible.posix.authorized_key:
+    user: "{{ ansible_deployment_user }}"
+    state: present
+    key: "{{ lookup('pipe', 'ssh-add -L | head -n 1') }}"
