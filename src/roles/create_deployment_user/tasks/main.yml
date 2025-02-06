@@ -14,8 +14,16 @@
     group: "{{ ansible_deployment_user }}"
     mode: "0700"
 
+- name: Retrieve the deployment user's public SSH key from SSH agent based on comment
+  set_fact:
+    deployment_pub_key: '{{ lookup(''pipe'', ''ssh-add -L | grep "'' ~ ansible_deployment_key_comment ~ ''" | head -n 1'') }}'
+
+- name: Print the selected deployment public SSH key
+  ansible.builtin.debug:
+    msg: "Using deployment public key: {{ deployment_pub_key }}"
+
 - name: Install the deployment user's public SSH key from SSH agent
   ansible.posix.authorized_key:
     user: "{{ ansible_deployment_user }}"
     state: present
-    key: "{{ lookup('pipe', 'ssh-add -L | head -n 1') }}"
+    key: "{{ deployment_pub_key }}"

@@ -1,6 +1,6 @@
 # Installing Docker in a remote server using Ansible script and running in Visual Studio Code using devcontainers
 
-This repository is to run Ansible scripts to update Ubuntu in a remote server and to install Docker on it. Them objective is to have a server that can later receive containerized applications.
+This repository is to run Ansible scripts to update Ubuntu in a remote server and to install Docker on it. The objective is to have a server that can later receive containerized applications.
 
 ## Prerequisites
 
@@ -8,7 +8,7 @@ This repository is to run Ansible scripts to update Ubuntu in a remote server an
 - Docker installed and running
 - Visual Studio Code installed
 - VS Code Remote - Containers extension installed
-- A remote server ready to work by ssh with a key deployed
+- An Ubuntu remote server ready to work by ssh with a key deployed
 
 ## Setup Instructions
 
@@ -115,6 +115,25 @@ Ensure the user.name and user.email match the values you provided in the .env fi
 
 You can now work on the project inside the Dev Container. All Git operations (commits, pushes, etc.) will use the configured Git user, ensuring consistency across environments.
 
+### Additional hosts.yml configuration
+
+```yml
+remoteservers:
+  hosts:
+    "bananas.com":
+      ansible_initial_user: "initial_username"
+      ansible_deployment_user: "deployment_username"
+      ansible_ssh_common_args: "-o ForwardAgent=yes"
+      ansible_python_interpreter: "/usr/bin/python3.10"
+```
+
+
+### Running the project
+
+```bash
+ansible-playbook run_all.yml
+```
+
 ### Additional VS Code Settings
 
 The .devcontainer/settings.json file includes recommended settings for the project, such as:
@@ -168,7 +187,10 @@ git-base/
 │   └── .env.example
 ├── launch_vscode.sh
 ├── src/
-│   └── ... (your source code)
+│   └── inventory/
+│   └── roles/
+│   └── ansible.cfg
+│   └── run_all.yml
 ├── README.md
 └── ... (other project files)
 ```
