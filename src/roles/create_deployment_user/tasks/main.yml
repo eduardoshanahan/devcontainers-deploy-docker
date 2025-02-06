@@ -15,7 +15,7 @@
     mode: "0700"
 
 - name: Retrieve the deployment user's public SSH key from SSH agent based on comment
-  set_fact:
+  ansible.builtin.set_fact:
     deployment_pub_key: '{{ lookup(''pipe'', ''ssh-add -L | grep "'' ~ ansible_deployment_key_comment ~ ''" | head -n 1'') }}'
 
 - name: Print the selected deployment public SSH key
