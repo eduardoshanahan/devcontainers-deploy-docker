@@ -1,5 +1,5 @@
 {
-    "name": "Devcontainer to deploy Docker in Ubuntu using Ansible",
+    "name": "Ubuntu Devcontainers Ansible",
     "build": {
         "dockerfile": "Dockerfile",
         "context": ".",
@@ -8,53 +8,73 @@
             "HOST_UID": "${localEnv:HOST_UID}",
             "HOST_GID": "${localEnv:HOST_GID}",
             "GIT_USER_NAME": "${localEnv:GIT_USER_NAME}",
-            "GIT_USER_EMAIL": "${localEnv:GIT_USER_EMAIL}"
+            "GIT_USER_EMAIL": "${localEnv:GIT_USER_EMAIL}",
+            "PYTHON_VERSION": "${localEnv:PYTHON_VERSION:-3.11}",
+            "ANSIBLE_VERSION": "${localEnv:ANSIBLE_VERSION:-9.2.0}",
+            "ANSIBLE_LINT_VERSION": "${localEnv:ANSIBLE_LINT_VERSION:-25.1.3}"
         }
-    },
-    "remoteUser": "${localEnv:HOST_USERNAME}",
-    "workspaceFolder": "/workspace",
-    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
-    "mounts": [
-        "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind"
-    ],
-    "remoteEnv": {
-        "SSH_AUTH_SOCK": "/ssh-agent"
     },
     "customizations": {
         "vscode": {
-            "settings": {
-                "terminal.integrated.shell.linux": "/bin/bash",
-                "python.defaultInterpreterPath": "/usr/bin/python3"
-            },
             "extensions": [
-                "ms-azuretools.vscode-docker",
-                "ms-vscode-remote.remote-containers",
-                "ms-vscode-remote.remote-ssh",
-                "eamodio.gitlens",
-                "codezombiech.gitignore",
-                "mhutchie.git-graph",
-                "donjayamanne.githistory",
-                "visualstudioexptteam.vscodeintellicode",
-                "streetsidesoftware.code-spell-checker",
-                "editorconfig.editorconfig",
-                "gruntfuggly.todo-tree",
-                "file-icons.file-icons",
-                "foxundermoon.shell-format",
-                "esbenp.prettier-vscode",
-                "yzhang.markdown-all-in-one", // Markdown All in One
-                "shd101wyy.markdown-preview-enhanced", // Markdown Preview Enhanced
-                "davidanson.vscode-markdownlint", // Markdown Lint
-                "fcrespo82.markdown-table-formatter", // Markdown Table Formatter
-                "mushan.vscode-paste-image", // Paste Image
-                "bierner.markdown-emoji", // Markdown Emoji
-                "bierner.markdown-footnotes", // Markdown Footnotes
-                "AlanWalk.markdown-toc", // Markdown TOC
                 "redhat.ansible",
                 "redhat.vscode-yaml",
-                "yaegashi.ansiblelint",
-                "wholroyd.jinja"
-            ]
+                "ms-azuretools.vscode-docker",
+                "ms-vscode-remote.remote-containers",
+                "DavidAnson.vscode-markdownlint",
+                "esbenp.prettier-vscode",
+                "dbaeumer.vscode-eslint"
+            ],
+            "settings": {
+                "ansible.ansible.path": "/usr/local/bin/ansible",
+                "ansible.ansibleLint.path": "/usr/local/bin/ansible-lint",
+                "ansible.python.interpreterPath": "/usr/bin/python3",
+                "ansible.validation.enabled": true,
+                "ansible.validation.lint.enabled": true,
+                "yaml.schemas": {
+                    "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible-lint.json": "**/ansible-lint.yml"
+                },
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "terminal.integrated.profiles.linux": {
+                    "bash": {
+                        "path": "/bin/bash",
+                        "icon": "terminal-bash"
+                    }
+                },
+                "editor.acceptSuggestionOnTab": false,
+                "editor.tabCompletion": "off",
+                "editor.acceptSuggestionOnEnter": "off"
+            }
         }
     },
-    "postCreateCommand": "echo 'DEVCONTAINER_USER in container:' $USER && whoami && id && ssh-add -l && ansible --version "
+    "remoteUser": "${localEnv:HOST_USERNAME}",
+    "updateRemoteUserUID": true,
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+    "workspaceFolder": "/workspace",
+    "mounts": [
+        "source=${localWorkspaceFolder}/.devcontainer,target=/home/${localEnv:HOST_USERNAME}/.devcontainer,type=bind,consistency=cached",
+        "source=${localEnv:HOME}/.ssh,target=/home/${localEnv:HOST_USERNAME}/.ssh,type=bind,consistency=cached"
+    ],
+    "postCreateCommand": "chmod +x ~/.devcontainer/scripts/post-create.sh && ~/.devcontainer/scripts/post-create.sh",
+    "initializeCommand": "chmod +x .devcontainer/scripts/load-env.sh && .devcontainer/scripts/load-env.sh",
+    "containerEnv": {
+        "USERNAME": "${localEnv:HOST_USERNAME}",
+        "USER_UID": "${localEnv:HOST_UID}",
+        "USER_GID": "${localEnv:HOST_GID}",
+        "CONTAINER_HOSTNAME": "${localEnv:CONTAINER_HOSTNAME:-devcontainers-ansible}",
+        "GIT_USER_NAME": "${localEnv:GIT_USER_NAME}",
+        "GIT_USER_EMAIL": "${localEnv:GIT_USER_EMAIL}",
+        "GIT_REMOTE_URL": "${localEnv:GIT_REMOTE_URL:-}",
+        "DOCKER_IMAGE_NAME": "${localEnv:DOCKER_IMAGE_NAME:-devcontainers-ansible}",
+        "DOCKER_IMAGE_TAG": "${localEnv:DOCKER_IMAGE_TAG:-latest}",
+        "PYTHON_VERSION": "${localEnv:PYTHON_VERSION:-3.11}",
+        "ANSIBLE_VERSION": "${localEnv:ANSIBLE_VERSION:-9.2.0}",
+        "ANSIBLE_LINT_VERSION": "${localEnv:ANSIBLE_LINT_VERSION:-25.1.3}"
+    },
+    "runArgs": [
+        "--hostname=${localEnv:CONTAINER_HOSTNAME:devcontainers-ansible}",
+        "--memory=${localEnv:CONTAINER_MEMORY:4g}",
+        "--cpus=${localEnv:CONTAINER_CPUS:2}",
+        "--shm-size=${localEnv:CONTAINER_SHM_SIZE:2g}"
+    ]
 }

@@ -73,9 +73,67 @@ ansible-playbook playbooks/deploy_docker.yml
 - Adds deployment user to docker group
 - Displays Docker and Docker Compose versions
 
-### 5. Full Deployment (`full.yml`)
+### 5. Configure Firewall (`configure_firewall.yml`)
 
-Runs all playbooks in the correct sequence for a complete system setup.
+Configures UFW (Uncomplicated Firewall) for basic network security.
+
+```bash
+ansible-playbook playbooks/configure_firewall.yml
+```
+
+**What it does:**
+
+- Installs and configures UFW
+- Sets up basic firewall rules
+- Enables SSH access
+- Activates the firewall
+
+### 6. Configure Fail2ban (`configure_fail2ban.yml`)
+
+Sets up fail2ban for SSH brute force protection.
+
+```bash
+ansible-playbook playbooks/configure_fail2ban.yml
+```
+
+**What it does:**
+
+- Installs and configures fail2ban
+- Sets up SSH protection rules
+- Configures jail settings
+- Starts and enables fail2ban service
+
+### 7. Configure Monitoring (`configure_monitoring.yml`)
+
+Sets up basic system monitoring tools.
+
+```bash
+ansible-playbook playbooks/configure_monitoring.yml
+```
+
+**What it does:**
+
+- Installs monitoring tools
+- Configures system monitoring
+- Sets up basic alerting
+
+### 8. Configure Log Rotation (`configure_log_rotation.yml`)
+
+Configures log rotation for disk space management.
+
+```bash
+ansible-playbook playbooks/configure_log_rotation.yml
+```
+
+**What it does:**
+
+- Configures logrotate
+- Sets up log rotation policies
+- Manages disk space usage
+
+### 9. Full Deployment (`full.yml`)
+
+Runs all core playbooks in the correct sequence for a complete system setup.
 
 ```bash
 ansible-playbook playbooks/full.yml
@@ -87,6 +145,8 @@ ansible-playbook playbooks/full.yml
 2. Secures SSH configuration
 3. Creates deployment user
 4. Installs and configures Docker
+
+**Note:** This does not include the additional security and monitoring playbooks. Run them separately if needed.
 
 ## Running Playbooks
 
@@ -140,8 +200,12 @@ For a fresh server setup, run playbooks in this order:
 2. `disable_password_authentication.yml` - SSH security
 3. `create_deployment_user.yml` - Create deployment user
 4. `deploy_docker.yml` - Install Docker
+5. `configure_firewall.yml` - Basic firewall (optional)
+6. `configure_fail2ban.yml` - SSH protection (optional)
+7. `configure_monitoring.yml` - System monitoring (optional)
+8. `configure_log_rotation.yml` - Log management (optional)
 
-Or simply run `full.yml` which executes all roles in the correct sequence.
+Or simply run `full.yml` which executes the core roles in the correct sequence.
 
 ## Configuration
 
