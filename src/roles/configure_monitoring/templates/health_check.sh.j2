@@ -1,0 +1,38 @@
+#!/bin/bash
+
+LOG_FILE="{{ configure_monitoring_log_file }}"
+DISK_THRESHOLD={{ configure_monitoring_disk_threshold }}
+MEMORY_THRESHOLD={{ configure_monitoring_memory_threshold }}
+CPU_THRESHOLD={{ configure_monitoring_cpu_threshold }}
+
+echo "$(date): Starting health check" >> "$LOG_FILE"
+
+# Check disk usage
+DISK_USAGE=$(df / | tail -1 | awk '{print $5}' | sed 's/%//')
+if [ "$DISK_USAGE" -gt "$DISK_THRESHOLD" ]; then
+    echo "$(date): WARNING - Disk usage is ${DISK_USAGE}%" >> "$LOG_FILE"
+fi
+
+# Check memory usage
+MEMORY_USAGE=$(free | grep Mem | awk '{printf("%.0f", $3/$2 * 100.0)}')
+if [ "$MEMORY_USAGE" -gt "$MEMORY_THRESHOLD" ]; then
+    echo "$(date): WARNING - Memory usage is ${MEMORY_USAGE}%" >> "$LOG_FILE"
+fi
+
+# Check CPU usage (5-second average)
+CPU_USAGE=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | sed 's/%us,//')
+if [ "$CPU_USAGE" -gt "$CPU_THRESHOLD" ]; then
+    echo "$(date): WARNING - CPU usage is ${CPU_USAGE}%" >> "$LOG_FILE"
+fi
+
+# Check Docker service
+if ! systemctl is-active --quiet docker; then
+    echo "$(date): ERROR - Docker service is not running" >> "$LOG_FILE"
+fi
+
+# Check fail2ban service
+if ! systemctl is-active --quiet fail2ban; then
+    echo "$(date): ERROR - Fail2ban service is not running" >> "$LOG_FILE"
+fi
+
+echo "$(date): Health check completed" >> "$LOG_FILE" 

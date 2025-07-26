@@ -1,0 +1,91 @@
+---
+- name: Install monitoring tools
+  ansible.builtin.apt:
+    name:
+      - htop
+      - iotop
+      - nethogs
+      - ncdu
+      - tree
+      - curl
+      - wget
+      - net-tools
+      - procps
+    state: present
+    update_cache: true
+  become: true
+
+- name: Create monitoring scripts directory
+  ansible.builtin.file:
+    path: /opt/monitoring
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Create system health check script
+  ansible.builtin.template:
+    src: health_check.sh.j2
+    dest: /opt/monitoring/health_check.sh
+    owner: root
+    group: root
+    mode: "0755"
+    backup: true
+  become: true
+
+- name: Create disk space monitoring script
+  ansible.builtin.template:
+    src: disk_check.sh.j2
+    dest: /opt/monitoring/disk_check.sh
+    owner: root
+    group: root
+    mode: "0755"
+    backup: true
+  become: true
+
+- name: Create Docker health check script
+  ansible.builtin.template:
+    src: docker_check.sh.j2
+    dest: /opt/monitoring/docker_check.sh
+    owner: root
+    group: root
+    mode: "0755"
+    backup: true
+  become: true
+
+- name: Configure systemd timer for health checks
+  ansible.builtin.template:
+    src: health-monitor.service.j2
+    dest: /etc/systemd/system/health-monitor.service
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  become: true
+
+- name: Configure systemd timer
+  ansible.builtin.template:
+    src: health-monitor.timer.j2
+    dest: /etc/systemd/system/health-monitor.timer
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  become: true
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  become: true
+
+- name: Enable and start health monitoring timer
+  ansible.builtin.systemd:
+    name: health-monitor.timer
+    enabled: true
+    state: started
+  become: true
+
+- name: Display monitoring tools installation
+  ansible.builtin.debug:
+    msg: "Monitoring tools installed and health checks configured"

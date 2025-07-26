@@ -1,0 +1,64 @@
+---
+- name: Install UFW
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+    update_cache: true
+  become: true
+
+- name: Configure UFW default policies
+  community.general.ufw:
+    direction: "{{ item }}"
+    policy: "{{ 'deny' if item == 'incoming' else 'allow' }}"
+  loop:
+    - incoming
+    - outgoing
+  become: true
+
+- name: Allow SSH
+  community.general.ufw:
+    rule: allow
+    port: 22
+  become: true
+
+- name: Allow HTTP and HTTPS
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+  loop:
+    - 80
+    - 443
+  become: true
+
+- name: Allow Docker networks
+  community.general.ufw:
+    rule: allow
+    src: "{{ item }}"
+  loop:
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+    - 10.0.0.0/8
+  become: true
+
+- name: Allow specific container ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+  loop: "{{ configure_firewall_container_ports }}"
+  become: true
+  when: configure_firewall_container_ports is defined and configure_firewall_container_ports | length > 0
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+  become: true
+
+- name: Display UFW status
+  ansible.builtin.command: ufw status verbose
+  register: ufw_status
+  changed_when: false
+  become: true
+
+- name: Debug UFW status
+  ansible.builtin.debug:
+    msg: "{{ ufw_status.stdout_lines }}"

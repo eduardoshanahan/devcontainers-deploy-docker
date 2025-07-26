@@ -1,0 +1,67 @@
+# Ansible specific
+*.retry
+.ansible/
+ansible.log
+
+# SSH keys and certificates
+*.pem
+*.key
+*.pub
+id_rsa*
+id_ed25519*
+*.ppk
+
+# Environment variables and secrets
+.env
+.env.*
+*.env
+secrets.yml
+vault.yml
+group_vars/*/vault.yml
+host_vars/*/vault.yml
+
+# Inventory with sensitive data
+inventory/production/
+inventory/staging/
+hosts_production.yml
+hosts_staging.yml
+inventory/group_vars/all.yml
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# Logs
+*.log
+logs/
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/ 

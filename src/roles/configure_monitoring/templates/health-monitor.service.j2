@@ -1,0 +1,15 @@
+[Unit]
+Description=System Health Monitor
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/monitoring/health_check.sh
+ExecStart=/opt/monitoring/disk_check.sh
+ExecStart=/opt/monitoring/docker_check.sh
+User=root
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target 

@@ -1,0 +1,65 @@
+---
+- name: Install logrotate
+  ansible.builtin.apt:
+    name: logrotate
+    state: present
+    update_cache: true
+  become: true
+
+- name: Create custom logrotate configuration directory
+  ansible.builtin.file:
+    path: /etc/logrotate.d
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Configure system-wide logrotate settings
+  ansible.builtin.template:
+    src: logrotate.conf.j2
+    dest: /etc/logrotate.conf
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  become: true
+
+- name: Configure Docker logs rotation
+  ansible.builtin.template:
+    src: docker.j2
+    dest: /etc/logrotate.d/docker
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  become: true
+
+- name: Configure fail2ban logs rotation
+  ansible.builtin.template:
+    src: fail2ban.j2
+    dest: /etc/logrotate.d/fail2ban
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  become: true
+
+- name: Configure SSH logs rotation
+  ansible.builtin.template:
+    src: ssh.j2
+    dest: /etc/logrotate.d/ssh
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  become: true
+
+- name: Test logrotate configuration
+  ansible.builtin.command: logrotate -d /etc/logrotate.conf
+  register: logrotate_test
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: Debug logrotate test results
+  ansible.builtin.debug:
+    msg: "{{ logrotate_test.stdout_lines if logrotate_test.rc == 0 else 'Logrotate configuration test failed' }}"

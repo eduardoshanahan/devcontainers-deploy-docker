@@ -1,0 +1,7 @@
+---
+# Monitoring configuration
+configure_monitoring_health_check_interval: 300 # 5 minutes
+configure_monitoring_disk_threshold: 85 # Alert when disk usage > 85%
+configure_monitoring_memory_threshold: 90 # Alert when memory usage > 90%
+configure_monitoring_cpu_threshold: 80 # Alert when CPU usage > 80%
+configure_monitoring_log_file: "/var/log/health-monitor.log"

@@ -1,0 +1,10 @@
+---
+
+vps_server_ip: "your-vps-address-ip-name"  
+initial_deployment_user: "initial-deployment-username"
+initial_deployment_ssh_key: "~/.ssh/initial-deployment-private-key"
+containers_deployment_user: "containers-deployment-user-name"
+containers_deployment_user_ssh_key: "~/.ssh/containers-deployment-private-key"
+containers_deployment_user_ssh_key_public: "/home/containers-deployment-user-name/.ssh/containers-deployment-public-key"
+ansible_ssh_common_args: "-o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
+ansible_python_interpreter: "/usr/bin/python3.10"

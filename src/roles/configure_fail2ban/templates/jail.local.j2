@@ -1,0 +1,12 @@
+[DEFAULT]
+bantime = {{ configure_fail2ban_bantime }}
+findtime = {{ configure_fail2ban_findtime }}
+maxretry = {{ configure_fail2ban_maxretry }}
+ignoreip = {{ configure_fail2ban_ignoreip }}
+
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = {{ configure_fail2ban_maxretry }} 

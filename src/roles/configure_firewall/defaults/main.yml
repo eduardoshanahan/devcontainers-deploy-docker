@@ -1,0 +1,8 @@
+---
+# List of additional container ports to allow through firewall
+# Add ports your containers will expose to the internet
+configure_firewall_container_ports:
+  []
+  # - 8080 # Example: Web application port
+  # - 3000 # Example: Node.js application port
+  # - 9000 # Example: Portainer port

@@ -1,0 +1,17 @@
+#!/bin/bash
+
+LOG_FILE="{{ configure_monitoring_log_file }}"
+THRESHOLD={{ configure_monitoring_disk_threshold }}
+
+echo "$(date): Starting disk space check" >> "$LOG_FILE"
+
+# Check disk usage for all mounted filesystems
+df -h | grep -E '^/dev/' | while read line; do
+    USAGE=$(echo "$line" | awk '{print $5}' | sed 's/%//')
+    MOUNT=$(echo "$line" | awk '{print $6}')
+    if [ "$USAGE" -gt "$THRESHOLD" ]; then
+        echo "$(date): WARNING - Disk usage on $MOUNT is ${USAGE}%" >> "$LOG_FILE"
+    fi
+done
+
+echo "$(date): Disk check completed" >> "$LOG_FILE" 

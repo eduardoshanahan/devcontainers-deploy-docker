@@ -1,0 +1,14 @@
+# Docker logs rotation
+/var/lib/docker/containers/*/*.log {
+    rotate {{ configure_log_rotation_rotate }}
+    {% if configure_log_rotation_compress %}compress{% endif %}
+    {% if configure_log_rotation_delaycompress %}delaycompress{% endif %}
+    {% if configure_log_rotation_missingok %}missingok{% endif %}
+    {% if configure_log_rotation_notifempty %}notifempty{% endif %}
+    {% if configure_log_rotation_create %}create 644 root root{% endif %}
+    {% if configure_log_rotation_dateext %}dateext{% endif %}
+    {% if configure_log_rotation_dateformat %}dateformat {{ configure_log_rotation_dateformat }}{% endif %}
+    {% if configure_log_rotation_weekly %}weekly{% else %}daily{% endif %}
+    maxsize 100M
+    copytruncate
+} 

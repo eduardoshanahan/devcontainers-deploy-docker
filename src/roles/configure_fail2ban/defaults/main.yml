@@ -1,0 +1,6 @@
+---
+# Fail2ban configuration
+configure_fail2ban_bantime: 3600
+configure_fail2ban_findtime: 600
+configure_fail2ban_maxretry: 3
+configure_fail2ban_ignoreip: "127.0.0.1/8 ::1"

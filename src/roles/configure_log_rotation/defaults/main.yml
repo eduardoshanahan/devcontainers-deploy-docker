@@ -1,0 +1,11 @@
+---
+# Log rotation configuration
+configure_log_rotation_weekly: true
+configure_log_rotation_rotate: 4
+configure_log_rotation_compress: true
+configure_log_rotation_delaycompress: true
+configure_log_rotation_missingok: true
+configure_log_rotation_notifempty: true
+configure_log_rotation_create: true
+configure_log_rotation_dateext: true
+configure_log_rotation_dateformat: "-%Y%m%d"

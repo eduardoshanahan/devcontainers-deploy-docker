@@ -1,0 +1,43 @@
+---
+- name: Ensure the deployment user exists
+  ansible.builtin.user:
+    name: "{{ containers_deployment_user }}"
+    state: present
+    shell: /bin/bash
+    create_home: true
+
+- name: Ensure .ssh directory exists for the deployment user
+  ansible.builtin.file:
+    path: "/home/{{ containers_deployment_user }}/.ssh"
+    state: directory
+    owner: "{{ containers_deployment_user }}"
+    group: "{{ containers_deployment_user }}"
+    mode: "0700"
+
+- name: Check if SSH public key exists locally
+  ansible.builtin.stat:
+    path: "{{ containers_deployment_user_ssh_key_public }}"
+  register: ssh_key_file
+  delegate_to: localhost
+
+- name: Fail if SSH public key does not exist locally
+  ansible.builtin.fail:
+    msg: "SSH public key file {{ containers_deployment_user_ssh_key_public }} does not exist locally"
+  when: not ssh_key_file.stat.exists
+  delegate_to: localhost
+
+- name: Install the deployment user's public SSH key
+  ansible.posix.authorized_key:
+    user: "{{ containers_deployment_user }}"
+    state: present
+    key: "{{ lookup('file', containers_deployment_user_ssh_key_public) }}"
+  when: ssh_key_file.stat.exists
+
+- name: Configure passwordless sudo for the deployment user
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ containers_deployment_user }}"
+    content: "{{ containers_deployment_user }} ALL=(ALL) NOPASSWD:ALL"
+    owner: root
+    group: root
+    mode: "0440"
+  become: true

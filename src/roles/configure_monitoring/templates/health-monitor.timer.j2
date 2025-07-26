@@ -1,0 +1,11 @@
+[Unit]
+Description=Run health monitoring every {{ configure_monitoring_health_check_interval }} seconds
+Requires=health-monitor.service
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec={{ configure_monitoring_health_check_interval }}
+Unit=health-monitor.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,33 @@
+#!/bin/bash
+
+LOG_FILE="{{ configure_monitoring_log_file }}"
+
+echo "$(date): Starting Docker health check" >> "$LOG_FILE"
+
+# Check if Docker is running
+if ! systemctl is-active --quiet docker; then
+    echo "$(date): ERROR - Docker service is not running" >> "$LOG_FILE"
+    exit 1
+fi
+
+# Check Docker containers
+if command -v docker &> /dev/null; then
+    # Get list of running containers
+    RUNNING_CONTAINERS=$(docker ps --format "table {% raw %}{{.Names}}{% endraw %}\t{% raw %}{{.Status}}{% endraw %}" | tail -n +2)
+    
+    if [ -z "$RUNNING_CONTAINERS" ]; then
+        echo "$(date): INFO - No Docker containers are running" >> "$LOG_FILE"
+    else
+        echo "$(date): INFO - Running containers:" >> "$LOG_FILE"
+        echo "$RUNNING_CONTAINERS" >> "$LOG_FILE"
+    fi
+    
+    # Check for stopped containers
+    STOPPED_CONTAINERS=$(docker ps -a --filter "status=exited" --format "table {% raw %}{{.Names}}{% endraw %}\t{% raw %}{{.Status}}{% endraw %}" | tail -n +2)
+    if [ -n "$STOPPED_CONTAINERS" ]; then
+        echo "$(date): WARNING - Stopped containers found:" >> "$LOG_FILE"
+        echo "$STOPPED_CONTAINERS" >> "$LOG_FILE"
+    fi
+fi
+
+echo "$(date): Docker check completed" >> "$LOG_FILE" 

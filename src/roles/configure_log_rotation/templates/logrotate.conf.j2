@@ -1,0 +1,32 @@
+# Global logrotate configuration
+{% if configure_log_rotation_weekly %}
+weekly
+{% else %}
+daily
+{% endif %}
+
+rotate {{ configure_log_rotation_rotate }}
+{% if configure_log_rotation_compress %}
+compress
+{% endif %}
+{% if configure_log_rotation_delaycompress %}
+delaycompress
+{% endif %}
+{% if configure_log_rotation_missingok %}
+missingok
+{% endif %}
+{% if configure_log_rotation_notifempty %}
+notifempty
+{% endif %}
+{% if configure_log_rotation_create %}
+create
+{% endif %}
+{% if configure_log_rotation_dateext %}
+dateext
+{% endif %}
+{% if configure_log_rotation_dateformat %}
+dateformat {{ configure_log_rotation_dateformat }}
+{% endif %}
+
+# Include logrotate configurations from /etc/logrotate.d
+include /etc/logrotate.d 

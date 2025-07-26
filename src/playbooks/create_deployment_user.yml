@@ -1,0 +1,9 @@
+---
+- name: Create deployment user for containers
+  hosts: all
+  become: true
+  remote_user: "{{ initial_deployment_user }}"
+  vars:
+    ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
+  roles:
+    - create_deployment_user

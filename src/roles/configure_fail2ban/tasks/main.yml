@@ -1,0 +1,65 @@
+---
+- name: Install fail2ban
+  ansible.builtin.apt:
+    name: fail2ban
+    state: present
+    update_cache: true
+  become: true
+
+- name: Create fail2ban configuration directory
+  ansible.builtin.file:
+    path: /etc/fail2ban
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Configure fail2ban main configuration
+  ansible.builtin.template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  become: true
+  notify: restart fail2ban
+
+- name: Configure SSH jail
+  ansible.builtin.template:
+    src: sshd.local.j2
+    dest: /etc/fail2ban/jail.d/sshd.local
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  become: true
+  notify: restart fail2ban
+
+- name: Check fail2ban service status
+  ansible.builtin.service:
+    name: fail2ban
+    state: started
+    enabled: true
+  become: true
+
+- name: Display fail2ban service status
+  ansible.builtin.command: systemctl status fail2ban
+  register: fail2ban_service_status
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: Debug fail2ban service status
+  ansible.builtin.debug:
+    msg: "{{ fail2ban_service_status.stdout_lines }}"
+
+- name: Display fail2ban status (if available)
+  ansible.builtin.command: fail2ban-client status
+  register: fail2ban_status
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: Debug fail2ban status
+  ansible.builtin.debug:
+    msg: "{{ fail2ban_status.stdout_lines if fail2ban_status.rc == 0 else 'Fail2ban client not responding - check service status above' }}"
