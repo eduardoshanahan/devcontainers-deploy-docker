@@ -31,6 +31,12 @@
     update_cache: true
   become: true
 
+- name: Install Docker Python library for Ansible
+  ansible.builtin.pip:
+    name: docker
+    state: present
+  become: true
+
 - name: Ensure Docker service is started and enabled
   ansible.builtin.service:
     name: docker
