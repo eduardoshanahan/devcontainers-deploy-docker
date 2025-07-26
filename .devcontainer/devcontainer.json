@@ -1,5 +1,5 @@
 {
-    "name": "Ubuntu Devcontainers Ansible",
+    "name": "Ubuntu Devcontainers Ansible to deploy Docker in Ubuntu",
     "build": {
         "dockerfile": "Dockerfile",
         "context": ".",
