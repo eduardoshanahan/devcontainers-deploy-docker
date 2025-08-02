@@ -37,12 +37,95 @@
     state: present
   become: true
 
-- name: Ensure Docker service is started and enabled
+# Remove problematic daemon.json first
+- name: Remove existing daemon.json if it exists
+  ansible.builtin.file:
+    path: /etc/docker/daemon.json
+    state: absent
+  become: true
+
+# Try starting Docker with default configuration
+- name: Ensure Docker service is started and enabled (default config)
   ansible.builtin.service:
     name: docker
     state: started
     enabled: true
   become: true
+
+- name: Check Docker service status
+  ansible.builtin.command: systemctl status docker.service
+  register: docker_status
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: Display Docker service status
+  ansible.builtin.debug:
+    msg: "{{ docker_status.stdout }}"
+
+# Only proceed with security configuration if Docker is working
+- name: Ensure Docker configuration directory exists
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+  when: deploy_docker_security_enabled | default(true)
+
+- name: Configure Docker daemon security template
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when: deploy_docker_security_enabled | default(true)
+  notify: Restart docker
+
+- name: Configure Docker seccomp profile
+  ansible.builtin.template:
+    src: seccomp-profile.json.j2
+    dest: /etc/docker/seccomp-profile.json
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when: deploy_docker_security_enabled | default(true)
+  notify: Restart docker
+
+- name: Ensure AppArmor is installed and enabled
+  ansible.builtin.apt:
+    name: apparmor
+    state: present
+  become: true
+  when: deploy_docker_security_enabled | default(true)
+
+- name: Ensure AppArmor service is started and enabled
+  ansible.builtin.service:
+    name: apparmor
+    state: started
+    enabled: true
+  become: true
+  when: deploy_docker_security_enabled | default(true)
+
+- name: Configure user namespace isolation
+  ansible.builtin.lineinfile:
+    path: /etc/subuid
+    line: "{{ containers_deployment_user }}:100000:65536"
+    state: present
+  become: true
+  when: deploy_docker_security_enabled | default(true)
+
+- name: Configure user namespace GID mapping
+  ansible.builtin.lineinfile:
+    path: /etc/subgid
+    line: "{{ containers_deployment_user }}:100000:65536"
+    state: present
+  become: true
+  when: deploy_docker_security_enabled | default(true)
 
 - name: Add deployment user to the docker group
   ansible.builtin.user:

@@ -1,0 +1,11 @@
+{
+  "userns-remap": "{{ deploy_docker_userns_remap | default('default') }}",
+  "live-restore": {{ deploy_docker_live_restore | default(true) | lower }},
+  "seccomp-profile": "/etc/docker/seccomp-profile.json",
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  },
+  "storage-driver": "overlay2"
+} 
