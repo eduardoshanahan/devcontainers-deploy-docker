@@ -33,10 +33,10 @@
     key: "{{ lookup('file', containers_deployment_user_ssh_key_public) }}"
   when: ssh_key_file.stat.exists
 
-- name: Configure passwordless sudo for the deployment user
-  ansible.builtin.copy:
+- name: Configure restricted sudo for the deployment user
+  ansible.builtin.template:
+    src: sudoers.j2
     dest: "/etc/sudoers.d/{{ containers_deployment_user }}"
-    content: "{{ containers_deployment_user }} ALL=(ALL) NOPASSWD:ALL"
     owner: root
     group: root
     mode: "0440"
