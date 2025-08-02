@@ -9,6 +9,7 @@ I needed a way to fire up a fresh VPS with Ubuntu, update it and deploy Docker t
 - **Automate server preparation:** Update Ubuntu and install Docker on remote servers using Ansible playbooks.
 - **Enable containerized deployments:** Set up servers to be ready for containerized applications, reducing manual configuration and potential errors.
 - **Leverage Devcontainers:** Use Visual Studio Code Devcontainers for a consistent development and automation environment.
+- **Secure deployments:** Implement host key verification and secure SSH configurations for production deployments.
 
 ## Key Features
 
@@ -16,8 +17,24 @@ I needed a way to fire up a fresh VPS with Ubuntu, update it and deploy Docker t
 - **Devcontainer Integration:** Provides a ready-to-use development environment with all necessary tools and configurations for working with Ansible and Docker.
 - **Modular Roles:** Organized Ansible roles for tasks such as Docker installation, firewall configuration, monitoring, and more.
 - **Inventory Management:** Inventory structure for managing multiple remote servers.
-- **Security Features:** Built-in security configurations including SSH hardening, firewall setup, and fail2ban protection.
+- **Security Features:** Built-in security configurations including SSH hardening, firewall setup, fail2ban protection, and host key verification.
 - **Monitoring & Maintenance:** Automated monitoring, log rotation, and system health checks.
+- **Environment-specific Configurations:** Separate configurations for development and production environments.
+
+## Security Configuration
+
+This project implements secure Ansible configurations with host key verification:
+
+- **Secure by default:** `ansible.cfg` uses strict host key checking
+- **Development mode:** `ansible.dev.cfg` for testing with relaxed security
+- **Host key management:** `inventory/known_hosts` for verified server fingerprints
+- **Documentation:** See `src/SECURITY.md` for detailed security setup and troubleshooting
+
+### Configuration Files
+
+- `ansible.cfg` - Default secure configuration (production-ready)
+- `ansible.dev.cfg` - Development configuration (less strict for testing)
+- `inventory/known_hosts` - Managed host key verification file
 
 ## Project Structure
 
@@ -32,6 +49,7 @@ workspace/
 ├── src/
 │   ├── inventory/           # Ansible inventory and group variables
 │   │   ├── hosts.yml        # Host definitions
+│   │   ├── known_hosts      # Host key verification file
 │   │   └── group_vars/      # Global variables
 │   ├── playbooks/           # Ansible playbooks
 │   │   ├── full.yml         # Complete system deployment
@@ -50,7 +68,9 @@ workspace/
 │   │   ├── configure_fail2ban/
 │   │   ├── configure_monitoring/
 │   │   └── configure_log_rotation/
-│   └── ansible.cfg          # Ansible configuration
+│   ├── ansible.cfg          # Default secure Ansible configuration
+│   ├── ansible.dev.cfg      # Development configuration
+│   └── SECURITY.md          # Security documentation
 ├── README.md                # Project overview (this file)
 └── ... (other project files)
 ```
@@ -80,6 +100,7 @@ workspace/
 - **Ubuntu:** Target operating system for remote server setup.
 - **UFW:** Uncomplicated Firewall for network security.
 - **Fail2ban:** Intrusion prevention software for SSH protection.
+- **SSH Host Key Verification:** Secure connection validation for production deployments.
 
 ## When to Use This Project
 
@@ -87,6 +108,7 @@ workspace/
 - You want to automate server setup and configuration using Ansible.
 - You prefer working in a consistent, containerized development environment with Devcontainers.
 - You need comprehensive server security and monitoring setup.
+- You require secure, production-ready deployment configurations.
 
 ## Quick Start
 
@@ -98,14 +120,25 @@ workspace/
    # Edit all.yml with your server details
    ```
 
-2. **Run full deployment:**
+2. **Configure host keys (required for secure deployment):**
 
    ```bash
    cd src
-   ansible-playbook playbooks/full.yml
+   # Add your server's host key
+   ssh-keyscan -H your_server_ip >> inventory/known_hosts
    ```
 
-3. **Optional security and monitoring:**
+3. **Run full deployment:**
+
+   ```bash
+   # Use default secure configuration
+   ansible-playbook playbooks/full.yml
+   
+   # Or use development config for testing
+   ansible-playbook --config-file ansible.dev.cfg playbooks/full.yml
+   ```
+
+4. **Optional security and monitoring:**
 
    ```bash
    ansible-playbook playbooks/configure_firewall.yml
@@ -113,6 +146,10 @@ workspace/
    ansible-playbook playbooks/configure_monitoring.yml
    ansible-playbook playbooks/configure_log_rotation.yml
    ```
+
+## Security Documentation
+
+For detailed information about security configuration, host key management, and troubleshooting, see `src/SECURITY.md`.
 
 ---
 
