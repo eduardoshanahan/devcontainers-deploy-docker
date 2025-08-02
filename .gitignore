@@ -69,6 +69,7 @@ htmlcov/
 # Ansible
 .ansible/
 src/inventory/group_vars/all.yml
+src/inventory/known_hosts
 
 # Virtual Environment
 venv/
