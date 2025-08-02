@@ -134,6 +134,20 @@
     append: true
   become: true
 
+# Network configuration tasks
+- name: Configure Docker network security settings
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop:
+    - { name: "net.bridge.bridge-nf-call-iptables", value: "1" }
+    - { name: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+    - { name: "net.ipv4.ip_forward", value: "1" }
+  become: true
+  when: deploy_docker_network_configuration.network_security.enable_bridge_netfilter | default(true)
+
 - name: Display Docker version
   ansible.builtin.command: docker --version
   register: docker_version
@@ -156,3 +170,14 @@
     msg: >-
       Docker Compose is {{ 'available' if docker_compose_check.rc == 0 else 'not available' }}
       {{ ' - Version: ' + docker_compose_check.stdout if docker_compose_check.rc == 0 else '' }}
+
+# Display network information
+- name: List Docker networks
+  ansible.builtin.command: docker network ls --format "table {{ '{{' }}.Name{{ '}}' }}\t{{ '{{' }}.Driver{{ '}}' }}\t{{ '{{' }}.Scope{{ '}}' }}"
+  register: docker_networks
+  changed_when: false
+  become: true
+
+- name: Debug Docker networks
+  ansible.builtin.debug:
+    msg: "{{ docker_networks.stdout_lines }}"

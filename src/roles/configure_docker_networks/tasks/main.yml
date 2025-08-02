@@ -1,0 +1,65 @@
+---
+- name: Check if Docker is running
+  ansible.builtin.command: docker info
+  register: docker_info
+  changed_when: false
+  failed_when: false
+
+- name: Fail if Docker is not running
+  ansible.builtin.fail:
+    msg: "Docker is not running. Please install and start Docker first."
+  when: docker_info.rc != 0
+
+# Create default networks
+- name: Create default Docker networks
+  community.docker.docker_network:
+    name: "{{ item.name }}"
+    driver: "{{ item.driver | default(configure_docker_networks_default_driver) }}"
+    ipam_config:
+      - subnet: "{{ item.subnet }}"
+    state: present
+    labels:
+      description: "{{ item.description }}"
+      environment: "{{ configure_docker_networks_labels.environment }}"
+      managed_by: "{{ configure_docker_networks_labels.managed_by }}"
+  loop: "{{ configure_docker_networks_default_networks }}"
+  become: true
+
+# Create custom networks if defined
+- name: Create custom Docker networks
+  community.docker.docker_network:
+    name: "{{ item.name }}"
+    driver: "{{ item.driver | default(configure_docker_networks_default_driver) }}"
+    ipam_config:
+      - subnet: "{{ item.subnet }}"
+    state: present
+    labels:
+      description: "{{ item.description | default('Custom network') }}"
+      environment: "{{ configure_docker_networks_labels.environment }}"
+      managed_by: "{{ configure_docker_networks_labels.managed_by }}"
+  loop: "{{ configure_docker_networks_custom_networks }}"
+  become: true
+  when: configure_docker_networks_custom_networks | length > 0
+
+# Display network information
+- name: List Docker networks
+  ansible.builtin.command: docker network ls --format "table {{ '{{' }}.Name{{ '}}' }}\t{{ '{{' }}.Driver{{ '}}' }}\t{{ '{{' }}.Scope{{ '}}' }}"
+  register: docker_networks
+  changed_when: false
+  become: true
+
+- name: Debug Docker networks
+  ansible.builtin.debug:
+    msg: "{{ docker_networks.stdout_lines }}"
+
+# Verify network connectivity
+- name: Test network connectivity
+  ansible.builtin.command: docker run --rm --network web-network alpine ping -c 1 8.8.8.8
+  register: network_test
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: Debug network connectivity test
+  ansible.builtin.debug:
+    msg: "Network connectivity test: {{ 'PASSED' if network_test.rc == 0 else 'FAILED' }}"

@@ -1,0 +1,9 @@
+---
+- name: Configure Docker networks with specific ranges
+  hosts: all
+  become: true
+  remote_user: "{{ initial_deployment_user }}"
+  vars:
+    ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
+  roles:
+    - configure_docker_networks

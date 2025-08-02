@@ -1,0 +1,51 @@
+---
+# Test configuration
+test_network_security_enabled: true
+
+# Test containers for network validation
+test_network_security_test_containers:
+  - name: "test-web"
+    image: "alpine:latest"
+    network: "web-network"
+    command: "tail -f /dev/null"
+    service: "web"
+  - name: "test-db"
+    image: "alpine:latest"
+    network: "db-network"
+    command: "tail -f /dev/null"
+    service: "database"
+  - name: "test-monitoring"
+    image: "alpine:latest"
+    network: "monitoring-network"
+    command: "tail -f /dev/null"
+    service: "monitoring"
+
+# Expected network configurations
+test_network_security_expected_networks:
+  - name: "web-network"
+    subnet: "172.30.0.0/16"
+    driver: "bridge"
+  - name: "db-network"
+    subnet: "172.31.0.0/16"
+    driver: "bridge"
+  - name: "monitoring-network"
+    subnet: "172.32.0.0/16"
+    driver: "bridge"
+
+# Expected firewall rules
+test_network_security_expected_firewall_rules:
+  - rule: "allow"
+    port: "22"
+  - rule: "allow"
+    port: "80"
+  - rule: "allow"
+    port: "443"
+  - rule: "allow"
+    src: "172.30.0.0/16"
+  - rule: "allow"
+    src: "172.31.0.0/16"
+  - rule: "allow"
+    src: "172.32.0.0/16"
+
+# Test timeout settings
+test_network_security_timeout: 30

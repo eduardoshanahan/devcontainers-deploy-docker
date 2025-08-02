@@ -1,10 +1,80 @@
 ---
+# Server Configuration
+vps_server_ip: "your-server-ip-or-hostname"
+initial_deployment_user: "ubuntu"
+initial_deployment_ssh_key: "~/.ssh/your-ssh-key"
+containers_deployment_user: "docker_deployment"
+containers_deployment_user_ssh_key: "~/.ssh/your-deployment-key"
+containers_deployment_user_ssh_key_public: "/path/to/your/public/key.pub"
 
-vps_server_ip: "your-vps-address-ip-name"  
-initial_deployment_user: "initial-deployment-username"
-initial_deployment_ssh_key: "~/.ssh/initial-deployment-private-key"
-containers_deployment_user: "containers-deployment-user-name"
-containers_deployment_user_ssh_key: "~/.ssh/containers-deployment-private-key"
-containers_deployment_user_ssh_key_public: "/home/containers-deployment-user-name/.ssh/containers-deployment-public-key"
+# SSH Configuration
 ansible_ssh_common_args: "-o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
 ansible_python_interpreter: "/usr/bin/python3.10"
+
+# Firewall Configuration
+configure_firewall_docker_networks:
+  - 172.20.0.0/16  # Web applications network
+  - 172.21.0.0/16  # Database network
+  - 172.22.0.0/16  # Monitoring network
+
+configure_firewall_container_ports:
+  - 8080  # Web application port
+  - 3000  # Node.js application port
+  - 9000  # Portainer port
+  - 5432  # PostgreSQL port
+  - 3306  # MySQL port
+
+configure_firewall_logging_level: "medium"
+
+# Docker Network Configuration
+configure_docker_networks_custom_networks:
+  - name: "api-network"
+    subnet: "172.23.0.0/16"
+    driver: "bridge"
+    description: "API services network"
+  - name: "cache-network"
+    subnet: "172.24.0.0/16"
+    driver: "bridge"
+    description: "Cache and session storage network"
+
+# Docker Configuration
+deploy_docker_network_configuration:
+  default_networks:
+    - name: "web-network"
+      subnet: "172.20.0.0/16"
+      driver: "bridge"
+    - name: "db-network"
+      subnet: "172.21.0.0/16"
+      driver: "bridge"
+    - name: "monitoring-network"
+      subnet: "172.22.0.0/16"
+      driver: "bridge"
+  
+  network_isolation: true
+  default_container_network: "web-network"
+  
+  network_security:
+    enable_bridge_netfilter: true
+    enable_ip_forwarding: true
+    enable_network_isolation: true
+
+# Network Policies (service-to-network mappings)
+deploy_docker_network_policies:
+  web_services:
+    - "nginx"
+    - "apache"
+    - "nodejs"
+    - "react"
+    - "vue"
+  
+  database_services:
+    - "postgres"
+    - "mysql"
+    - "redis"
+    - "mongodb"
+  
+  monitoring_services:
+    - "prometheus"
+    - "grafana"
+    - "elasticsearch"
+    - "kibana"

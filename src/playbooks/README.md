@@ -1,217 +1,244 @@
 # Ansible Playbooks
 
-This directory contains Ansible playbooks for server provisioning and configuration.
+This directory contains all the Ansible playbooks for server configuration and deployment.
 
-## Prerequisites
+## Core Playbooks
 
-- Ensure you're in the project root directory: `/workspace/src`
-- Verify your SSH keys are properly configured
-- Check that your inventory files are set up correctly
+### `full.yml`
 
-## Available Playbooks
-
-### 1. Update Ubuntu System (`update_ubuntu.yml`)
-
-Updates the Ubuntu system packages and performs system upgrades.
-
-```bash
-ansible-playbook playbooks/update_ubuntu.yml
-```
+Complete system deployment playbook. This is the main playbook that orchestrates the entire server setup process.
 
 **What it does:**
 
-- Updates package cache (`apt update`)
-- Upgrades all packages (`apt upgrade`)
+- Updates Ubuntu system
+- Installs Docker
+- Creates deployment user
+- Disables password authentication
+- Configures firewall with secure networks
+- Sets up Docker networks
+- Configures fail2ban
+- Sets up monitoring
+- Configures log rotation
 
-### 2. Disable Password Authentication (`disable_password_authentication.yml`)
-
-Secures SSH configuration by disabling password authentication and other security measures.
-
-```bash
-ansible-playbook playbooks/disable_password_authentication.yml
-```
-
-**What it does:**
-
-- Disables password authentication (key-based only)
-- Disables root login
-- Disables empty passwords
-- Validates SSH configuration
-- Restarts SSH service
-
-**Important:** Ensure your SSH key authentication is working before running this playbook.
-
-### 3. Create Deployment User (`create_deployment_user.yml`)
-
-Creates a new user for container deployments with SSH access and sudo privileges.
-
-```bash
-ansible-playbook playbooks/create_deployment_user.yml
-```
-
-**What it does:**
-
-- Creates the deployment user (`docker_deployment`)
-- Sets up SSH directory with proper permissions
-- Installs SSH public key for authentication
-- Configures passwordless sudo access
-
-### 4. Deploy Docker (`deploy_docker.yml`)
-
-Installs and configures Docker on the system.
-
-```bash
-ansible-playbook playbooks/deploy_docker.yml
-```
-
-**What it does:**
-
-- Installs Docker prerequisites
-- Adds Docker's official GPG key and repository
-- Installs Docker Engine and containerd
-- Starts and enables Docker service
-- Adds deployment user to docker group
-- Displays Docker and Docker Compose versions
-
-### 5. Configure Firewall (`configure_firewall.yml`)
-
-Configures UFW (Uncomplicated Firewall) for basic network security.
-
-```bash
-ansible-playbook playbooks/configure_firewall.yml
-```
-
-**What it does:**
-
-- Installs and configures UFW
-- Sets up basic firewall rules
-- Enables SSH access
-- Activates the firewall
-
-### 6. Configure Fail2ban (`configure_fail2ban.yml`)
-
-Sets up fail2ban for SSH brute force protection.
-
-```bash
-ansible-playbook playbooks/configure_fail2ban.yml
-```
-
-**What it does:**
-
-- Installs and configures fail2ban
-- Sets up SSH protection rules
-- Configures jail settings
-- Starts and enables fail2ban service
-
-### 7. Configure Monitoring (`configure_monitoring.yml`)
-
-Sets up basic system monitoring tools.
-
-```bash
-ansible-playbook playbooks/configure_monitoring.yml
-```
-
-**What it does:**
-
-- Installs monitoring tools
-- Configures system monitoring
-- Sets up basic alerting
-
-### 8. Configure Log Rotation (`configure_log_rotation.yml`)
-
-Configures log rotation for disk space management.
-
-```bash
-ansible-playbook playbooks/configure_log_rotation.yml
-```
-
-**What it does:**
-
-- Configures logrotate
-- Sets up log rotation policies
-- Manages disk space usage
-
-### 9. Full Deployment (`full.yml`)
-
-Runs all core playbooks in the correct sequence for a complete system setup.
+**Usage:**
 
 ```bash
 ansible-playbook playbooks/full.yml
 ```
 
-**What it does:**
+### `update_ubuntu.yml`
 
-1. Updates Ubuntu system
-2. Secures SSH configuration
-3. Creates deployment user
-4. Installs and configures Docker
+Updates the Ubuntu system with latest packages and security patches.
 
-**Note:** This does not include the additional security and monitoring playbooks. Run them separately if needed.
-
-## Running Playbooks
-
-### Basic Usage
+**Usage:**
 
 ```bash
-# From the project root directory
-cd /workspace/src
-
-# Run a specific playbook
-ansible-playbook playbooks/playbook_name.yml
-
-# Run with verbose output
-ansible-playbook playbooks/playbook_name.yml -v
-
-# Run with extra verbose output
-ansible-playbook playbooks/playbook_name.yml -vv
-
-# Dry run (check mode)
-ansible-playbook playbooks/playbook_name.yml --check
+ansible-playbook playbooks/update_ubuntu.yml
 ```
 
-### Targeting Specific Hosts
+### `deploy_docker.yml`
+
+Installs and configures Docker with secure network settings.
+
+**Usage:**
 
 ```bash
-# Run against specific host
-ansible-playbook playbooks/playbook_name.yml --limit vps
-
-# Run against specific group
-ansible-playbook playbooks/playbook_name.yml --limit host_tasks
+ansible-playbook playbooks/deploy_docker.yml
 ```
 
-### Troubleshooting
+### `create_deployment_user.yml`
+
+Creates a dedicated deployment user with proper permissions.
+
+**Usage:**
 
 ```bash
-# Test SSH connection
-ansible all -m ping
-
-# Check inventory
-ansible-inventory --list
-
-# Validate playbook syntax
-ansible-playbook playbooks/playbook_name.yml --syntax-check
+ansible-playbook playbooks/create_deployment_user.yml
 ```
 
-## Playbook Order
+### `disable_password_authentication.yml`
 
-For a fresh server setup, run playbooks in this order:
+Hardens SSH security by disabling password authentication.
 
-1. `update_ubuntu.yml` - System updates
-2. `disable_password_authentication.yml` - SSH security
-3. `create_deployment_user.yml` - Create deployment user
-4. `deploy_docker.yml` - Install Docker
-5. `configure_firewall.yml` - Basic firewall (optional)
-6. `configure_fail2ban.yml` - SSH protection (optional)
-7. `configure_monitoring.yml` - System monitoring (optional)
-8. `configure_log_rotation.yml` - Log management (optional)
+**Usage:**
 
-Or simply run `full.yml` which executes the core roles in the correct sequence.
+```bash
+ansible-playbook playbooks/disable_password_authentication.yml
+```
 
-## Configuration
+## Security & Network Playbooks
 
-All playbooks use variables defined in:
+### `configure_firewall.yml`
 
-- `inventory/group_vars/all.yml` - Global variables
-- `ansible.cfg` - Ansible configuration
+Configures UFW firewall with secure Docker network rules.
 
-Make sure these files are properly configured before running playbooks.
+**Features:**
+
+- Restricts Docker networks to specific IP ranges
+- Blocks broad network ranges (172.16.0.0/12, 192.168.0.0/16, 10.0.0.0/8)
+- Allows only necessary container ports
+- Enables network traffic logging
+- Configures log rotation for network logs
+
+**Usage:**
+
+```bash
+ansible-playbook playbooks/configure_firewall.yml
+```
+
+### `configure_docker_networks.yml`
+
+Creates secure Docker networks with specific IP ranges and network segmentation.
+
+**Features:**
+
+- Creates isolated networks for different service types
+- Implements network segmentation (web, db, monitoring)
+- Configures network security policies
+- Provides audit trail with network labels
+
+**Usage:**
+
+```bash
+ansible-playbook playbooks/configure_docker_networks.yml
+```
+
+### `configure_fail2ban.yml`
+
+Configures fail2ban for SSH brute force protection.
+
+**Usage:**
+
+```bash
+ansible-playbook playbooks/configure_fail2ban.yml
+```
+
+### `configure_monitoring.yml`
+
+Sets up system monitoring and health checks.
+
+**Usage:**
+
+```bash
+ansible-playbook playbooks/configure_monitoring.yml
+```
+
+### `configure_log_rotation.yml`
+
+Configures automated log management.
+
+**Usage:**
+
+```bash
+ansible-playbook playbooks/configure_log_rotation.yml
+```
+
+## Testing Playbooks
+
+### `test_network_security.yml`
+
+Comprehensive testing playbook that validates the network security implementation.
+
+**Tests:**
+
+- Firewall configuration validation
+- Docker network creation and configuration
+- Network isolation verification
+- Container communication tests
+- Security logging validation
+- Docker daemon security settings
+
+**Usage:**
+
+```bash
+ansible-playbook playbooks/test_network_security.yml
+```
+
+## Playbook Execution Order
+
+For a complete secure deployment, run playbooks in this order:
+
+1. **Initial Setup:**
+
+   ```bash
+   ansible-playbook playbooks/update_ubuntu.yml
+   ansible-playbook playbooks/create_deployment_user.yml
+   ansible-playbook playbooks/disable_password_authentication.yml
+   ```
+
+2. **Docker and Network Setup:**
+
+   ```bash
+   ansible-playbook playbooks/deploy_docker.yml
+   ansible-playbook playbooks/configure_docker_networks.yml
+   ansible-playbook playbooks/configure_firewall.yml
+   ```
+
+3. **Security and Monitoring:**
+
+   ```bash
+   ansible-playbook playbooks/configure_fail2ban.yml
+   ansible-playbook playbooks/configure_monitoring.yml
+   ansible-playbook playbooks/configure_log_rotation.yml
+   ```
+
+4. **Validation:**
+
+   ```bash
+   ansible-playbook playbooks/test_network_security.yml
+   ```
+
+## Manual Testing
+
+For manual validation, use the provided test script:
+
+```bash
+chmod +x scripts/test_network_security.sh
+./scripts/test_network_security.sh
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Firewall blocks Docker communication**
+   - Check UFW status: `sudo ufw status`
+   - Verify Docker networks are allowed: `sudo ufw status numbered`
+
+2. **Containers cannot communicate**
+   - Check network assignment: `docker network ls`
+   - Verify container networks: `docker inspect container-name`
+
+3. **Test playbook fails**
+   - Ensure Docker is running: `sudo systemctl status docker`
+   - Check network creation: `docker network ls`
+   - Verify firewall configuration: `sudo ufw status verbose`
+
+### Debug Commands
+
+```bash
+# Check firewall status
+sudo ufw status verbose
+
+# List Docker networks
+docker network ls
+
+# Check container networks
+docker inspect container-name
+
+# View network logs
+sudo tail -f /var/log/ufw.log
+
+# Test network connectivity
+docker exec container-name ping host
+```
+
+## Security Notes
+
+- All playbooks use secure SSH configuration
+- Firewall rules are restrictive by default
+- Docker networks are isolated and segmented
+- Network traffic is logged and monitored
+- Security settings are validated by tests
+
+For detailed security information, see `src/SECURITY.md`.

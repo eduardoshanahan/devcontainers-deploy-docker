@@ -6,6 +6,11 @@
     update_cache: true
   become: true
 
+- name: Reset UFW to default state
+  community.general.ufw:
+    state: reset
+  become: true
+
 - name: Configure UFW default policies
   community.general.ufw:
     direction: "{{ item }}"
@@ -30,23 +35,27 @@
     - 443
   become: true
 
-- name: Allow Docker networks
+# Allow only specific Docker networks (no broad ranges)
+- name: Allow specific Docker networks only
   community.general.ufw:
     rule: allow
     src: "{{ item }}"
-  loop:
-    - 172.16.0.0/12
-    - 192.168.0.0/16
-    - 10.0.0.0/8
+  loop: "{{ configure_firewall_docker_networks | default(['172.30.0.0/16', '172.31.0.0/16', '172.32.0.0/16']) }}"
   become: true
 
 - name: Allow specific container ports
   community.general.ufw:
     rule: allow
     port: "{{ item }}"
-  loop: "{{ configure_firewall_container_ports }}"
+  loop: "{{ configure_firewall_container_ports | default([]) }}"
   become: true
   when: configure_firewall_container_ports is defined and configure_firewall_container_ports | length > 0
+
+# Add UFW logging for network monitoring
+- name: Configure UFW logging
+  community.general.ufw:
+    logging: "{{ configure_firewall_logging_level | default('low') }}"
+  become: true
 
 - name: Enable UFW
   community.general.ufw:
@@ -62,3 +71,22 @@
 - name: Debug UFW status
   ansible.builtin.debug:
     msg: "{{ ufw_status.stdout_lines }}"
+
+# Add network traffic logging
+- name: Create network logging directory
+  ansible.builtin.file:
+    path: /var/log/network
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+
+- name: Configure logrotate for network logs
+  ansible.builtin.template:
+    src: network_logrotate.j2
+    dest: /etc/logrotate.d/network
+    owner: root
+    group: root
+    mode: "0644"
+  become: true

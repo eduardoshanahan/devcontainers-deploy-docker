@@ -1,0 +1,12 @@
+/var/log/network/*.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    create 644 root root
+    postrotate
+        /usr/sbin/ufw reload > /dev/null 2>&1 || true
+    endscript
+}

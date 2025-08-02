@@ -1,0 +1,30 @@
+---
+# Default Docker networks with specific IP ranges
+# These replace the broad ranges (172.16.0.0/12, 192.168.0.0/16, 10.0.0.0/8)
+configure_docker_networks_default_networks:
+  - name: "web-network"
+    subnet: "172.30.0.0/16"
+    driver: "bridge"
+    description: "Network for web applications and frontend services"
+  - name: "db-network"
+    subnet: "172.31.0.0/16"
+    driver: "bridge"
+    description: "Network for databases and backend services"
+  - name: "monitoring-network"
+    subnet: "172.32.0.0/16"
+    driver: "bridge"
+    description: "Network for monitoring and logging services"
+
+# Additional custom networks (empty by default)
+configure_docker_networks_custom_networks: []
+
+# Network driver to use (bridge is most common)
+configure_docker_networks_default_driver: "bridge"
+
+# Whether to enable network encryption (overlay driver only)
+configure_docker_networks_encrypted: false
+
+# Network labels for organization
+configure_docker_networks_labels:
+  environment: "production"
+  managed_by: "ansible"

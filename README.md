@@ -10,6 +10,7 @@ I needed a way to fire up a fresh VPS with Ubuntu, update it and deploy Docker t
 - **Enable containerized deployments:** Set up servers to be ready for containerized applications, reducing manual configuration and potential errors.
 - **Leverage Devcontainers:** Use Visual Studio Code Devcontainers for a consistent development and automation environment.
 - **Secure deployments:** Implement host key verification and secure SSH configurations for production deployments.
+- **Network security:** Configure secure Docker networks with specific IP ranges and network segmentation.
 
 ## Key Features
 
@@ -18,16 +19,18 @@ I needed a way to fire up a fresh VPS with Ubuntu, update it and deploy Docker t
 - **Modular Roles:** Organized Ansible roles for tasks such as Docker installation, firewall configuration, monitoring, and more.
 - **Inventory Management:** Inventory structure for managing multiple remote servers.
 - **Security Features:** Built-in security configurations including SSH hardening, firewall setup, fail2ban protection, and host key verification.
+- **Network Security:** Secure Docker network configuration with specific IP ranges and network segmentation.
 - **Monitoring & Maintenance:** Automated monitoring, log rotation, and system health checks.
 - **Environment-specific Configurations:** Separate configurations for development and production environments.
 
 ## Security Configuration
 
-This project implements secure Ansible configurations with host key verification:
+This project implements secure Ansible configurations with host key verification and network security:
 
 - **Secure by default:** `ansible.cfg` uses strict host key checking
 - **Development mode:** `ansible.dev.cfg` for testing with relaxed security
 - **Host key management:** `inventory/known_hosts` for verified server fingerprints
+- **Network security:** Specific Docker networks with defined IP ranges instead of broad network access
 - **Documentation:** See `src/SECURITY.md` for detailed security setup and troubleshooting
 
 ### Configuration Files
@@ -56,6 +59,7 @@ workspace/
 │   │   ├── update_ubuntu.yml
 │   │   ├── deploy_docker.yml
 │   │   ├── configure_firewall.yml
+│   │   ├── configure_docker_networks.yml
 │   │   ├── configure_fail2ban.yml
 │   │   ├── configure_monitoring.yml
 │   │   └── configure_log_rotation.yml
@@ -65,6 +69,7 @@ workspace/
 │   │   ├── create_deployment_user/
 │   │   ├── disable_password_authentication/
 │   │   ├── configure_firewall/
+│   │   ├── configure_docker_networks/
 │   │   ├── configure_fail2ban/
 │   │   ├── configure_monitoring/
 │   │   └── configure_log_rotation/
@@ -87,10 +92,31 @@ workspace/
 
 ### Security & Monitoring Playbooks
 
-- **`configure_firewall.yml`** - UFW firewall configuration
+- **`configure_firewall.yml`** - UFW firewall configuration with secure Docker networks
+- **`configure_docker_networks.yml`** - Create secure Docker networks with specific IP ranges
 - **`configure_fail2ban.yml`** - SSH brute force protection
 - **`configure_monitoring.yml`** - System monitoring and health checks
 - **`configure_log_rotation.yml`** - Automated log management
+
+## Network Security Features
+
+### Secure Docker Networks
+
+This project implements secure Docker network configuration:
+
+- **Network Segmentation**: Different services run on isolated networks
+- **Specific IP Ranges**: Uses defined ranges instead of broad network access
+- **Default Networks**:
+  - `web-network` (172.20.0.0/16): Web applications and frontend services
+  - `db-network` (172.21.0.0/16): Databases and backend services
+  - `monitoring-network` (172.22.0.0/16): Monitoring and logging services
+
+### Firewall Configuration
+
+- **Restrictive Rules**: Only allows specific Docker networks instead of broad ranges
+- **Network Monitoring**: UFW logging and network traffic monitoring
+- **Container Ports**: Configurable container port access
+- **Security Logging**: Network activity logging and rotation
 
 ## Technologies Used
 
@@ -101,6 +127,7 @@ workspace/
 - **UFW:** Uncomplicated Firewall for network security.
 - **Fail2ban:** Intrusion prevention software for SSH protection.
 - **SSH Host Key Verification:** Secure connection validation for production deployments.
+- **Docker Networks:** Secure network segmentation for containerized applications.
 
 ## When to Use This Project
 
@@ -109,6 +136,7 @@ workspace/
 - You prefer working in a consistent, containerized development environment with Devcontainers.
 - You need comprehensive server security and monitoring setup.
 - You require secure, production-ready deployment configurations.
+- You need secure Docker network configuration with proper segmentation.
 
 ## Quick Start
 
@@ -138,10 +166,16 @@ workspace/
    ansible-playbook --config-file ansible.dev.cfg playbooks/full.yml
    ```
 
-4. **Optional security and monitoring:**
+4. **Configure secure networks and firewall:**
 
    ```bash
+   # Configure secure Docker networks
+   ansible-playbook playbooks/configure_docker_networks.yml
+   
+   # Configure firewall with secure network rules
    ansible-playbook playbooks/configure_firewall.yml
+   
+   # Optional security and monitoring
    ansible-playbook playbooks/configure_fail2ban.yml
    ansible-playbook playbooks/configure_monitoring.yml
    ansible-playbook playbooks/configure_log_rotation.yml
@@ -149,7 +183,7 @@ workspace/
 
 ## Security Documentation
 
-For detailed information about security configuration, host key management, and troubleshooting, see `src/SECURITY.md`.
+For detailed information about security configuration, host key management, network security, and troubleshooting, see `src/SECURITY.md`.
 
 ---
 
