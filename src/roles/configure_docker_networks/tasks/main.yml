@@ -10,6 +10,44 @@
     msg: "Docker is not running. Please install and start Docker first."
   when: docker_info.rc != 0
 
+# Remove project-specific networks
+- name: Remove project Docker networks
+  community.docker.docker_network:
+    name: "{{ item }}"
+    state: absent
+  loop:
+    - "web-network"
+    - "db-network"
+    - "monitoring-network"
+    - "api-network"
+    - "cache-network"
+  become: true
+  failed_when: false
+
+# Optional: Remove ALL custom networks (use with caution)
+- name: Remove all custom Docker networks
+  community.docker.docker_network:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ existing_networks.stdout_lines | select('match', '^(?!bridge|host|none).*$') | list }}"
+  become: true
+  failed_when: false
+  when: configure_docker_networks_remove_all | default(false)
+
+# Get list of all networks (only if removing all)
+- name: Get existing Docker networks
+  ansible.builtin.command: docker network ls --format "{{ '{{' }}.Name{{ '}}' }}"
+  register: existing_networks
+  changed_when: false
+  become: true
+  when: configure_docker_networks_remove_all | default(false)
+
+# Prune unused networks
+- name: Prune unused Docker networks
+  ansible.builtin.command: docker network prune -f
+  become: true
+  changed_when: false
+
 # Create default networks
 - name: Create default Docker networks
   community.docker.docker_network:
@@ -34,7 +72,7 @@
       - subnet: "{{ item.subnet }}"
     state: present
     labels:
-      description: "{{ item.description | default('Custom network') }}"
+      description: "{{ item.description }}"
       environment: "{{ configure_docker_networks_labels.environment }}"
       managed_by: "{{ configure_docker_networks_labels.managed_by }}"
   loop: "{{ configure_docker_networks_custom_networks }}"

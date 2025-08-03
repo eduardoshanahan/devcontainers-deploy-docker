@@ -1,0 +1,26 @@
+ // Unattended-Upgrade::DevRelease "false";
+// Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+// Unattended-Upgrade::MinimalSteps "true";
+// Unattended-Upgrade::OnReboot "true";
+// Unattended-Upgrade::Automatic-Reboot "{{ configure_security_updates_auto_reboot | lower }}";
+// Unattended-Upgrade::Automatic-Reboot-Time "{{ configure_security_updates_auto_reboot_time }}";
+// Unattended-Upgrade::SyslogEnable "false";
+// Unattended-Upgrade::Package-Blacklist {
+// };
+Unattended-Upgrade::DevRelease "false";
+Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+Unattended-Upgrade::MinimalSteps "true";
+Unattended-Upgrade::OnReboot "true";
+Unattended-Upgrade::Automatic-Reboot "{{ configure_security_updates_auto_reboot | lower }}";
+Unattended-Upgrade::Automatic-Reboot-Time "{{ configure_security_updates_auto_reboot_time }}";
+Unattended-Upgrade::SyslogEnable "false";
+Unattended-Upgrade::Mail "{{ configure_security_updates_email }}";
+Unattended-Upgrade::MailReport "on-change";
+Unattended-Upgrade::MailOnlyOnError "{{ configure_security_updates_mail_on_error | lower }}";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+Unattended-Upgrade::Package-Blacklist {
+    "vim";
+    "nano";
+    "emacs";
+};

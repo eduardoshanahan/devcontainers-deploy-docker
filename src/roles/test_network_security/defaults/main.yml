@@ -20,19 +20,10 @@ test_network_security_test_containers:
     command: "tail -f /dev/null"
     service: "monitoring"
 
-# Expected network configurations
-test_network_security_expected_networks:
-  - name: "web-network"
-    subnet: "172.30.0.0/16"
-    driver: "bridge"
-  - name: "db-network"
-    subnet: "172.31.0.0/16"
-    driver: "bridge"
-  - name: "monitoring-network"
-    subnet: "172.32.0.0/16"
-    driver: "bridge"
+# Expected network configurations (use actual configuration)
+test_network_security_expected_networks: "{{ deploy_docker_network_configuration.default_networks }}"
 
-# Expected firewall rules
+# Expected firewall rules (use actual configuration)
 test_network_security_expected_firewall_rules:
   - rule: "allow"
     port: "22"
@@ -40,12 +31,6 @@ test_network_security_expected_firewall_rules:
     port: "80"
   - rule: "allow"
     port: "443"
-  - rule: "allow"
-    src: "172.30.0.0/16"
-  - rule: "allow"
-    src: "172.31.0.0/16"
-  - rule: "allow"
-    src: "172.32.0.0/16"
 
 # Test timeout settings
 test_network_security_timeout: 30

@@ -1,0 +1,22 @@
+---
+- name: Configure Security Updates Automation
+  hosts: all
+  become: true
+  roles:
+    - configure_security_updates
+  vars:
+    unattended_upgrades_mail_address: "{{ security_updates_email | default('') }}"
+    notification_email_address: "{{ security_updates_email | default('') }}"
+    notification_slack_webhook: "{{ security_updates_slack_webhook | default('') }}"
+    notification_discord_webhook: "{{ security_updates_discord_webhook | default('') }}"
+    gmail_enabled: "{{ security_updates_gmail_enabled | default(false) }}"
+    gmail_user: "{{ security_updates_gmail_user | default('') }}"
+    gmail_password: "{{ security_updates_gmail_password | default('') }}"
+    gmail_smtp_server: "{{ security_updates_gmail_smtp_server | default('smtp.gmail.com') }}"
+    gmail_smtp_port: "{{ security_updates_gmail_smtp_port | default('587') }}"
+    security_updates_email: "{{ security_updates_email | default('') }}"
+    security_updates_gmail_enabled: "{{ security_updates_gmail_enabled | default(false) }}"
+    security_updates_gmail_user: "{{ security_updates_gmail_user | default('') }}"
+    security_updates_gmail_password: "{{ security_updates_gmail_password | default('') }}"
+    security_updates_gmail_smtp_server: "{{ security_updates_gmail_smtp_server | default('smtp.gmail.com') }}"
+    security_updates_gmail_smtp_port: "{{ security_updates_gmail_smtp_port | default('587') }}"

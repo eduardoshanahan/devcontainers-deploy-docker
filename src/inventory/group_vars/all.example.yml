@@ -11,6 +11,21 @@ containers_deployment_user_ssh_key_public: "/path/to/your/public/key.pub"
 ansible_ssh_common_args: "-o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
 ansible_python_interpreter: "/usr/bin/python3.10"
 
+# Security Updates Configuration
+unattended_upgrades_email: "your-email@gmail.com"
+security_updates_email: "your-email@gmail.com"
+
+# Gmail SMTP Configuration (for email notifications)
+security_updates_gmail_enabled: true
+security_updates_gmail_user: "your-gmail@gmail.com"
+security_updates_gmail_password: "your-app-password"
+security_updates_gmail_smtp_server: "smtp.gmail.com"
+security_updates_gmail_smtp_port: "587"
+
+# Alternative notification methods
+security_updates_slack_webhook: ""
+security_updates_discord_webhook: ""
+
 # Firewall Configuration
 configure_firewall_docker_networks:
   - 172.20.0.0/16  # Web applications network

@@ -74,11 +74,10 @@
 - name: Check for specific Docker network ranges (should exist)
   ansible.builtin.assert:
     that:
-      - ufw_numbered_status.stdout is search("172.30.0.0/16")
-      - ufw_numbered_status.stdout is search("172.31.0.0/16")
-      - ufw_numbered_status.stdout is search("172.32.0.0/16")
-    fail_msg: "Specific Docker network ranges are not allowed"
-    success_msg: "✓ Specific Docker network ranges are correctly allowed"
+      - ufw_numbered_status.stdout is search(item)
+    fail_msg: "Docker network range {{ item }} is not allowed in firewall"
+    success_msg: "✓ Docker network range {{ item }} is correctly allowed"
+  loop: "{{ configure_firewall_docker_networks }}"
 
 # Test 2: Docker Network Validation
 - name: Test 2.1 - List Docker networks
@@ -239,6 +238,16 @@
   loop: "{{ test_network_security_test_containers }}"
   become: true
   failed_when: false
+
+# Create configurable test script
+- name: Create configurable network security test script
+  ansible.builtin.template:
+    src: test_network_security.sh.j2
+    dest: /opt/security-updates/test_network_security.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
 
 # Final test summary
 - name: Display test summary

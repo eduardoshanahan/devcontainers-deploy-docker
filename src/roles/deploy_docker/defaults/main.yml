@@ -7,52 +7,8 @@ deploy_docker_packages:
 # Security configuration
 deploy_docker_security_enabled: true
 
-# Docker network configuration
-deploy_docker_network_configuration:
-  # Default networks to create (if not already created by configure_docker_networks role)
-  default_networks:
-    - name: "web-network"
-      subnet: "172.20.0.0/16"
-      driver: "bridge"
-    - name: "db-network"
-      subnet: "172.21.0.0/16"
-      driver: "bridge"
-    - name: "monitoring-network"
-      subnet: "172.22.0.0/16"
-      driver: "bridge"
+# Docker network configuration (use variables from all.yml)
+deploy_docker_network_configuration: "{{ deploy_docker_network_configuration | default({}) }}"
 
-  # Network isolation settings
-  network_isolation: true
-
-  # Default network for containers (if not specified)
-  default_container_network: "web-network"
-
-  # Network security settings
-  network_security:
-    enable_bridge_netfilter: true
-    enable_ip_forwarding: true
-    enable_network_isolation: true
-
-# Container network policies
-deploy_docker_network_policies:
-  # Services that should use web-network
-  web_services:
-    - "nginx"
-    - "apache"
-    - "nodejs"
-    - "react"
-    - "vue"
-
-  # Services that should use db-network
-  database_services:
-    - "postgres"
-    - "mysql"
-    - "redis"
-    - "mongodb"
-
-  # Services that should use monitoring-network
-  monitoring_services:
-    - "prometheus"
-    - "grafana"
-    - "elasticsearch"
-    - "kibana"
+# Container network policies (use variables from all.yml)
+deploy_docker_network_policies: "{{ deploy_docker_network_policies | default({}) }}"

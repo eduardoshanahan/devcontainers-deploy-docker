@@ -1,0 +1,12 @@
+ {{ configure_security_updates_log_file }} {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    create 644 root root
+    postrotate
+        /bin/systemctl reload rsyslog > /dev/null 2>&1 || true
+    endscript
+}

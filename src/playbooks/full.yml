@@ -9,4 +9,39 @@
     - update_ubuntu
     - disable_password_authentication
     - create_deployment_user
+    - configure_firewall
+    - configure_fail2ban
+    - configure_monitoring
+    - configure_log_rotation
+    - configure_security_updates
     - deploy_docker
+    - configure_docker_networks
+    - test_network_security
+
+- name: Send deployment completion notification
+  hosts: all
+  become: true
+  vars:
+    notification_email_address: "{{ configure_security_updates_email | default('') }}"
+    gmail_enabled: "{{ configure_security_updates_gmail_enabled | default(false) }}"
+    gmail_user: "{{ configure_security_updates_gmail_user | default('') }}"
+    gmail_password: "{{ configure_security_updates_gmail_password | default('') }}"
+    gmail_smtp_server: "{{ configure_security_updates_gmail_smtp_server | default('smtp.gmail.com') }}"
+    gmail_smtp_port: "{{ configure_security_updates_gmail_smtp_port | default('587') }}"
+  tasks:
+    - name: Get system information
+      ansible.builtin.setup:
+      register: system_info
+
+    - name: Get deployment timestamp
+      ansible.builtin.command: date
+      register: deployment_time
+      changed_when: false
+
+    - name: Send deployment completion email
+      ansible.builtin.shell: |
+        /opt/security-updates/security-update-notify.sh \
+          "Server Deployment Complete" \
+          "Full system deployment completed successfully on {{ inventory_hostname }} at {{ deployment_time.stdout }}."
+      changed_when: false
+      when: configure_security_updates_email is defined and configure_security_updates_email != ""

@@ -29,6 +29,7 @@ This project implements secure Ansible configurations with host key verification
 
 - **Secure by default:** `ansible.cfg` uses strict host key checking
 - **Development mode:** `ansible.dev.cfg` for testing with relaxed security
+- **Production mode:** `ansible.prod.cfg` for production deployments with strict security
 - **Host key management:** `inventory/known_hosts` for verified server fingerprints
 - **Network security:** Specific Docker networks with defined IP ranges instead of broad network access
 - **Documentation:** See `src/SECURITY.md` for detailed security setup and troubleshooting
@@ -37,6 +38,7 @@ This project implements secure Ansible configurations with host key verification
 
 - `ansible.cfg` - Default secure configuration (production-ready)
 - `ansible.dev.cfg` - Development configuration (less strict for testing)
+- `ansible.prod.cfg` - Production configuration (strict security)
 - `inventory/known_hosts` - Managed host key verification file
 
 ## Project Structure
@@ -46,25 +48,36 @@ workspace/
 ├── .devcontainer/           # Devcontainer configuration for VS Code
 │   ├── Dockerfile
 │   ├── devcontainer.json
-│   ├── .env.example
-│   └── settings.json
-├── launch_vscode.sh         # Script to launch VS Code with the Dev Container
+│   ├── config/
+│   │   └── starship.toml
+│   └── scripts/
+├── launch.sh                # Script to launch VS Code with the Dev Container
 ├── src/
 │   ├── inventory/           # Ansible inventory and group variables
 │   │   ├── hosts.yml        # Host definitions
 │   │   ├── known_hosts      # Host key verification file
+│   │   ├── known_hosts.template
 │   │   └── group_vars/      # Global variables
+│   │       ├── all.yml
+│   │       ├── all.example.yml
+│   │       └── README.md
 │   ├── playbooks/           # Ansible playbooks
 │   │   ├── full.yml         # Complete system deployment
 │   │   ├── update_ubuntu.yml
+│   │   ├── configure_security_updates.yml
 │   │   ├── deploy_docker.yml
+│   │   ├── create_deployment_user.yml
+│   │   ├── disable_password_authentication.yml
 │   │   ├── configure_firewall.yml
 │   │   ├── configure_docker_networks.yml
 │   │   ├── configure_fail2ban.yml
 │   │   ├── configure_monitoring.yml
-│   │   └── configure_log_rotation.yml
+│   │   ├── configure_log_rotation.yml
+│   │   ├── test_network_security.yml
+│   │   └── README.md
 │   ├── roles/               # Ansible roles
 │   │   ├── update_ubuntu/
+│   │   ├── configure_security_updates/
 │   │   ├── deploy_docker/
 │   │   ├── create_deployment_user/
 │   │   ├── disable_password_authentication/
@@ -72,10 +85,18 @@ workspace/
 │   │   ├── configure_docker_networks/
 │   │   ├── configure_fail2ban/
 │   │   ├── configure_monitoring/
-│   │   └── configure_log_rotation/
+│   │   ├── configure_log_rotation/
+│   │   └── test_network_security/
 │   ├── ansible.cfg          # Default secure Ansible configuration
 │   ├── ansible.dev.cfg      # Development configuration
+│   ├── ansible.prod.cfg     # Production configuration
 │   └── SECURITY.md          # Security documentation
+├── examples/                # Example configurations and guides
+│   ├── DEPLOYMENT_GUIDE.md
+│   └── docker-compose.secure.yml
+├── scripts/                 # Utility scripts
+│   ├── test_network_security.sh
+│   └── sync_git.sh
 ├── README.md                # Project overview (this file)
 └── ... (other project files)
 ```
@@ -86,6 +107,7 @@ workspace/
 
 - **`full.yml`** - Complete system deployment (recommended for new servers)
 - **`update_ubuntu.yml`** - System updates and security patches
+- **`configure_security_updates.yml`** - Configure automatic security updates
 - **`deploy_docker.yml`** - Docker installation and configuration
 - **`create_deployment_user.yml`** - Create dedicated deployment user
 - **`disable_password_authentication.yml`** - SSH security hardening
@@ -97,6 +119,7 @@ workspace/
 - **`configure_fail2ban.yml`** - SSH brute force protection
 - **`configure_monitoring.yml`** - System monitoring and health checks
 - **`configure_log_rotation.yml`** - Automated log management
+- **`test_network_security.yml`** - Test network security configurations
 
 ## Network Security Features
 
@@ -159,16 +182,21 @@ This project implements secure Docker network configuration:
 3. **Run full deployment:**
 
    ```bash
+   cd src
    # Use default secure configuration
    ansible-playbook playbooks/full.yml
    
    # Or use development config for testing
    ansible-playbook --config-file ansible.dev.cfg playbooks/full.yml
+   
+   # Or use production config for strict security
+   ansible-playbook --config-file ansible.prod.cfg playbooks/full.yml
    ```
 
 4. **Configure secure networks and firewall:**
 
    ```bash
+   cd src
    # Configure secure Docker networks
    ansible-playbook playbooks/configure_docker_networks.yml
    
@@ -179,6 +207,7 @@ This project implements secure Docker network configuration:
    ansible-playbook playbooks/configure_fail2ban.yml
    ansible-playbook playbooks/configure_monitoring.yml
    ansible-playbook playbooks/configure_log_rotation.yml
+   ansible-playbook playbooks/configure_security_updates.yml
    ```
 
 ## Security Documentation

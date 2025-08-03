@@ -1,0 +1,186 @@
+#!/bin/bash
+
+# Security Update Notification Script
+# This script sends notifications for security updates and system events
+
+# Configuration
+EMAIL_ADDRESS="{{ configure_security_updates_email }}"
+GMAIL_ENABLED="{{ configure_security_updates_gmail_enabled | lower }}"
+GMAIL_USER="{{ configure_security_updates_gmail_user }}"
+GMAIL_PASSWORD="{{ configure_security_updates_gmail_password }}"
+GMAIL_SMTP_SERVER="{{ configure_security_updates_gmail_smtp_server }}"
+GMAIL_SMTP_PORT="{{ configure_security_updates_gmail_smtp_port }}"
+SLACK_WEBHOOK="{{ configure_security_updates_slack_webhook }}"
+DISCORD_WEBHOOK="{{ configure_security_updates_discord_webhook }}"
+LOG_FILE="{{ configure_security_updates_log_file }}"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Function to log messages
+log_message() {
+    local level="$1"
+    local message="$2"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
+}
+
+# Function to send Gmail notification
+send_gmail_notification() {
+    local subject="$1"
+    local body="$2"
+    
+    if [ "$GMAIL_ENABLED" = "true" ] && [ -n "$GMAIL_USER" ] && [ -n "$GMAIL_PASSWORD" ]; then
+        log_message "INFO" "Sending Gmail notification: $subject"
+        
+        # Create email content
+        local email_content="Subject: $subject
+From: $GMAIL_USER
+To: $EMAIL_ADDRESS
+Content-Type: text/plain; charset=UTF-8
+
+$body
+
+---
+Sent from $(hostname) at $(date)
+"
+        
+        # Send via curl with Gmail SMTP
+        if echo "$email_content" | curl --silent --fail \
+            --mail-from "$GMAIL_USER" \
+            --mail-rcpt "$EMAIL_ADDRESS" \
+            --upload-file - \
+            --user "$GMAIL_USER:$GMAIL_PASSWORD" \
+            --ssl-reqd \
+            "smtps://$GMAIL_SMTP_SERVER:$GMAIL_SMTP_PORT" 2>/dev/null; then
+            log_message "SUCCESS" "Gmail notification sent successfully"
+            return 0
+        else
+            log_message "ERROR" "Failed to send Gmail notification"
+            return 1
+        fi
+    else
+        log_message "WARN" "Gmail notification not configured or disabled"
+        return 1
+    fi
+}
+
+# Function to send system mail notification
+send_system_mail() {
+    local subject="$1"
+    local body="$2"
+    
+    if [ -n "$EMAIL_ADDRESS" ]; then
+        log_message "INFO" "Sending system mail notification: $subject"
+        
+        if echo "$body" | mail -s "$subject" "$EMAIL_ADDRESS" 2>/dev/null; then
+            log_message "SUCCESS" "System mail notification sent successfully"
+            return 0
+        else
+            log_message "ERROR" "Failed to send system mail notification"
+            return 1
+        fi
+    else
+        log_message "WARN" "Email address not configured"
+        return 1
+    fi
+}
+
+# Function to send Slack notification
+send_slack_notification() {
+    local subject="$1"
+    local body="$2"
+    
+    if [ -n "$SLACK_WEBHOOK" ]; then
+        log_message "INFO" "Sending Slack notification: $subject"
+        
+        local payload="{\"text\":\"*$subject*\n$body\"}"
+        
+        if curl --silent --fail -X POST -H 'Content-type: application/json' \
+            --data "$payload" "$SLACK_WEBHOOK" >/dev/null 2>&1; then
+            log_message "SUCCESS" "Slack notification sent successfully"
+            return 0
+        else
+            log_message "ERROR" "Failed to send Slack notification"
+            return 1
+        fi
+    else
+        log_message "WARN" "Slack webhook not configured"
+        return 1
+    fi
+}
+
+# Function to send Discord notification
+send_discord_notification() {
+    local subject="$1"
+    local body="$2"
+    
+    if [ -n "$DISCORD_WEBHOOK" ]; then
+        log_message "INFO" "Sending Discord notification: $subject"
+        
+        local payload="{\"content\":\"**$subject**\n$body\"}"
+        
+        if curl --silent --fail -X POST -H 'Content-type: application/json' \
+            --data "$payload" "$DISCORD_WEBHOOK" >/dev/null 2>&1; then
+            log_message "SUCCESS" "Discord notification sent successfully"
+            return 0
+        else
+            log_message "ERROR" "Failed to send Discord notification"
+            return 1
+        fi
+    else
+        log_message "WARN" "Discord webhook not configured"
+        return 1
+    fi
+}
+
+# Main notification function
+send_notification() {
+    local subject="$1"
+    local body="$2"
+    local success=false
+    
+    log_message "INFO" "Sending notification: $subject"
+    
+    # Try Gmail first (if configured)
+    if send_gmail_notification "$subject" "$body"; then
+        success=true
+    fi
+    
+    # Fallback to system mail
+    if [ "$success" = false ]; then
+        if send_system_mail "$subject" "$body"; then
+            success=true
+        fi
+    fi
+    
+    # Try Slack (if configured)
+    if [ "$success" = false ]; then
+        send_slack_notification "$subject" "$body"
+    fi
+    
+    # Try Discord (if configured)
+    if [ "$success" = false ]; then
+        send_discord_notification "$subject" "$body"
+    fi
+    
+    if [ "$success" = true ]; then
+        echo -e "${GREEN}✓ Notification sent successfully${NC}"
+        return 0
+    else
+        echo -e "${RED}✗ Failed to send notification${NC}"
+        return 1
+    fi
+}
+
+# Check if script is called with arguments
+if [ $# -eq 2 ]; then
+    send_notification "$1" "$2"
+else
+    echo "Usage: $0 <subject> <message>"
+    echo "Example: $0 'Security Update' 'System has been updated'"
+    exit 1
+fi 

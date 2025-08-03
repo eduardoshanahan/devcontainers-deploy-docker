@@ -1,0 +1,35 @@
+---
+# Security Updates Configuration
+configure_security_updates_enabled: true
+
+# Email notification settings
+configure_security_updates_email: ""
+configure_security_updates_gmail_enabled: false
+configure_security_updates_gmail_user: ""
+configure_security_updates_gmail_password: ""
+configure_security_updates_gmail_smtp_server: "smtp.gmail.com"
+configure_security_updates_gmail_smtp_port: "587"
+
+# Alternative notification methods
+configure_security_updates_slack_webhook: ""
+configure_security_updates_discord_webhook: ""
+
+# Unattended upgrades configuration
+configure_security_updates_unattended_upgrades_enabled: true
+configure_security_updates_auto_reboot: false
+configure_security_updates_auto_reboot_time: "02:00"
+configure_security_updates_mail_on_error: true
+configure_security_updates_mail_on_reboot: false
+
+# Package configuration
+configure_security_updates_packages:
+  - unattended-upgrades
+  - curl
+
+# Directory configuration
+configure_security_updates_script_dir: "/opt/security-updates"
+configure_security_updates_log_file: "/var/log/security-updates.log"
+
+# Notification script configuration
+configure_security_updates_notification_script: "{{ configure_security_updates_script_dir }}/security-update-notify.sh"
+configure_security_updates_notification_script_permissions: "0755"

@@ -21,12 +21,11 @@ venv/
 __pycache__/
 vendor/
 
-# Environment files
-# .env
-# .env.*
-# !.env.example
-# .devcontainer/config/.env
-# .devcontainer/.env
+# Environment files - explicitly include for Cursor
+!.env
+!.env.*
+!.devcontainer/config/.env
+!.devcontainer/.env
 
 # Editor files
 .vscode/

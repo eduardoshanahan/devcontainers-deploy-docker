@@ -1,0 +1,22 @@
+ // Unattended-Upgrade::DevRelease "false";
+// Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+// Unattended-Upgrade::MinimalSteps "true";
+// Unattended-Upgrade::OnReboot "true";
+// Unattended-Upgrade::Automatic-Reboot "false";
+// Unattended-Upgrade::Automatic-Reboot-Time "02:00";
+// Unattended-Upgrade::SyslogEnable "false";
+// Unattended-Upgrade::Package-Blacklist {
+// };
+// Unattended-Upgrade::DevRelease "false";
+// Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+// Unattended-Upgrade::MinimalSteps "true";
+// Unattended-Upgrade::OnReboot "true";
+// Unattended-Upgrade::Automatic-Reboot "{{ configure_security_updates_auto_reboot | lower }}";
+// Unattended-Upgrade::Automatic-Reboot-Time "{{ configure_security_updates_auto_reboot_time }}";
+// Unattended-Upgrade::SyslogEnable "false";
+// Unattended-Upgrade::Package-Blacklist {
+// };
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Download-Upgradeable-Packages "1";
+APT::Periodic::AutocleanInterval "7";
+APT::Periodic::Unattended-Upgrade "1";
