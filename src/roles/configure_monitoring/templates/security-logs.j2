@@ -1,0 +1,36 @@
+# Log rotation for security logs
+/var/log/security/*.log {
+    daily
+    missingok
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    create 644 root root
+    postrotate
+        /bin/systemctl reload rsyslog > /dev/null 2>&1 || true
+    endscript
+}
+
+/var/log/audit/audit.log {
+    daily
+    missingok
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    create 640 root root
+    postrotate
+        /bin/systemctl reload auditd > /dev/null 2>&1 || true
+    endscript
+}
+
+/opt/security/*.log {
+    daily
+    missingok
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    create 644 root root
+} 

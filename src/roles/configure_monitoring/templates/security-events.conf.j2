@@ -1,0 +1,20 @@
+# Security Event Logging Configuration
+# Log security-related events to separate files
+
+# SSH login attempts
+:programname, contains, "sshd" /var/log/security/ssh.log
+
+# Failed authentication attempts
+:programname, contains, "pam_unix" /var/log/security/auth.log
+
+# Docker security events
+:programname, contains, "docker" /var/log/security/docker.log
+
+# System access attempts
+:programname, contains, "sudo" /var/log/security/sudo.log
+
+# Firewall events
+:programname, contains, "ufw" /var/log/security/firewall.log
+
+# Container security events
+:programname, contains, "container" /var/log/security/container.log 

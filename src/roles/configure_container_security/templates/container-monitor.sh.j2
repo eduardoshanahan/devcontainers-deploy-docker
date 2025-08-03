@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Container Security Monitoring Script
+# This script monitors containers for security events
+
+LOG_FILE="/var/log/container-security.log"
+
+# Function to log messages
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+}
+
+log_message "Starting container security monitoring"
+
+# Monitor for privileged containers
+PRIVILEGED_CONTAINERS=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" --filter "label=privileged=true" 2>/dev/null)
+
+if [ -n "$PRIVILEGED_CONTAINERS" ]; then
+    log_message "WARNING: Privileged containers detected: $PRIVILEGED_CONTAINERS"
+fi
+
+# Monitor for containers with host network
+HOST_NETWORK_CONTAINERS=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" --filter "network=host" 2>/dev/null)
+
+if [ -n "$HOST_NETWORK_CONTAINERS" ]; then
+    log_message "WARNING: Containers with host network detected: $HOST_NETWORK_CONTAINERS"
+fi
+
+# Monitor for containers with host mounts
+HOST_MOUNT_CONTAINERS=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" --filter "volume=/:/host" 2>/dev/null)
+
+if [ -n "$HOST_MOUNT_CONTAINERS" ]; then
+    log_message "WARNING: Containers with host mounts detected: $HOST_MOUNT_CONTAINERS"
+fi
+
+# Check for unusual container behavior
+UNUSUAL_CONTAINERS=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" --filter "label=security=unusual" 2>/dev/null)
+
+if [ -n "$UNUSUAL_CONTAINERS" ]; then
+    log_message "ALERT: Unusual container behavior detected: $UNUSUAL_CONTAINERS"
+fi
+
+log_message "Container security monitoring completed" 

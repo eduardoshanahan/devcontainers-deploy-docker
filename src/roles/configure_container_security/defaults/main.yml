@@ -1,0 +1,17 @@
+---
+# Container Security Configuration
+configure_container_security_enabled: true
+configure_container_security_enable_content_trust: true
+configure_container_security_scan_schedule: "daily"
+configure_container_security_alert_email: ""
+
+# Scanning configuration
+configure_container_security_trivy_enabled: true
+configure_container_security_clair_enabled: false
+configure_container_security_scan_severity: "HIGH,CRITICAL"
+
+# Monitoring configuration
+configure_container_security_monitor_privileged: true
+configure_container_security_monitor_host_network: true
+configure_container_security_monitor_host_mounts: true
+configure_container_security_monitor_unusual_behavior: true

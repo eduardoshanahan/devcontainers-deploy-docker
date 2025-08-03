@@ -1,91 +1,116 @@
 ---
-- name: Install monitoring tools
+- name: Install monitoring and security tools
   ansible.builtin.apt:
     name:
       - htop
       - iotop
       - nethogs
-      - ncdu
-      - tree
-      - curl
-      - wget
-      - net-tools
-      - procps
+      - logwatch
+      - auditd
+      - aide
     state: present
     update_cache: true
   become: true
 
-- name: Create monitoring scripts directory
+- name: Create monitoring directories
   ansible.builtin.file:
-    path: /opt/monitoring
+    path: "{{ item }}"
     state: directory
     mode: "0755"
     owner: root
     group: root
+  loop:
+    - /opt/monitoring
+    - /opt/security
+    - /var/log/security
   become: true
 
-- name: Create system health check script
+- name: Configure security event logging
   ansible.builtin.template:
-    src: health_check.sh.j2
-    dest: /opt/monitoring/health_check.sh
-    owner: root
-    group: root
-    mode: "0755"
-    backup: true
-  become: true
-
-- name: Create disk space monitoring script
-  ansible.builtin.template:
-    src: disk_check.sh.j2
-    dest: /opt/monitoring/disk_check.sh
-    owner: root
-    group: root
-    mode: "0755"
-    backup: true
-  become: true
-
-- name: Create Docker health check script
-  ansible.builtin.template:
-    src: docker_check.sh.j2
-    dest: /opt/monitoring/docker_check.sh
-    owner: root
-    group: root
-    mode: "0755"
-    backup: true
-  become: true
-
-- name: Configure systemd timer for health checks
-  ansible.builtin.template:
-    src: health-monitor.service.j2
-    dest: /etc/systemd/system/health-monitor.service
+    src: security-events.conf.j2
+    dest: /etc/rsyslog.d/security-events.conf
     owner: root
     group: root
     mode: "0644"
-    backup: true
+  become: true
+  notify: restart rsyslog
+
+- name: Configure log integrity monitoring
+  ansible.builtin.template:
+    src: log-monitor.sh.j2
+    dest: /opt/security/log-monitor.sh
+    mode: "0755"
+    owner: root
+    group: root
   become: true
 
-- name: Configure systemd timer
+- name: Configure AIDE for file integrity monitoring
   ansible.builtin.template:
-    src: health-monitor.timer.j2
-    dest: /etc/systemd/system/health-monitor.timer
+    src: aide.conf.j2
+    dest: /etc/aide/aide.conf
     owner: root
     group: root
     mode: "0644"
-    backup: true
   become: true
 
-- name: Reload systemd daemon
-  ansible.builtin.systemd:
-    daemon_reload: true
+- name: Initialize AIDE database
+  ansible.builtin.command: aideinit
+  become: true
+  changed_when: false
+
+- name: Configure auditd for system monitoring
+  ansible.builtin.template:
+    src: auditd.conf.j2
+    dest: /etc/audit/auditd.conf
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: restart auditd
+
+- name: Configure audit rules
+  ansible.builtin.template:
+    src: audit.rules.j2
+    dest: /etc/audit/rules.d/audit.rules
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: restart auditd
+
+- name: Create security monitoring cron jobs
+  ansible.builtin.cron:
+    name: "{{ item.name }}"
+    hour: "{{ item.hour }}"
+    minute: "{{ item.minute }}"
+    job: "{{ item.job }}"
+    user: root
+  loop:
+    - {
+        name: "Security Log Analysis",
+        hour: "1",
+        minute: "0",
+        job: "/opt/security/log-monitor.sh",
+      }
+    - {
+        name: "File Integrity Check",
+        hour: "3",
+        minute: "0",
+        job: "aide --check",
+      }
+    - {
+        name: "System Health Check",
+        hour: "*/6",
+        minute: "0",
+        job: "/opt/monitoring/health-check.sh",
+      }
   become: true
 
-- name: Enable and start health monitoring timer
-  ansible.builtin.systemd:
-    name: health-monitor.timer
-    enabled: true
-    state: started
+- name: Configure log rotation for security logs
+  ansible.builtin.template:
+    src: security-logs.j2
+    dest: /etc/logrotate.d/security-logs
+    owner: root
+    group: root
+    mode: "0644"
   become: true
-
-- name: Display monitoring tools installation
-  ansible.builtin.debug:
-    msg: "Monitoring tools installed and health checks configured"

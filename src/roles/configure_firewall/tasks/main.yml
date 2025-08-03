@@ -40,8 +40,9 @@
   community.general.ufw:
     rule: allow
     src: "{{ item }}"
-  loop: "{{ configure_firewall_docker_networks | default(['172.30.0.0/16', '172.31.0.0/16', '172.32.0.0/16']) }}"
+  loop: "{{ configure_firewall_docker_networks | default([]) }}"
   become: true
+  when: configure_firewall_docker_networks | length > 0
 
 - name: Allow specific container ports
   community.general.ufw:

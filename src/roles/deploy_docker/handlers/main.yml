@@ -2,5 +2,11 @@
 - name: Restart docker
   ansible.builtin.service:
     name: docker
-    state: restarted
+    state: reloaded
+  become: true
+
+- name: Reload Docker daemon
+  ansible.builtin.service:
+    name: docker
+    state: reloaded
   become: true

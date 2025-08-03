@@ -1,0 +1,30 @@
+---
+- name: Restart rsyslog
+  ansible.builtin.service:
+    name: rsyslog
+    state: restarted
+  become: true
+
+- name: Restart auditd
+  ansible.builtin.service:
+    name: auditd
+    state: restarted
+  become: true
+
+- name: Restart aide
+  ansible.builtin.service:
+    name: aide
+    state: restarted
+  become: true
+
+- name: Reload rsyslog
+  ansible.builtin.service:
+    name: rsyslog
+    state: reloaded
+  become: true
+
+- name: Reload auditd
+  ansible.builtin.service:
+    name: auditd
+    state: reloaded
+  become: true

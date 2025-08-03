@@ -37,33 +37,52 @@
     state: present
   become: true
 
-# Remove problematic daemon.json first
-- name: Remove existing daemon.json if it exists
-  ansible.builtin.file:
-    path: /etc/docker/daemon.json
-    state: absent
+# Completely reset Docker configuration
+- name: Stop Docker service
+  ansible.builtin.service:
+    name: docker
+    state: stopped
   become: true
 
-# Try starting Docker with default configuration
-- name: Ensure Docker service is started and enabled (default config)
+- name: Remove all Docker configuration files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/docker/daemon.json
+    - /etc/docker/seccomp-profile.json
+    - /etc/docker/daemon-secure.json
+    - /etc/docker/daemon-logging.json
+  become: true
+
+- name: Reset Docker daemon configuration
+  ansible.builtin.command: docker system prune -f
+  become: true
+  failed_when: false
+
+- name: Start Docker with default configuration
   ansible.builtin.service:
     name: docker
     state: started
     enabled: true
   become: true
 
-- name: Check Docker service status
-  ansible.builtin.command: systemctl status docker.service
-  register: docker_status
-  changed_when: false
-  failed_when: false
+- name: Wait for Docker to be ready
+  ansible.builtin.wait_for:
+    timeout: 30
   become: true
 
-- name: Display Docker service status
-  ansible.builtin.debug:
-    msg: "{{ docker_status.stdout }}"
+- name: Test Docker is working
+  ansible.builtin.command: docker info
+  register: docker_info
+  changed_when: false
+  become: true
 
-# Only proceed with security configuration if Docker is working
+- name: Display Docker info
+  ansible.builtin.debug:
+    msg: "{{ docker_info.stdout }}"
+
+# Only apply basic configuration if Docker is working
 - name: Ensure Docker configuration directory exists
   ansible.builtin.file:
     path: /etc/docker
@@ -72,9 +91,8 @@
     owner: root
     group: root
   become: true
-  when: deploy_docker_security_enabled | default(true)
 
-- name: Configure Docker daemon security template
+- name: Configure Docker daemon (minimal configuration)
   ansible.builtin.template:
     src: daemon.json.j2
     dest: /etc/docker/daemon.json
@@ -82,59 +100,21 @@
     group: root
     mode: "0644"
   become: true
-  when: deploy_docker_security_enabled | default(true)
   notify: Restart docker
 
-- name: Configure Docker seccomp profile
-  ansible.builtin.template:
-    src: seccomp-profile.json.j2
-    dest: /etc/docker/seccomp-profile.json
-    owner: root
-    group: root
-    mode: "0644"
-  become: true
-  when: deploy_docker_security_enabled | default(true)
-  notify: Restart docker
-
-- name: Ensure AppArmor is installed and enabled
-  ansible.builtin.apt:
-    name: apparmor
+- name: Create Docker group
+  ansible.builtin.group:
+    name: docker
     state: present
   become: true
-  when: deploy_docker_security_enabled | default(true)
 
-- name: Ensure AppArmor service is started and enabled
-  ansible.builtin.service:
-    name: apparmor
-    state: started
-    enabled: true
-  become: true
-  when: deploy_docker_security_enabled | default(true)
-
-- name: Configure user namespace isolation
-  ansible.builtin.lineinfile:
-    path: /etc/subuid
-    line: "{{ containers_deployment_user }}:100000:65536"
-    state: present
-  become: true
-  when: deploy_docker_security_enabled | default(true)
-
-- name: Configure user namespace GID mapping
-  ansible.builtin.lineinfile:
-    path: /etc/subgid
-    line: "{{ containers_deployment_user }}:100000:65536"
-    state: present
-  become: true
-  when: deploy_docker_security_enabled | default(true)
-
-- name: Add deployment user to the docker group
+- name: Add deployment user to Docker group
   ansible.builtin.user:
     name: "{{ containers_deployment_user }}"
     groups: docker
     append: true
   become: true
 
-# Network configuration tasks
 - name: Configure Docker network security settings
   ansible.posix.sysctl:
     name: "{{ item.name }}"
@@ -146,7 +126,6 @@
     - { name: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
     - { name: "net.ipv4.ip_forward", value: "1" }
   become: true
-  when: deploy_docker_network_configuration.network_security.enable_bridge_netfilter | default(true)
 
 - name: Display Docker version
   ansible.builtin.command: docker --version
@@ -171,7 +150,6 @@
       Docker Compose is {{ 'available' if docker_compose_check.rc == 0 else 'not available' }}
       {{ ' - Version: ' + docker_compose_check.stdout if docker_compose_check.rc == 0 else '' }}
 
-# Display network information
 - name: List Docker networks
   ansible.builtin.command: docker network ls --format "table {{ '{{' }}.Name{{ '}}' }}\t{{ '{{' }}.Driver{{ '}}' }}\t{{ '{{' }}.Scope{{ '}}' }}"
   register: docker_networks

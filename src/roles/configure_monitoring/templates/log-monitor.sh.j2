@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Security Log Monitoring Script
+# This script monitors logs for security events
+
+LOG_DIR="/var/log/security"
+ALERT_EMAIL="{{ configure_monitoring_alert_email }}"
+LOG_FILE="/var/log/security/monitor.log"
+
+# Function to log messages
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+}
+
+# Function to send alert
+send_alert() {
+    local subject="$1"
+    local message="$2"
+    
+    if [ -n "$ALERT_EMAIL" ]; then
+        echo "$message" | mail -s "$subject" "$ALERT_EMAIL"
+    fi
+    
+    log_message "ALERT: $subject - $message"
+}
+
+log_message "Starting security log monitoring"
+
+# Check for failed SSH login attempts
+SSH_FAILURES=$(grep -c "Failed password" "$LOG_DIR/ssh.log" 2>/dev/null || echo "0")
+
+if [ "$SSH_FAILURES" -gt 10 ]; then
+    send_alert "SSH Security Alert" "Multiple failed SSH login attempts detected: $SSH_FAILURES"
+fi
+
+# Check for sudo privilege escalations
+SUDO_EVENTS=$(grep -c "sudo:" "$LOG_DIR/sudo.log" 2>/dev/null || echo "0")
+
+if [ "$SUDO_EVENTS" -gt 5 ]; then
+    send_alert "Sudo Security Alert" "Multiple sudo privilege escalations detected: $SUDO_EVENTS"
+fi
+
+# Check for Docker security events
+DOCKER_EVENTS=$(grep -c "security" "$LOG_DIR/docker.log" 2>/dev/null || echo "0")
+
+if [ "$DOCKER_EVENTS" -gt 0 ]; then
+    send_alert "Docker Security Alert" "Docker security events detected: $DOCKER_EVENTS"
+fi
+
+# Check for firewall events
+FIREWALL_EVENTS=$(grep -c "BLOCK" "$LOG_DIR/firewall.log" 2>/dev/null || echo "0")
+
+if [ "$FIREWALL_EVENTS" -gt 20 ]; then
+    send_alert "Firewall Security Alert" "Multiple firewall blocks detected: $FIREWALL_EVENTS"
+fi
+
+log_message "Security log monitoring completed" 

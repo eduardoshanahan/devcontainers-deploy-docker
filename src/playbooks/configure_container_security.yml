@@ -1,0 +1,9 @@
+---
+- name: Configure container security
+  hosts: all
+  become: true
+  remote_user: "{{ containers_deployment_user }}"
+  vars:
+    ansible_ssh_private_key_file: "{{ containers_deployment_user_ssh_key }}"
+  roles:
+    - configure_container_security

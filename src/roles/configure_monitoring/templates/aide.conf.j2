@@ -1,0 +1,386 @@
+# Security Event Logging Configuration
+# Log security-related events to separate files
+
+# SSH login attempts
+:programname, contains, "sshd" /var/log/security/ssh.log
+
+# Failed authentication attempts
+:programname, contains, "pam_unix" /var/log/security/auth.log
+
+# Docker security events
+:programname, contains, "docker" /var/log/security/docker.log
+
+# System access attempts
+:programname, contains, "sudo" /var/log/security/sudo.log
+
+# Firewall events
+:programname, contains, "ufw" /var/log/security/firewall.log
+
+# Container security events
+:programname, contains, "container" /var/log/security/container.log
+
+```bash:src/roles/configure_monitoring/templates/log-monitor.sh.j2
+#!/bin/bash
+
+# Security Log Monitoring Script
+# This script monitors logs for security events
+
+LOG_DIR="/var/log/security"
+ALERT_EMAIL="{{ configure_monitoring_alert_email }}"
+LOG_FILE="/var/log/security/monitor.log"
+
+# Function to log messages
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+}
+
+# Function to send alert
+send_alert() {
+    local subject="$1"
+    local message="$2"
+    
+    if [ -n "$ALERT_EMAIL" ]; then
+        echo "$message" | mail -s "$subject" "$ALERT_EMAIL"
+    fi
+    
+    log_message "ALERT: $subject - $message"
+}
+
+log_message "Starting security log monitoring"
+
+# Check for failed SSH login attempts
+SSH_FAILURES=$(grep -c "Failed password" "$LOG_DIR/ssh.log" 2>/dev/null || echo "0")
+
+if [ "$SSH_FAILURES" -gt 10 ]; then
+    send_alert "SSH Security Alert" "Multiple failed SSH login attempts detected: $SSH_FAILURES"
+fi
+
+# Check for sudo privilege escalations
+SUDO_EVENTS=$(grep -c "sudo:" "$LOG_DIR/sudo.log" 2>/dev/null || echo "0")
+
+if [ "$SUDO_EVENTS" -gt 5 ]; then
+    send_alert "Sudo Security Alert" "Multiple sudo privilege escalations detected: $SUDO_EVENTS"
+fi
+
+# Check for Docker security events
+DOCKER_EVENTS=$(grep -c "security" "$LOG_DIR/docker.log" 2>/dev/null || echo "0")
+
+if [ "$DOCKER_EVENTS" -gt 0 ]; then
+    send_alert "Docker Security Alert" "Docker security events detected: $DOCKER_EVENTS"
+fi
+
+# Check for firewall events
+FIREWALL_EVENTS=$(grep -c "BLOCK" "$LOG_DIR/firewall.log" 2>/dev/null || echo "0")
+
+if [ "$FIREWALL_EVENTS" -gt 20 ]; then
+    send_alert "Firewall Security Alert" "Multiple firewall blocks detected: $FIREWALL_EVENTS"
+fi
+
+log_message "Security log monitoring completed"
+```
+
+```conf:src/roles/configure_monitoring/templates/auditd.conf.j2
+#
+# This file controls the configuration of the audit daemon
+#
+
+local_events = yes
+write_logs = yes
+log_file = /var/log/audit/audit.log
+log_group = root
+log_format = RAW
+flush = INCREMENTAL_ASYNC
+freq = 50
+max_log_file = 8
+num_logs = 5
+priority_boost = 4
+disp_qos = lossy
+dispatcher = /sbin/audispd
+name_format = NONE
+##name = mydomain
+max_log_file_action = ROTATE
+space_left = 75
+space_left_action = SYSLOG
+action_mail_acct = root
+admin_space_left = 50
+admin_space_left_action = SUSPEND
+disk_full_action = SUSPEND
+disk_error_action = SUSPEND
+##tcp_listen_port = 60
+tcp_listen_queue = 5
+tcp_max_per_addr = 1
+##tcp_client_ports = 1024-65535
+tcp_client_max_idle = 0
+enable_krb5 = no
+krb5_principal = auditd
+##krb5_key_file = /etc/audit/audit.key
+distribute_network = no
+q_depth = 400
+overflow_action = SUSPEND
+max_restarts = 10
+plugin_dir = /etc/audit/plugins.d
+```
+
+```rules:src/roles/configure_monitoring/templates/audit.rules.j2
+# Audit rules for security monitoring
+# This file contains the rules for the audit daemon
+
+# Delete all previous rules
+-D
+
+# Set buffer size
+-b 8192
+
+# Make the configuration immutable
+-e 2
+
+# Audit the audit logs
+-w /var/log/audit/ -k auditlog
+
+# Auditd configuration
+-w /etc/audit/ -p wa -k auditconfig
+-w /etc/libaudit.conf -p wa -k auditconfig
+-w /etc/audisp/ -p wa -k audispconfig
+
+# Monitor for use of audit management tools
+-w /sbin/auditctl -p x -k audit_tools
+-w /sbin/auditd -p x -k audit_tools
+
+# Monitor AppArmor configuration changes
+-w /etc/apparmor/ -p wa -k MAC-policy
+-w /etc/apparmor.d/ -p wa -k MAC-policy
+
+# Monitor systemd configuration changes
+-w /etc/systemd/ -p wa -k systemd
+-w /lib/systemd/ -p wa -k systemd
+
+# Monitor SSH configuration changes
+-w /etc/ssh/sshd_config -p wa -k sshd
+-w /etc/ssh/sshd_config.d/ -p wa -k sshd
+
+# Monitor sudoers changes
+-w /etc/sudoers -p wa -k sudoers
+-w /etc/sudoers.d/ -p wa -k sudoers
+
+# Monitor Docker configuration changes
+-w /etc/docker/ -p wa -k docker
+-w /var/lib/docker/ -p wa -k docker
+
+# Monitor network configuration changes
+-w /etc/hosts -p wa -k network_modifications
+-w /etc/network/ -p wa -k network_modifications
+-w /etc/networks -p wa -k network_modifications
+-w /etc/resolv.conf -p wa -k network_modifications
+-w /etc/network/interfaces -p wa -k network_modifications
+
+# Monitor firewall configuration changes
+-w /etc/ufw/ -p wa -k firewall_modifications
+-w /etc/iptables/ -p wa -k firewall_modifications
+
+# Monitor user/group changes
+-w /etc/group -p wa -k identity
+-w /etc/passwd -p wa -k identity
+-w /etc/gshadow -p wa -k identity
+-w /etc/shadow -p wa -k identity
+-w /etc/security/opasswd -p wa -k identity
+
+# Monitor cron configuration & scheduled jobs
+-w /etc/cron.allow -p wa -k cron
+-w /etc/cron.deny -p wa -k cron
+-w /etc/cron.d/ -p wa -k cron
+-w /etc/cron.daily/ -p wa -k cron
+-w /etc/cron.hourly/ -p wa -k cron
+-w /etc/cron.monthly/ -p wa -k cron
+-w /etc/cron.weekly/ -p wa -k cron
+-w /etc/crontab -p wa -k cron
+-w /var/spool/cron/ -p wa -k cron
+
+# Monitor for use of commands to change identity/authentication
+-w /bin/su -p x -k privileged-priv_change
+-w /usr/bin/sudo -p x -k privileged-priv_change
+-w /etc/sudoers -p r -k privileged-priv_change
+-w /etc/sudoers.d/ -p r -k privileged-priv_change
+
+# Monitor for use of commands to change system administration scope
+-w /etc/sudoers -p wa -k scope
+-w /etc/sudoers.d/ -p wa -k scope
+
+# Monitor for use of commands to change network configuration
+-w /sbin/ip -p x -k network_modifications
+-w /sbin/iptables -p x -k network_modifications
+-w /sbin/iptables-restore -p x -k network_modifications
+-w /sbin/iptables-save -p x -k network_modifications
+
+# Monitor for use of commands to change system limits
+-w /etc/security/limits.conf -p wa -k limits
+-w /etc/security/limits.d/ -p wa -k limits
+
+# Monitor for use of commands to change system controls
+-w /etc/sysctl.conf -p wa -k system-locale
+-w /etc/sysctl.d/ -p wa -k system-locale
+
+# Monitor for use of commands to change system locale
+-w /etc/default/locale -p wa -k system-locale
+-w /etc/localtime -p wa -k system-locale
+
+# Monitor for use of commands to change system time
+-w /etc/adjtime -p wa -k time-change
+-w /etc/localtime -p wa -k time-change
+
+# Monitor for use of commands to change system name
+-w /etc/hostname -p wa -k system-locale
+-w /etc/network/ -p wa -k system-locale
+
+# Monitor for use of commands to change system locale
+-w /etc/default/locale -p wa -k system-locale
+-w /etc/localtime -p wa -k system-locale
+
+# Monitor for use of commands to change system time
+-w /etc/adjtime -p wa -k time-change
+-w /etc/localtime -p wa -k time-change
+
+# Monitor for use of commands to change system name
+-w /etc/hostname -p wa -k system-locale
+-w /etc/network/ -p wa -k system-locale
+
+# Monitor for use of commands to change system locale
+-w /etc/default/locale -p wa -k system-locale
+-w /etc/localtime -p wa -k system-locale
+
+# Monitor for use of commands to change system time
+-w /etc/adjtime -p wa -k time-change
+-w /etc/localtime -p wa -k time-change
+
+# Monitor for use of commands to change system name
+-w /etc/hostname -p wa -k system-locale
+-w /etc/network/ -p wa -k system-locale
+```
+
+```conf:src/roles/configure_monitoring/templates/security-logs.j2
+# Log rotation for security logs
+/var/log/security/*.log {
+    daily
+    missingok
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    create 644 root root
+    postrotate
+        /bin/systemctl reload rsyslog > /dev/null 2>&1 || true
+    endscript
+}
+
+/var/log/audit/audit.log {
+    daily
+    missingok
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    create 640 root root
+    postrotate
+        /bin/systemctl reload auditd > /dev/null 2>&1 || true
+    endscript
+}
+
+/opt/security/*.log {
+    daily
+    missingok
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    create 644 root root
+}
+```
+
+Now let me check if the full.yml playbook includes the new container security role:
+
+```
+# AIDE configuration for file integrity monitoring
+# Database and log file locations
+database=file:@@{DBDIR}/aide.db
+database_out=file:@@{DBDIR}/aide.db.new
+
+# Log file location
+logfile=@@{LOGDIR}/aide.log
+
+# Verbose level
+verbose=5
+
+# Report format
+report_url=file:@@{LOGDIR}/aide.report
+
+# These are the default rules
+#
+#p:      permissions
+#i:      inode:
+#n:      number of links
+#u:      user
+#g:      group
+#s:      size
+#b:      block count
+#m:      mtime
+#a:      atime
+#c:      ctime
+#S:      check for growing size
+#acl:    access control lists
+#selinux	extended acl and selinux access control lists
+#xattrs: extended attributes
+#md5:    md5 checksum
+#sha1:   sha1 checksum
+#sha256:	sha256 checksum
+#sha512:	sha512 checksum
+#tiger:  tiger checksum
+#rmd160: rmd160 checksum
+#haval:  haval checksum
+#gost:   gost checksum
+#crc32:  crc32 checksum
+#whirlpool: whirlpool checksum
+#ftype:  file type
+#l:      don't follow symlinks
+#L:      follow symlinks
+#R:      recursive
+#>	:  log file location
+#|	:  pipe to a program
+#!	:  ignore line
+
+# Custom rules
+Binlib = p+i+n+u+g+s+b+m+c+acl+selinux+xattrs+md5+sha256
+Config = p+i+n+u+g+s+b+m+c+acl+selinux+xattrs+md5+sha256
+Data = p+i+n+u+g+s+b+m+c+acl+selinux+xattrs+md5+sha256
+Log = p+i+n+u+g+s+b+m+c+acl+selinux+xattrs+md5+sha256
+
+# Directories to monitor
+/etc Binlib
+/bin Binlib
+/sbin Binlib
+/usr/bin Binlib
+/usr/sbin Binlib
+/usr/lib Binlib
+/usr/lib64 Binlib
+/lib Binlib
+/lib64 Binlib
+/boot Binlib
+/var/log Log
+/var/spool Log
+/var/lib Log
+/var/run Log
+/var/lock Log
+/var/cache Log
+/var/tmp Log
+/tmp Log
+/root Data
+/home Data
+
+# Files to ignore
+!/var/log/.*
+!/var/cache/.*
+!/var/tmp/.*
+!/tmp/.*
+!/var/run/.*
+!/var/lock/.*
+!/proc/.*
+!/sys/.*
+!/dev/.* 

@@ -1,0 +1,94 @@
+# Configure Container Security Role
+
+This role implements container security scanning and monitoring to detect vulnerabilities and security issues in Docker containers.
+
+## What it does
+
+- Installs container security scanning tools (Trivy, Clair)
+- Configures automated vulnerability scanning
+- Implements container behavior monitoring
+- Sets up security alerts and notifications
+- Configures Docker content trust
+- Creates security audit trails
+
+## Security Features
+
+### Vulnerability Scanning
+
+- **Automated scanning**: Daily scans of all running containers
+- **Multiple tools**: Trivy and Clair integration
+- **Severity filtering**: Focus on HIGH and CRITICAL vulnerabilities
+- **Report generation**: JSON reports with timestamps
+
+### Container Monitoring
+
+- **Privileged containers**: Detect containers running with elevated privileges
+- **Host network**: Monitor containers using host networking
+- **Host mounts**: Detect containers with host volume mounts
+- **Unusual behavior**: Monitor for suspicious container activity
+
+### Security Alerts
+
+- **Email notifications**: Alert on security issues
+- **Logging**: Comprehensive security event logging
+- **Audit trail**: Complete record of security events
+
+## Configuration
+
+### Role Behavior Settings (Role Defaults)
+
+```yaml
+# In role defaults/main.yml
+configure_container_security_enabled: true
+configure_container_security_enable_content_trust: true
+configure_container_security_scan_schedule: "daily"
+```
+
+### Environment-Specific Settings (Inventory Variables)
+
+```yaml
+# In inventory/group_vars/all.yml
+configure_container_security_alert_email: "your-email@example.com"
+configure_container_security_scan_severity: "HIGH,CRITICAL"
+```
+
+## Usage
+
+### Standard Deployment
+
+```bash
+# Deploy container security
+ansible-playbook playbooks/configure_container_security.yml
+```
+
+### Manual Scanning
+
+```bash
+# Run manual container scan
+sudo /opt/security/container-scan.sh
+
+# Check scan results
+ls -la /opt/security/scans/
+```
+
+## Security Benefits
+
+1. **Vulnerability Detection**: Automated discovery of security issues
+2. **Compliance**: Meets container security requirements
+3. **Monitoring**: Continuous security oversight
+4. **Alerting**: Immediate notification of security issues
+5. **Audit Trail**: Complete security event history
+
+## Troubleshooting
+
+### Scan Failures
+
+- Check if Trivy is installed: `which trivy`
+- Verify Docker is running: `docker ps`
+- Check scan logs: `tail -f /var/log/container-security.log`
+
+### Monitoring Issues
+
+- Verify monitoring script: `/opt/security/container-monitor.sh`
+- Check cron jobs: `crontab -l`
+- Review security logs: `tail -f /var/log/container-security.log`

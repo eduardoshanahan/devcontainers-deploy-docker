@@ -1,0 +1,93 @@
+---
+- name: Install prerequisites for Trivy
+  ansible.builtin.apt:
+    name:
+      - wget
+      - curl
+      - gnupg
+      - apt-transport-https
+    state: present
+    update_cache: true
+  become: true
+
+- name: Add Trivy repository key
+  ansible.builtin.apt_key:
+    url: https://aquasecurity.github.io/trivy-repo/deb/public.key
+    state: present
+  become: true
+
+- name: Add Trivy repository
+  ansible.builtin.apt_repository:
+    repo: "deb https://aquasecurity.github.io/trivy-repo/deb {{ ansible_distribution_release }} main"
+    state: present
+  become: true
+
+- name: Install Trivy
+  ansible.builtin.apt:
+    name: trivy
+    state: present
+    update_cache: true
+  become: true
+
+- name: Install Docker scan plugin
+  ansible.builtin.apt:
+    name: docker-scan-plugin
+    state: present
+    update_cache: true
+  become: true
+  failed_when: false
+
+- name: Create security scripts directory
+  ansible.builtin.file:
+    path: /opt/security
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Configure container scanning script
+  ansible.builtin.template:
+    src: container-scan.sh.j2
+    dest: /opt/security/container-scan.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Configure container security monitoring
+  ansible.builtin.template:
+    src: container-monitor.sh.j2
+    dest: /opt/security/container-monitor.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Create container security cron job
+  ansible.builtin.cron:
+    name: "Container Security Scan"
+    hour: "2"
+    minute: "0"
+    job: "/opt/security/container-scan.sh"
+    user: root
+  become: true
+
+- name: Configure Docker content trust
+  ansible.builtin.lineinfile:
+    path: /etc/docker/daemon.json
+    regexp: '"content-trust"'
+    line: '  "content-trust": true,'
+    insertafter: '"experimental": false,'
+  become: true
+  when: configure_container_security_enable_content_trust | default(true)
+
+- name: Test Trivy installation
+  ansible.builtin.command: trivy --version
+  register: trivy_test
+  changed_when: false
+  become: true
+
+- name: Debug Trivy installation
+  ansible.builtin.debug:
+    msg: "Trivy version: {{ trivy_test.stdout }}"

@@ -1,6 +1,6 @@
 ---
 # Docker deployment behavior settings
-deploy_docker_security_enabled: true
+deploy_docker_security_enabled: false
 
 # Package configuration (Behavior)
 deploy_docker_packages:
