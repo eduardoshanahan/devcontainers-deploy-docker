@@ -111,6 +111,32 @@ sudo systemctl status rsyslog
 ip addr show | grep "inet " | grep -v 127.0.0.1
 ```
 
+**Detailed Router Instructions:**
+
+**For TP-Link/Netgear/Asus:**
+
+1. Access router admin panel (usually 192.168.1.1 or 192.168.0.1)
+2. Navigate to "Port Forwarding" or "Virtual Server"
+3. Add new rule:
+   - **Service Name**: rsyslog
+   - **External Port**: 514
+   - **Internal IP**: [Your local machine IP]
+   - **Internal Port**: 514
+   - **Protocol**: Both TCP and UDP
+
+**For Linksys:**
+
+1. Go to "Applications & Gaming" → "Port Range Forwarding"
+2. Add entry:
+   - **Application**: rsyslog
+   - **Start**: 514
+   - **End**: 514
+   - **Protocol**: Both
+   - **IP Address**: [Your local machine IP]
+
+**For ISP Routers:**
+Contact your ISP to enable port forwarding for port 514
+
 ### Step 7: Test the setup
 
 ```bash
@@ -122,6 +148,63 @@ echo "test message" | nc localhost 514
 
 # Check if logs are being written
 sudo tail -f /var/log/remote/*/*.log
+```
+
+### Step 8: Dynamic IP Address Setup (If Needed)
+
+If your public IP changes frequently:
+
+#### Option A: Dynamic DNS
+
+1. Sign up for a free dynamic DNS service (No-IP, DuckDNS)
+2. Install dynamic DNS client:
+
+   ```bash
+   sudo apt-get install ddclient
+   ```
+
+3. Configure ddclient with your dynamic DNS provider
+4. Update inventory with your dynamic DNS hostname
+
+#### Option B: IP Update Script
+
+Create a script to update your server configuration when IP changes:
+
+```bash
+#!/bin/bash
+NEW_IP=$(curl -s ifconfig.me)
+# Update your inventory file with new IP
+sed -i "s/configure_remote_logging_server: \".*\"/configure_remote_logging_server: \"$NEW_IP\"/" src/inventory/group_vars/all.yml
+```
+
+### Step 9: Using Non-Standard Ports (Optional)
+
+If port 514 is blocked by your ISP, use alternative ports:
+
+**Update local machine:**
+
+```bash
+# Use port 10514 instead
+sudo ufw allow 10514/udp
+sudo ufw allow 10514/tcp
+```
+
+**Update rsyslog configuration:**
+
+```conf
+input(type="imudp" port="10514")
+input(type="imtcp" port="10514")
+```
+
+**Update router port forwarding:**
+
+- External Port: 10514
+- Internal Port: 10514
+
+**Update server inventory:**
+
+```yaml
+configure_remote_logging_port: 10514
 ```
 
 ## Option 2: VPN-Based Setup (More Secure)
@@ -252,6 +335,32 @@ sudo systemctl status rsyslog
 sudo tail -f /var/log/syslog | grep rsyslog
 ```
 
+### Set Up Log Monitoring
+
+**Create log monitoring script:**
+
+```bash
+#!/bin/bash
+# /opt/monitor-logs.sh
+LOG_DIR="/var/log/remote"
+ALERT_EMAIL="your-email@example.com"
+
+# Check if logs are being received
+if [ ! -f "$LOG_DIR"/*/*.log ]; then
+    echo "No logs received in the last hour" | mail -s "Log Reception Alert" "$ALERT_EMAIL"
+fi
+
+# Check log file sizes
+find "$LOG_DIR" -name "*.log" -size +100M -exec echo "Large log file detected: {}" \;
+```
+
+**Add to crontab:**
+
+```bash
+# Check every hour
+echo "0 * * * * /opt/monitor-logs.sh" | sudo crontab -
+```
+
 ### Log rotation
 
 Create `/etc/logrotate.d/remote-logs`:
@@ -268,6 +377,57 @@ Create `/etc/logrotate.d/remote-logs`:
 }
 ```
 
+### Log Backup Strategy
+
+**Local Backup:**
+
+```bash
+# Create backup script
+sudo nano /opt/backup-logs.sh
+```
+
+```bash
+#!/bin/bash
+BACKUP_DIR="/backup/logs"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+# Create backup
+sudo tar -czf "$BACKUP_DIR/logs_$DATE.tar.gz" /var/log/remote/
+
+# Keep only last 30 days
+find "$BACKUP_DIR" -name "logs_*.tar.gz" -mtime +30 -delete
+```
+
+**Remote Backup (Optional):**
+
+```bash
+# Sync to external storage
+rsync -avz /var/log/remote/ user@backup-server:/backup/logs/
+```
+
+### Performance Optimization
+
+**For High-Volume Logs:**
+
+```bash
+# Increase rsyslog queue size
+echo '$ActionQueueSize 1000000' >> /etc/rsyslog.conf
+echo '$ActionQueueMaxDiskSpace 10g' >> /etc/rsyslog.conf
+
+# Use separate disk for logs
+sudo mkdir /mnt/logs
+sudo mount /dev/sdb1 /mnt/logs
+sudo ln -s /mnt/logs/remote /var/log/remote
+```
+
+**Log Rotation Optimization:**
+
+```bash
+# Compress old logs immediately
+echo 'compress' >> /etc/logrotate.d/remote-logs
+echo 'delaycompress' >> /etc/logrotate.d/remote-logs
+```
+
 ### Security considerations
 
 ```bash
@@ -276,6 +436,57 @@ sudo ufw allow from YOUR_SERVER_IP to any port 514
 
 # Monitor for unauthorized access
 sudo tail -f /var/log/auth.log | grep "sshd"
+```
+
+### Security Hardening
+
+**Restrict Access by IP:**
+
+```bash
+# Only allow your server's IP
+sudo ufw delete allow 514/udp
+sudo ufw delete allow 514/tcp
+sudo ufw allow from YOUR_SERVER_IP to any port 514 proto udp
+sudo ufw allow from YOUR_SERVER_IP to any port 514 proto tcp
+```
+
+**Enable Log Encryption (Advanced):**
+
+```bash
+# Install TLS support
+sudo apt-get install rsyslog-gnutls
+
+# Configure TLS in rsyslog
+echo 'module(load="gtls")' >> /etc/rsyslog.conf
+```
+
+### Integration with Existing Monitoring
+
+**Prometheus/Grafana Integration:**
+
+```bash
+# Install node_exporter
+wget https://github.com/prometheus/node_exporter/releases/download/v1.3.1/node_exporter-1.3.1.linux-amd64.tar.gz
+tar xvf node_exporter-*.tar.gz
+sudo cp node_exporter-*/node_exporter /usr/local/bin/
+
+# Create systemd service
+sudo nano /etc/systemd/system/node_exporter.service
+```
+
+**Add to node_exporter service:**
+
+```ini
+[Unit]
+Description=Node Exporter
+After=network.target
+
+[Service]
+User=node_exporter
+ExecStart=/usr/local/bin/node_exporter --collector.textfile.directory=/var/lib/node_exporter/textfile_collector
+
+[Install]
+WantedBy=multi-user.target
 ```
 
 ## Troubleshooting
