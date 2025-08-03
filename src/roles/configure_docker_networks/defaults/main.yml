@@ -1,21 +1,16 @@
 ---
-# Default Docker networks with specific IP ranges
-# These replace the broad ranges (172.16.0.0/12, 192.168.0.0/16, 10.0.0.0/8)
-configure_docker_networks_default_networks: "{{ deploy_docker_network_configuration.default_networks }}"
-
-# Additional custom networks (use configuration)
-configure_docker_networks_custom_networks: "{{ configure_docker_networks_custom_networks | default([]) }}"
-
-# Network driver to use (bridge is most common)
+# Role behavior settings (keep in role defaults)
+configure_docker_networks_test_mode: true
 configure_docker_networks_default_driver: "bridge"
-
-# Whether to enable network encryption (overlay driver only)
-configure_docker_networks_encrypted: false
-
-# Whether to remove ALL custom networks (use with caution)
 configure_docker_networks_remove_all: false
+configure_docker_networks_encrypted: false
 
 # Network labels for organization
 configure_docker_networks_labels:
   environment: "production"
   managed_by: "ansible"
+
+# Network configurations (moved to inventory - these are placeholders)
+# Override these in inventory/group_vars/all.yml
+configure_docker_networks_default_networks: []
+configure_docker_networks_custom_networks: []

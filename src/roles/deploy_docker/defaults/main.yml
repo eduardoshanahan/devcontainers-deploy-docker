@@ -1,11 +1,12 @@
 ---
+# Docker deployment behavior settings
+deploy_docker_security_enabled: true
+
+# Package configuration (Behavior)
 deploy_docker_packages:
   - docker-ce
   - docker-ce-cli
   - containerd.io
-
-# Security configuration
-deploy_docker_security_enabled: true
 
 # Docker network configuration (use variables from all.yml)
 deploy_docker_network_configuration: "{{ deploy_docker_network_configuration | default({}) }}"

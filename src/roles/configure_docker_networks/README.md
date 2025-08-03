@@ -1,107 +1,154 @@
 # Configure Docker Networks Role
 
-This role creates secure Docker networks with specific IP ranges and network segmentation.
+This role validates Docker network configuration and ensures proper network setup without imposing a predefined network structure.
 
 ## What it does
 
-- Creates Docker networks with specific IP ranges
-- Configures network isolation and security
-- Sets up custom networks for different service types
-- Applies network labels and descriptions
-- Validates network connectivity
+- Validates Docker network configuration
+- Tests network connectivity and functionality
+- **Removes all created networks after testing** (no imposition)
+- Ensures Docker daemon is properly configured for networking
+- Validates network security settings
 
-## Network Architecture
+## Key Features
 
-### Default Networks
+### No Network Imposition
 
-- **web-network** (172.20.0.0/16): For web applications and frontend services
-- **db-network** (172.21.0.0/16): For databases and backend services
-- **monitoring-network** (172.22.0.0/16): For monitoring and logging services
+- **Test Mode**: Creates networks temporarily for validation
+- **Automatic Cleanup**: Removes all created networks after testing
+- **User Control**: Users define their own network architecture
+- **Validation Only**: Ensures Docker networking works without forcing structure
 
-### Custom Networks
+### Network Validation
 
-- **api-network** (172.23.0.0/16): API services network
-- **cache-network** (172.24.0.0/16): Cache and session storage network
+- **Connectivity Testing**: Validates network communication
+- **Configuration Testing**: Ensures proper Docker daemon settings
+- **Security Validation**: Confirms network security policies
+- **Clean State**: Leaves system in clean state after testing
 
-## Security Features
+## Configuration
 
-- **Network segmentation**: Isolated networks for different service types
-- **Specific IP ranges**: No broad network access (172.16.0.0/12, etc.)
-- **Network isolation**: Services can only communicate within their designated networks
-- **Security labels**: Network metadata for organization
+### Role Behavior Settings (Role Defaults)
 
-## Configuration Variables
+These control how the role behaves and are defined in the role defaults:
 
 ```yaml
-# Network configuration
-configure_docker_networks_default_networks: "{{ deploy_docker_network_configuration.default_networks }}"
-configure_docker_networks_custom_networks: "{{ configure_docker_networks_custom_networks | default([]) }}"
+# In role defaults/main.yml
+configure_docker_networks_test_mode: true
+configure_docker_networks_default_driver: "bridge"
 configure_docker_networks_remove_all: false
+configure_docker_networks_encrypted: false
 ```
 
-## Network Management
+### Network Configuration (Inventory Variables)
 
-### Remove Project Networks Only (Default)
-
-```bash
-ansible-playbook playbooks/configure_docker_networks.yml
-```
-
-### Remove All Networks
+These define the actual networks and are set in your inventory:
 
 ```yaml
-# Add to your all.yml
-configure_docker_networks_remove_all: true
+# In inventory/group_vars/all.yml
+configure_docker_networks_default_networks:
+  - name: "web-network"
+    subnet: "172.20.0.0/16"
+    driver: "bridge"
+    description: "Network for web applications"
+  - name: "db-network"
+    subnet: "172.21.0.0/16"
+    driver: "bridge"
+    description: "Network for databases"
+
+configure_docker_networks_custom_networks:
+  - name: "api-network"
+    subnet: "172.23.0.0/16"
+    driver: "bridge"
+    description: "API services network"
 ```
+
+## Variable Organization
+
+### Role Defaults (Behavior Settings)
+- **Location**: `src/roles/configure_docker_networks/defaults/main.yml`
+- **Purpose**: Control role behavior and provide sensible defaults
+- **Override**: Rarely changed, role-specific logic
+
+### Inventory Variables (Network Configuration)
+- **Location**: `src/inventory/group_vars/all.yml`
+- **Purpose**: Define actual network configurations
+- **Override**: Environment-specific, frequently customized
 
 ## Usage
 
+### Standard Deployment (Recommended)
+
 ```bash
-# Run individually
+# Deploy with test mode (creates networks, tests, then removes them)
 ansible-playbook playbooks/configure_docker_networks.yml
-
-# Or as part of full deployment
-ansible-playbook playbooks/full.yml
 ```
 
-## Network Validation
+### Custom Network Configuration
 
-Test network connectivity:
+```yaml
+# In inventory/group_vars/all.yml
+configure_docker_networks_default_networks:
+  - name: "my-web-network"
+    subnet: "10.0.1.0/24"
+    driver: "bridge"
+    description: "My custom web network"
+  - name: "my-db-network"
+    subnet: "10.0.2.0/24"
+    driver: "bridge"
+    description: "My custom database network"
+```
+
+### Manual Network Creation
+
+After deployment, create your own networks:
 
 ```bash
-# List networks
-docker network ls
-
-# Inspect network
-docker network inspect web-network
-
-# Test connectivity
-docker run --rm --network web-network alpine ping -c 1 8.8.8.8
+# Create your own networks
+docker network create my-web-network --subnet=10.0.1.0/24
+docker network create my-db-network --subnet=10.0.2.0/24
 ```
 
-## Network Policies
+## Benefits
 
-### Web Services
+1. **No Imposition**: Users control their own network architecture
+2. **Validation**: Ensures Docker networking works correctly
+3. **Clean State**: No leftover networks from deployment
+4. **Flexibility**: Supports any network topology
+5. **Testing**: Validates network functionality without forcing structure
+6. **Organization**: Clear separation of behavior vs. configuration
 
-- nginx, apache, nodejs, react, vue
+## Security Features
 
-### Database Services
-
-- postgres, mysql, redis, mongodb
-
-### Monitoring Services
-
-- prometheus, grafana, elasticsearch, kibana
+- **Network Isolation**: Validates proper network segmentation
+- **Security Policies**: Confirms network security settings
+- **Clean Environment**: No unintended network exposure
+- **Audit Trail**: Logs all network operations for review
 
 ## Troubleshooting
 
-- **Network conflicts**: Use `configure_docker_networks_remove_all: true`
-- **Subnet issues**: Check network ranges in `all.yml`
-- **Connectivity problems**: Verify network isolation is working
-- **Container communication**: Test cross-network isolation
+### Networks Not Created
 
-## Files Created
+- This is expected behavior in test mode
+- Networks are created temporarily for testing only
+- Create your own networks after deployment
 
-- Docker networks with specific subnets
-- Network labels and descriptions
-- Network isolation policies
+### Network Validation Failed
+
+- Check Docker daemon configuration
+- Verify network driver support
+- Review firewall settings
+
+### Configuration Issues
+
+- Verify network configurations in inventory
+- Check subnet conflicts
+- Ensure proper YAML syntax
+
+## Summary
+
+This role provides **validation without imposition**. It ensures Docker networking works correctly while giving users complete control over their network architecture. No predefined networks remain after deployment.
+
+**Variable Organization**:
+- **Role defaults**: Behavior settings (test mode, drivers)
+- **Inventory variables**: Network configurations (subnets, names)

@@ -33,46 +33,46 @@ This role configures automatic security updates with email notifications using u
 - **Package Blacklist**: Excludes certain packages from automatic updates
 - **Error Reporting**: Email notifications for update failures
 
-## Configuration Variables
+## Configuration
 
-### Email Configuration
+### Role Behavior Settings (Role Defaults)
 
-```yaml
-# Basic email notification
-configure_security_updates_email: "admin@example.com"
-
-# Gmail SMTP configuration
-configure_security_updates_gmail_enabled: true
-configure_security_updates_gmail_user: "your-email@gmail.com"
-configure_security_updates_gmail_password: "your-app-password"
-configure_security_updates_gmail_smtp_server: "smtp.gmail.com"
-configure_security_updates_gmail_smtp_port: "465"  # Use port 465 for SMTPS
-```
-
-### Alternative Notifications Configuratio9n
+These control how the role behaves and are defined in the role defaults:
 
 ```yaml
-# Slack webhook
-configure_security_updates_slack_webhook: "https://hooks.slack.com/services/..."
-
-# Discord webhook
-configure_security_updates_discord_webhook: "https://discord.com/api/webhooks/..."
-```
-
-### Update Configuration
-
-```yaml
-# Enable/disable automatic updates
+# In role defaults/main.yml
 configure_security_updates_enabled: true
-
-# Automatic reboot settings
 configure_security_updates_auto_reboot: false
 configure_security_updates_auto_reboot_time: "02:00"
-
-# Email notification settings
 configure_security_updates_mail_on_error: true
 configure_security_updates_mail_on_reboot: false
 ```
+
+### Environment-Specific Settings (Inventory Variables)
+
+These define the actual email and notification settings and are set in your inventory:
+
+```yaml
+# In inventory/group_vars/all.yml
+configure_security_updates_email: "your-email@gmail.com"
+configure_security_updates_gmail_enabled: true
+configure_security_updates_gmail_user: "your-gmail@gmail.com"
+configure_security_updates_gmail_password: "your-app-password"
+configure_security_updates_gmail_smtp_server: "smtp.gmail.com"
+configure_security_updates_gmail_smtp_port: "465"
+```
+
+## Variable Organization
+
+### Role Defaults (Behavior Settings)
+- **Location**: `src/roles/configure_security_updates/defaults/main.yml`
+- **Purpose**: Control role behavior and provide sensible defaults
+- **Override**: Rarely changed, role-specific logic
+
+### Inventory Variables (Environment Configuration)
+- **Location**: `src/inventory/group_vars/all.yml`
+- **Purpose**: Define email settings and notification preferences
+- **Override**: Environment-specific, frequently customized
 
 ## Files Created
 

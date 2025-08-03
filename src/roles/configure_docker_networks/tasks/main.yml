@@ -48,8 +48,8 @@
   become: true
   changed_when: false
 
-# Create default networks
-- name: Create default Docker networks
+# Create default networks (only for testing/validation)
+- name: Create default Docker networks for testing
   community.docker.docker_network:
     name: "{{ item.name }}"
     driver: "{{ item.driver | default(configure_docker_networks_default_driver) }}"
@@ -62,9 +62,10 @@
       managed_by: "{{ configure_docker_networks_labels.managed_by }}"
   loop: "{{ configure_docker_networks_default_networks }}"
   become: true
+  when: configure_docker_networks_test_mode | default(false)
 
-# Create custom networks if defined
-- name: Create custom Docker networks
+# Create custom networks if defined (only for testing/validation)
+- name: Create custom Docker networks for testing
   community.docker.docker_network:
     name: "{{ item.name }}"
     driver: "{{ item.driver | default(configure_docker_networks_default_driver) }}"
@@ -77,27 +78,52 @@
       managed_by: "{{ configure_docker_networks_labels.managed_by }}"
   loop: "{{ configure_docker_networks_custom_networks }}"
   become: true
-  when: configure_docker_networks_custom_networks | length > 0
+  when: configure_docker_networks_test_mode | default(false) and configure_docker_networks_custom_networks | length > 0
 
-# Display network information
+# Display network information (only in test mode)
 - name: List Docker networks
   ansible.builtin.command: docker network ls --format "table {{ '{{' }}.Name{{ '}}' }}\t{{ '{{' }}.Driver{{ '}}' }}\t{{ '{{' }}.Scope{{ '}}' }}"
   register: docker_networks
   changed_when: false
   become: true
+  when: configure_docker_networks_test_mode | default(false)
 
 - name: Debug Docker networks
   ansible.builtin.debug:
     msg: "{{ docker_networks.stdout_lines }}"
+  when: configure_docker_networks_test_mode | default(false)
 
-# Verify network connectivity
+# Verify network connectivity (only in test mode)
 - name: Test network connectivity
   ansible.builtin.command: docker run --rm --network web-network alpine ping -c 1 8.8.8.8
   register: network_test
   changed_when: false
   failed_when: false
   become: true
+  when: configure_docker_networks_test_mode | default(false)
 
 - name: Debug network connectivity test
   ansible.builtin.debug:
     msg: "Network connectivity test: {{ 'PASSED' if network_test.rc == 0 else 'FAILED' }}"
+  when: configure_docker_networks_test_mode | default(false)
+
+# Cleanup: Remove all created networks after testing
+- name: Remove all created networks after testing
+  community.docker.docker_network:
+    name: "{{ item.name }}"
+    state: absent
+  loop: "{{ configure_docker_networks_default_networks + configure_docker_networks_custom_networks }}"
+  become: true
+  failed_when: false
+  when: configure_docker_networks_test_mode | default(false)
+
+- name: Final network cleanup
+  ansible.builtin.command: docker network prune -f
+  become: true
+  changed_when: false
+  when: configure_docker_networks_test_mode | default(false)
+
+- name: Debug final cleanup
+  ansible.builtin.debug:
+    msg: "All test networks have been removed. No predefined networks remain."
+  when: configure_docker_networks_test_mode | default(false)

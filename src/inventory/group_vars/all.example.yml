@@ -11,35 +11,13 @@ containers_deployment_user_ssh_key_public: "/path/to/your/public/key.pub"
 ansible_ssh_common_args: "-o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
 ansible_python_interpreter: "/usr/bin/python3.10"
 
-# Security Updates Configuration
-unattended_upgrades_email: "your-email@gmail.com"
-security_updates_email: "your-email@gmail.com"
-
-# Gmail SMTP Configuration (for email notifications)
-security_updates_gmail_enabled: true
-security_updates_gmail_user: "your-gmail@gmail.com"
-security_updates_gmail_password: "your-app-password"
-security_updates_gmail_smtp_server: "smtp.gmail.com"
-security_updates_gmail_smtp_port: "465"  # Use port 465 for SMTPS
-
-# Alternative notification methods
-security_updates_slack_webhook: ""
-security_updates_discord_webhook: ""
-
-# Configure Security Updates Role Variables
-configure_security_updates_enabled: true
-configure_security_updates_auto_reboot: false
-configure_security_updates_auto_reboot_time: "02:00"
-configure_security_updates_mail_on_error: true
-configure_security_updates_mail_on_reboot: false
-
-# Notification Script Variables
+# Security Updates Configuration (Environment-specific)
 configure_security_updates_email: "your-email@gmail.com"
 configure_security_updates_gmail_enabled: true
 configure_security_updates_gmail_user: "your-gmail@gmail.com"
 configure_security_updates_gmail_password: "your-app-password"
 configure_security_updates_gmail_smtp_server: "smtp.gmail.com"
-configure_security_updates_gmail_smtp_port: "465"  # Use port 465 for SMTPS
+configure_security_updates_gmail_smtp_port: "465"
 configure_security_updates_slack_webhook: ""
 configure_security_updates_discord_webhook: ""
 
@@ -82,7 +60,22 @@ deploy_docker_network_configuration:
     enable_ip_forwarding: true
     enable_network_isolation: true
 
-# Docker Network Configuration
+# Docker Network Configuration (Environment-specific)
+configure_docker_networks_default_networks:
+  - name: "web-network"
+    subnet: "172.20.0.0/16"
+    driver: "bridge"
+    description: "Network for web applications and frontend services"
+  - name: "db-network"
+    subnet: "172.21.0.0/16"
+    driver: "bridge"
+    description: "Network for databases and backend services"
+  - name: "monitoring-network"
+    subnet: "172.22.0.0/16"
+    driver: "bridge"
+    description: "Network for monitoring and logging services"
+
+# Additional custom networks (optional)
 configure_docker_networks_custom_networks:
   - name: "api-network"
     subnet: "172.23.0.0/16"
@@ -93,15 +86,7 @@ configure_docker_networks_custom_networks:
     driver: "bridge"
     description: "Cache and session storage network"
 
-# Configure Docker Networks Role Variables
-configure_docker_networks_default_driver: "bridge"
-configure_docker_networks_encrypted: false
-configure_docker_networks_remove_all: false
-configure_docker_networks_labels:
-  environment: "production"
-  managed_by: "ansible"
-
-# Network Policies (service-to-network mappings)
+# Network Policies
 deploy_docker_network_policies:
   web_services:
     - "nginx"
@@ -121,3 +106,8 @@ deploy_docker_network_policies:
     - "grafana"
     - "elasticsearch"
     - "kibana"
+
+# Monitoring Configuration (Environment-specific)
+configure_monitoring_enabled: true
+configure_monitoring_alert_email: "your-email@example.com"
+configure_monitoring_alert_webhook: ""

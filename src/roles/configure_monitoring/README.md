@@ -28,14 +28,40 @@ This role sets up system monitoring and health checks for the server.
 
 ## Configuration
 
-The role uses these variables from your inventory:
+### Role Behavior Settings (Role Defaults)
+
+These control how the role behaves and are defined in the role defaults:
 
 ```yaml
-# Monitoring configuration
+# In role defaults/main.yml
 configure_monitoring_enabled: true
-configure_monitoring_email: "admin@example.com"
-configure_monitoring_check_interval: "5m"
+configure_monitoring_health_check_interval: 300
+configure_monitoring_disk_threshold: 85
+configure_monitoring_memory_threshold: 90
+configure_monitoring_cpu_threshold: 80
 ```
+
+### Environment-Specific Settings (Inventory Variables)
+
+These define the actual alert settings and are set in your inventory:
+
+```yaml
+# In inventory/group_vars/all.yml
+configure_monitoring_alert_email: "your-email@example.com"
+configure_monitoring_alert_webhook: ""
+```
+
+## Variable Organization
+
+### Role Defaults (Behavior Settings)
+- **Location**: `src/roles/configure_monitoring/defaults/main.yml`
+- **Purpose**: Control role behavior and provide sensible defaults
+- **Override**: Rarely changed, role-specific logic
+
+### Inventory Variables (Environment Configuration)
+- **Location**: `src/inventory/group_vars/all.yml`
+- **Purpose**: Define alert recipients and notification settings
+- **Override**: Environment-specific, frequently customized
 
 ## Monitoring Scripts
 
