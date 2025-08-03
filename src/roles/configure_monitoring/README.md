@@ -54,11 +54,13 @@ configure_monitoring_alert_webhook: ""
 ## Variable Organization
 
 ### Role Defaults (Behavior Settings)
+
 - **Location**: `src/roles/configure_monitoring/defaults/main.yml`
 - **Purpose**: Control role behavior and provide sensible defaults
 - **Override**: Rarely changed, role-specific logic
 
 ### Inventory Variables (Environment Configuration)
+
 - **Location**: `src/inventory/group_vars/all.yml`
 - **Purpose**: Define alert recipients and notification settings
 - **Override**: Environment-specific, frequently customized

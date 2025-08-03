@@ -94,11 +94,13 @@ deploy_docker_network_policies:
 ## Variable Organization
 
 ### Role Defaults (Behavior Settings)
+
 - **Location**: `src/roles/deploy_docker/defaults/main.yml`
 - **Purpose**: Control role behavior and provide sensible defaults
 - **Override**: Rarely changed, role-specific logic
 
 ### Inventory Variables (Environment Configuration)
+
 - **Location**: `src/inventory/group_vars/all.yml`
 - **Purpose**: Define network configurations and policies
 - **Override**: Environment-specific, frequently customized

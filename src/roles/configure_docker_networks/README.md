@@ -66,11 +66,13 @@ configure_docker_networks_custom_networks:
 ## Variable Organization
 
 ### Role Defaults (Behavior Settings)
+
 - **Location**: `src/roles/configure_docker_networks/defaults/main.yml`
 - **Purpose**: Control role behavior and provide sensible defaults
 - **Override**: Rarely changed, role-specific logic
 
 ### Inventory Variables (Network Configuration)
+
 - **Location**: `src/inventory/group_vars/all.yml`
 - **Purpose**: Define actual network configurations
 - **Override**: Environment-specific, frequently customized
@@ -150,5 +152,6 @@ docker network create my-db-network --subnet=10.0.2.0/24
 This role provides **validation without imposition**. It ensures Docker networking works correctly while giving users complete control over their network architecture. No predefined networks remain after deployment.
 
 **Variable Organization**:
+
 - **Role defaults**: Behavior settings (test mode, drivers)
 - **Inventory variables**: Network configurations (subnets, names)

@@ -41,7 +41,7 @@ configure_remote_logging_forward_all_logs: true
 
 ```yaml
 # In inventory/group_vars/all.yml
-configure_remote_logging_server: "your-local-ip"
+configure_remote_logging_server: "37.228.203.72"  # Your public IP address
 configure_remote_logging_protocol: "udp"
 configure_remote_logging_port: 514
 ```
@@ -55,14 +55,66 @@ ansible-playbook playbooks/configure_remote_logging.yml
 
 ## Local Machine Setup
 
-On your local machine, configure rsyslog to receive logs:
+**📋 Complete setup instructions are available in [LOCAL_SETUP.md](LOCAL_SETUP.md)**
+
+The local machine setup includes:
+
+### Quick Setup (Option 1: Direct Internet Access)
 
 ```bash
 # Install rsyslog
 sudo apt-get install rsyslog
 
-# Edit configuration
+# Configure for remote log reception
 sudo nano /etc/rsyslog.conf
 ```
 
-Add to `/etc/rsyslog.conf`: 
+Add to `/etc/rsyslog.conf`:
+
+```conf
+# Load modules for remote reception
+module(load="imudp")
+module(load="imtcp")
+
+# Listen on port 514
+input(type="imudp" port="514")
+input(type="imtcp" port="514")
+
+# Create log template
+$template RemoteLogs,"/var/log/remote/%HOSTNAME%/%PROGRAMNAME%.log"
+*.* ?RemoteLogs
+```
+
+```bash
+# Create log directory
+sudo mkdir -p /var/log/remote
+sudo chown syslog:adm /var/log/remote
+
+# Configure firewall
+sudo ufw allow 514/udp
+sudo ufw allow 514/tcp
+
+# Restart rsyslog
+sudo systemctl restart rsyslog
+```
+
+### Alternative Options
+
+- **Option 2**: VPN-based setup (more secure)
+- **Option 3**: Cloud-based setup (alternative)
+
+See [LOCAL_SETUP.md](LOCAL_SETUP.md) for detailed instructions for all options.
+
+## Files Created
+
+- `/etc/rsyslog.d/remote-forwarding.conf` - Remote forwarding configuration
+- `/etc/rsyslog.d/forwarding-rules.conf` - Log forwarding rules
+
+## Troubleshooting
+
+- **Check configuration**: `rsyslogd -N1`
+- **View logs**: `tail -f /var/log/syslog`
+- **Test connection**: `logger "test message"`
+- **Check remote logs**: `tail -f /var/log/remote/`
+
+For comprehensive troubleshooting, see [LOCAL_SETUP.md](LOCAL_SETUP.md).

@@ -65,11 +65,13 @@ configure_security_updates_gmail_smtp_port: "465"
 ## Variable Organization
 
 ### Role Defaults (Behavior Settings)
+
 - **Location**: `src/roles/configure_security_updates/defaults/main.yml`
 - **Purpose**: Control role behavior and provide sensible defaults
 - **Override**: Rarely changed, role-specific logic
 
 ### Inventory Variables (Environment Configuration)
+
 - **Location**: `src/inventory/group_vars/all.yml`
 - **Purpose**: Define email settings and notification preferences
 - **Override**: Environment-specific, frequently customized
