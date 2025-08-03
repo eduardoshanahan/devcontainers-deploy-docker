@@ -20,11 +20,28 @@ security_updates_gmail_enabled: true
 security_updates_gmail_user: "your-gmail@gmail.com"
 security_updates_gmail_password: "your-app-password"
 security_updates_gmail_smtp_server: "smtp.gmail.com"
-security_updates_gmail_smtp_port: "587"
+security_updates_gmail_smtp_port: "465"  # Use port 465 for SMTPS
 
 # Alternative notification methods
 security_updates_slack_webhook: ""
 security_updates_discord_webhook: ""
+
+# Configure Security Updates Role Variables
+configure_security_updates_enabled: true
+configure_security_updates_auto_reboot: false
+configure_security_updates_auto_reboot_time: "02:00"
+configure_security_updates_mail_on_error: true
+configure_security_updates_mail_on_reboot: false
+
+# Notification Script Variables
+configure_security_updates_email: "your-email@gmail.com"
+configure_security_updates_gmail_enabled: true
+configure_security_updates_gmail_user: "your-gmail@gmail.com"
+configure_security_updates_gmail_password: "your-app-password"
+configure_security_updates_gmail_smtp_server: "smtp.gmail.com"
+configure_security_updates_gmail_smtp_port: "465"  # Use port 465 for SMTPS
+configure_security_updates_slack_webhook: ""
+configure_security_updates_discord_webhook: ""
 
 # Firewall Configuration
 configure_firewall_docker_networks:
@@ -41,6 +58,30 @@ configure_firewall_container_ports:
 
 configure_firewall_logging_level: "medium"
 
+# Docker Configuration
+deploy_docker_network_configuration:
+  default_networks:
+    - name: "web-network"
+      subnet: "172.20.0.0/16"
+      driver: "bridge"
+      description: "Network for web applications and frontend services"
+    - name: "db-network"
+      subnet: "172.21.0.0/16"
+      driver: "bridge"
+      description: "Network for databases and backend services"
+    - name: "monitoring-network"
+      subnet: "172.22.0.0/16"
+      driver: "bridge"
+      description: "Network for monitoring and logging services"
+  
+  network_isolation: true
+  default_container_network: "web-network"
+  
+  network_security:
+    enable_bridge_netfilter: true
+    enable_ip_forwarding: true
+    enable_network_isolation: true
+
 # Docker Network Configuration
 configure_docker_networks_custom_networks:
   - name: "api-network"
@@ -52,26 +93,13 @@ configure_docker_networks_custom_networks:
     driver: "bridge"
     description: "Cache and session storage network"
 
-# Docker Configuration
-deploy_docker_network_configuration:
-  default_networks:
-    - name: "web-network"
-      subnet: "172.20.0.0/16"
-      driver: "bridge"
-    - name: "db-network"
-      subnet: "172.21.0.0/16"
-      driver: "bridge"
-    - name: "monitoring-network"
-      subnet: "172.22.0.0/16"
-      driver: "bridge"
-  
-  network_isolation: true
-  default_container_network: "web-network"
-  
-  network_security:
-    enable_bridge_netfilter: true
-    enable_ip_forwarding: true
-    enable_network_isolation: true
+# Configure Docker Networks Role Variables
+configure_docker_networks_default_driver: "bridge"
+configure_docker_networks_encrypted: false
+configure_docker_networks_remove_all: false
+configure_docker_networks_labels:
+  environment: "production"
+  managed_by: "ansible"
 
 # Network Policies (service-to-network mappings)
 deploy_docker_network_policies:

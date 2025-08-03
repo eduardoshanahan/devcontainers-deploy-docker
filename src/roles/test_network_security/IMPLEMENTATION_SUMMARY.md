@@ -160,7 +160,13 @@ configure_docker_networks_default_networks:
 
 ### 5. Documentation Updates
 
-#### Updated Files
+#### Files Modified
+
+- `src/roles/configure_firewall/tasks/main.yml`
+- `src/roles/configure_firewall/defaults/main.yml`
+- `src/roles/configure_firewall/templates/network_logrotate.j2`
+
+#### Files Updated
 
 - `README.md` - Added network security features
 - `src/playbooks/README.md` - Updated with new playbooks

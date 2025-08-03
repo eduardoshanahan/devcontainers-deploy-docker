@@ -46,10 +46,10 @@ configure_security_updates_gmail_enabled: true
 configure_security_updates_gmail_user: "your-email@gmail.com"
 configure_security_updates_gmail_password: "your-app-password"
 configure_security_updates_gmail_smtp_server: "smtp.gmail.com"
-configure_security_updates_gmail_smtp_port: "587"
+configure_security_updates_gmail_smtp_port: "465"  # Use port 465 for SMTPS
 ```
 
-### Alternative Notifications
+### Alternative Notifications Configuratio9n
 
 ```yaml
 # Slack webhook
@@ -103,6 +103,7 @@ sudo tail -f /var/log/security-updates.log
    configure_security_updates_gmail_enabled: true
    configure_security_updates_gmail_user: "your-email@gmail.com"
    configure_security_updates_gmail_password: "your-app-password"
+   configure_security_updates_gmail_smtp_port: "465"  # Use port 465 for SMTPS
    ```
 
 3. **Deploy the role**:
@@ -114,9 +115,31 @@ sudo tail -f /var/log/security-updates.log
 ## Security Considerations
 
 - **App Passwords**: Use Gmail App Passwords, not regular passwords
-- **Network Access**: Ensure server can reach SMTP servers (ports 587/465)
+- **Network Access**: Ensure server can reach SMTP servers (ports 465/587)
 - **Logging**: All notification attempts are logged for audit
 - **Fallback**: Multiple notification methods ensure reliability
+
+## Gmail SMTP Configuration
+
+For detailed Gmail SMTP setup instructions, see: [`../../GMAIL_SMTP_SETUP.md`](../../GMAIL_SMTP_SETUP.md)
+
+### Quick Setup
+
+1. **Generate App Password** in Google Account settings
+2. **Configure variables** in your inventory:
+
+   ```yaml
+   configure_security_updates_gmail_enabled: true
+   configure_security_updates_gmail_user: "your-email@gmail.com"
+   configure_security_updates_gmail_password: "your-app-password"
+   configure_security_updates_gmail_smtp_port: "465"  # Use port 465 for SMTPS
+   ```
+
+3. **Deploy the role**:
+
+   ```bash
+   ansible-playbook playbooks/configure_security_updates.yml
+   ```
 
 ## Dependencies
 
@@ -131,11 +154,27 @@ sudo tail -f /var/log/security-updates.log
 1. **Gmail Authentication Failed**:
    - Verify App Password is correct
    - Ensure 2-Step Verification is enabled
+   - Use port 465 for SMTPS connections
 
 2. **No Notifications Sent**:
    - Check `/var/log/security-updates.log` for errors
    - Verify email/webhook configuration
+   - Test with manual notification script
 
 3. **Updates Not Installing**:
    - Check `/var/log/unattended-upgrades/` for errors
-   - Verify package blacklist configuration 
+   - Verify package blacklist configuration
+
+## Manual Gmail SMTP Testing
+
+Test Gmail SMTP connection manually:
+
+```bash
+# Test with port 465 (SMTPS)
+curl --verbose --mail-from "your-email@gmail.com" \
+     --mail-rcpt "your-email@gmail.com" \
+     --upload-file <(echo -e "Subject: Test\n\nThis is a test email") \
+     --user "your-email@gmail.com:your-app-password" \
+     --ssl-reqd \
+     "smtps://smtp.gmail.com:465"
+```

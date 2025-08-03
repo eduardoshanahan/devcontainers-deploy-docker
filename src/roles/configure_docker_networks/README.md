@@ -82,12 +82,15 @@ docker run --rm --network web-network alpine ping -c 1 8.8.8.8
 ## Network Policies
 
 ### Web Services
+
 - nginx, apache, nodejs, react, vue
 
 ### Database Services
+
 - postgres, mysql, redis, mongodb
 
 ### Monitoring Services
+
 - prometheus, grafana, elasticsearch, kibana
 
 ## Troubleshooting

@@ -1,0 +1,1 @@
+../../../src/roles/disable_password_authentication/README.md

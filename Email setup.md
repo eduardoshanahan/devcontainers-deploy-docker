@@ -9,7 +9,7 @@ This guide explains how to configure Gmail SMTP for email notifications from sec
 
 ## Step 1: Generate Gmail App Password
 
-1. Go to your Google Account settings: https://myaccount.google.com/
+1. Go to your Google Account settings: <https://myaccount.google.com/>
 2. Navigate to **Security** → **2-Step Verification** (enable if not already enabled)
 3. Go to **App passwords** (under 2-Step Verification)
 4. Select **Mail** as the app and **Other** as the device
@@ -30,7 +30,15 @@ security_updates_gmail_enabled: true
 security_updates_gmail_user: "your-gmail@gmail.com"
 security_updates_gmail_password: "your-16-character-app-password"
 security_updates_gmail_smtp_server: "smtp.gmail.com"
-security_updates_gmail_smtp_port: "587"
+security_updates_gmail_smtp_port: "465"  # Use port 465 for SMTPS
+
+# Additional variables for the notification script
+configure_security_updates_email: "your-email@gmail.com"
+configure_security_updates_gmail_enabled: true
+configure_security_updates_gmail_user: "your-gmail@gmail.com"
+configure_security_updates_gmail_password: "your-16-character-app-password"
+configure_security_updates_gmail_smtp_server: "smtp.gmail.com"
+configure_security_updates_gmail_smtp_port: "465"  # Use port 465 for SMTPS
 ```
 
 ## Step 3: Deploy the Configuration
@@ -54,7 +62,7 @@ sudo tail -f /var/log/security-updates.log
 
 1. **App Passwords**: Use App Passwords, not your regular Gmail password
 2. **Environment Variables**: Consider using Ansible Vault for storing sensitive passwords
-3. **Network Security**: Ensure your server can reach Gmail's SMTP servers (ports 587/465)
+3. **Network Security**: Ensure your server can reach Gmail's SMTP servers (ports 465/587)
 4. **Logging**: All email attempts are logged to `/var/log/security-updates.log`
 
 ## Troubleshooting
@@ -66,25 +74,25 @@ sudo tail -f /var/log/security-updates.log
    - Ensure 2-Step Verification is enabled
 
 2. **Connection Timeout**:
-   - Check if your server can reach `smtp.gmail.com:587`
+   - Check if your server can reach `smtp.gmail.com:465`
    - Verify firewall rules allow outbound SMTP traffic
 
 3. **SSL/TLS Issues**:
-   - The script uses `smtps://` which requires SSL/TLS
-   - Gmail requires SSL/TLS on port 587
+   - Use port 465 (SMTPS) instead of port 587 (STARTTLS)
+   - Gmail requires SSL/TLS on both ports
 
 ### Debug Mode
 
 To debug email issues, you can manually test:
 
 ```bash
-# Test Gmail SMTP connection
+# Test Gmail SMTP connection with port 465 (SMTPS)
 curl --verbose --mail-from "your-email@gmail.com" \
      --mail-rcpt "your-email@gmail.com" \
-     --upload-file /tmp/test_email \
+     --upload-file <(echo -e "Subject: Test\n\nThis is a test email") \
      --user "your-email@gmail.com:your-app-password" \
      --ssl-reqd \
-     "smtps://smtp.gmail.com:587"
+     "smtps://smtp.gmail.com:465"
 ```
 
 ## Alternative: Using Ansible Vault
@@ -99,7 +107,7 @@ ansible-vault create gmail_password.yml
 Add to the file:
 
 ```yaml
-security_updates_gmail_password: "your-app-password"
+configure_security_updates_gmail_password: "your-app-password"
 ```
 
 Then reference it in your playbook:
@@ -120,45 +128,47 @@ I've configured Gmail SMTP support for your security update notifications. Here'
 
 ### 1. **Gmail SMTP Configuration Variables**
 
-- `security_updates_gmail_enabled`: Enable/disable Gmail SMTP
-- `security_updates_gmail_user`: Your Gmail address
-- `security_updates_gmail_password`: Your Gmail App Password
-- `security_updates_gmail_smtp_server`: Gmail SMTP server (smtp.gmail.com)
-- `security_updates_gmail_smtp_port`: SMTP port (587)
+- `configure_security_updates_gmail_enabled`: Enable/disable Gmail SMTP
+- `configure_security_updates_gmail_user`: Your Gmail address
+- `configure_security_updates_gmail_password`: Your Gmail App Password
+- `configure_security_updates_gmail_smtp_server`: Gmail SMTP server
+- `configure_security_updates_gmail_smtp_port`: Port 465 for SMTPS
 
 ### 2. **Enhanced Notification Script**
 
-- Added Gmail SMTP support using curl
-- Falls back to system mail if Gmail fails
-- Better error handling and logging
-- SSL/TLS support for secure connections
+- **Gmail SMTP Support**: Direct Gmail SMTP integration
+- **Fallback to System Mail**: Automatic fallback if Gmail fails
+- **SSL/TLS Security**: Secure email transmission
+- **Error Handling**: Comprehensive error logging and recovery
 
-### 3. **Updated Dependencies**
+### 3. **Security Features**
 
-- Added `curl` package installation for SMTP functionality
+- **App Password Authentication**: Secure Gmail authentication
+- **Encrypted Transmission**: SSL/TLS encryption for all emails
+- **Logging**: Complete audit trail of email notifications
+- **Fallback System**: Reliable delivery via system mail
 
-### 4. **Documentation**
+### 4. **Configuration Options**
 
-- Created comprehensive setup guide
-- Security considerations
-- Troubleshooting tips
+- **Port 465 (SMTPS)**: Recommended for better compatibility
+- **App Password**: More secure than regular passwords
+- **Ansible Vault Support**: Encrypted password storage
+- **Environment Variables**: Flexible configuration options
 
-### To Use Gmail SMTP
+## Next Steps
 
-1. **Generate an App Password** in your Google Account settings
-2. **Update your configuration** in `src/inventory/group_vars/all.yml`:
+1. **Test the Configuration**: Run the test command to verify email delivery
+2. **Monitor Logs**: Check `/var/log/security-updates.log` for email activity
+3. **Customize Notifications**: Adjust email content and recipients as needed
+4. **Security Review**: Consider using Ansible Vault for production deployments
 
-   ```yaml
-   security_updates_gmail_enabled: true
-   security_updates_gmail_user: "your-email@gmail.com"
-   security_updates_gmail_password: "your-16-character-app-password"
-   ```
+## Support
 
-3. **Deploy the configuration**:
+If you encounter issues:
 
-   ```bash
-   cd src
-   ansible-playbook playbooks/configure_security_updates.yml
-   ```
+1. **Check the logs**: `sudo tail -f /var/log/security-updates.log`
+2. **Test manually**: Use the debug curl command provided
+3. **Verify Gmail settings**: Ensure 2-Step Verification and App Passwords are enabled
+4. **Check network connectivity**: Ensure your server can reach Gmail SMTP servers
 
-The system will now use Gmail SMTP for email notifications while maintaining fallback to system mail utilities if Gmail is not configured or fails.
+The Gmail SMTP configuration is now complete and ready for production use!
