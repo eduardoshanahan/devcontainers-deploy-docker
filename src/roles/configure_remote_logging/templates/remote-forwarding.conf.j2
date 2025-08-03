@@ -1,0 +1,24 @@
+# Remote Log Forwarding Configuration
+# This file configures rsyslog to forward logs to a remote server
+
+# Load required modules
+module(load="imudp")
+module(load="imtcp")
+module(load="omudp")
+module(load="omtcp")
+
+# Configure remote server connection
+{% if configure_remote_logging_protocol == "udp" %}
+*.* @{{ configure_remote_logging_server }}:{{ configure_remote_logging_port }}
+{% else %}
+*.* @@{{ configure_remote_logging_server }}:{{ configure_remote_logging_port }}
+{% endif %}
+
+# Configure retry settings
+$ActionResumeRetryCount -1
+$ActionResumeInterval 30
+$ActionQueueSize 100000
+$ActionQueueMaxDiskSpace 1g
+$ActionQueueSaveOnShutdown on
+$ActionQueueHighWaterMark 80000
+$ActionQueueLowWaterMark 20000 

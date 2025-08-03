@@ -1,0 +1,26 @@
+# Log Forwarding Rules
+# Define which logs to forward to the remote server
+
+{% if configure_remote_logging_forward_all_logs %}
+# Forward all logs
+*.* @{{ configure_remote_logging_server }}:{{ configure_remote_logging_port }}
+{% else %}
+{% if configure_remote_logging_forward_security_logs %}
+# Forward security-related logs
+:programname, contains, "sshd" @{{ configure_remote_logging_server }}:{{ configure_remote_logging_port }}
+:programname, contains, "sudo" @{{ configure_remote_logging_server }}:{{ configure_remote_logging_port }}
+:programname, contains, "audit" @{{ configure_remote_logging_server }}:{{ configure_remote_logging_port }}
+:programname, contains, "aide" @{{ configure_remote_logging_server }}:{{ configure_remote_logging_port }}
+{% endif %}
+
+{% if configure_remote_logging_forward_system_logs %}
+# Forward system logs
+:programname, contains, "systemd" @{{ configure_remote_logging_server }}:{{ configure_remote_logging_port }}
+:programname, contains, "kernel" @{{ configure_remote_logging_server }}:{{ configure_remote_logging_port }}
+{% endif %}
+
+{% if configure_remote_logging_forward_docker_logs %}
+# Forward Docker logs
+:programname, contains, "docker" @{{ configure_remote_logging_server }}:{{ configure_remote_logging_port }}
+{% endif %}
+{% endif %} 

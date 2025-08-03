@@ -1,0 +1,48 @@
+---
+- name: Install rsyslog if not already installed
+  ansible.builtin.apt:
+    name: rsyslog
+    state: present
+    update_cache: true
+  become: true
+
+- name: Create remote logging configuration directory
+  ansible.builtin.file:
+    path: /etc/rsyslog.d
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Configure remote log forwarding
+  ansible.builtin.template:
+    src: remote-forwarding.conf.j2
+    dest: /etc/rsyslog.d/remote-forwarding.conf
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: restart rsyslog
+
+- name: Configure log forwarding rules
+  ansible.builtin.template:
+    src: forwarding-rules.conf.j2
+    dest: /etc/rsyslog.d/forwarding-rules.conf
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: restart rsyslog
+
+- name: Ensure rsyslog service is enabled and running
+  ansible.builtin.systemd:
+    name: rsyslog
+    state: started
+    enabled: true
+  become: true
+
+- name: Test remote logging configuration
+  ansible.builtin.command: rsyslogd -N1
+  become: true
+  changed_when: false 

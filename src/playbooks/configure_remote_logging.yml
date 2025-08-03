@@ -1,0 +1,6 @@
+---
+- name: Configure remote logging
+  hosts: all
+  become: true
+  roles:
+    - configure_remote_logging 
