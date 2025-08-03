@@ -1,70 +1,96 @@
 # Configure Monitoring Role
 
-This role sets up basic system monitoring and health checks for Ubuntu servers.
+This role sets up system monitoring and health checks for the server.
 
 ## What it does
 
-- Installs monitoring tools (htop, iotop, nethogs, ncdu, etc.)
-- Creates automated health check scripts
-- Configures systemd timers for periodic monitoring
-- Monitors system resources (CPU, memory, disk)
-- Monitors Docker service and containers
-- Monitors fail2ban service
-- Logs health status to `/var/log/health-monitor.log`
+- Installs monitoring tools and utilities
+- Configures system health checks
+- Sets up monitoring scripts and cron jobs
+- Configures log monitoring and alerting
+- Creates monitoring directories and files
 
-## Monitoring Tools Installed
+## Monitoring Features
 
-- **htop** - Interactive process viewer
-- **iotop** - I/O monitoring
-- **nethogs** - Network usage monitoring
-- **ncdu** - Disk usage analyzer
-- **tree** - Directory tree viewer
-- **net-tools** - Network utilities
-- **procps** - Process utilities
+- **System health checks**: CPU, memory, disk usage monitoring
+- **Service monitoring**: Docker, SSH, firewall status checks
+- **Log monitoring**: System and application log monitoring
+- **Alerting**: Email notifications for critical issues
+- **Performance tracking**: Resource usage monitoring
 
-## Health Check Scripts
+## Installed Tools
 
-### System Health Check (`/opt/monitoring/health_check.sh`)
-
-- Monitors CPU usage (threshold: 80%)
-- Monitors memory usage (threshold: 90%)
-- Monitors disk usage (threshold: 85%)
-- Checks Docker service status
-- Checks fail2ban service status
-
-### Disk Space Check (`/opt/monitoring/disk_check.sh`)
-
-- Monitors all mounted filesystems
-- Alerts when usage exceeds threshold
-- Logs warnings to health monitor log
-
-### Docker Health Check (`/opt/monitoring/docker_check.sh`)
-
-- Verifies Docker service is running
-- Lists running containers
-- Identifies stopped containers
-- Logs container status
-
-## Automated Monitoring
-
-- **Frequency**: Every 5 minutes (configurable)
-- **Method**: systemd timer
-- **Logging**: `/var/log/health-monitor.log`
-- **Service**: `health-monitor.timer`
+- **htop**: Interactive process viewer
+- **iotop**: I/O monitoring
+- **ncdu**: Disk usage analyzer
+- **logwatch**: Log analysis and reporting
+- **fail2ban**: Intrusion prevention (if not already installed)
 
 ## Configuration
 
-All thresholds are configurable via variables:
+The role uses these variables from your inventory:
 
-- `configure_monitoring_disk_threshold`: 85%
-- `configure_monitoring_memory_threshold`: 90%
-- `configure_monitoring_cpu_threshold`: 80%
-- `configure_monitoring_health_check_interval`: 300 seconds
+```yaml
+# Monitoring configuration
+configure_monitoring_enabled: true
+configure_monitoring_email: "admin@example.com"
+configure_monitoring_check_interval: "5m"
+```
 
-## Benefits
+## Monitoring Scripts
 
-- **Proactive monitoring** - Detects issues before they become critical
-- **Resource tracking** - Monitors system resource usage
-- **Service monitoring** - Ensures critical services are running
-- **Automated alerts** - Logs warnings when thresholds are exceeded
-- **Easy troubleshooting** - Provides tools for system analysis
+- **System health check**: `/opt/monitoring/health-check.sh`
+- **Resource monitoring**: `/opt/monitoring/resource-monitor.sh`
+- **Service status check**: `/opt/monitoring/service-check.sh`
+
+## Cron Jobs
+
+- **Daily health report**: Sent via email
+- **Resource monitoring**: Every 5 minutes
+- **Service status check**: Every 10 minutes
+- **Log analysis**: Daily summary
+
+## Usage
+
+```bash
+# Run individually
+ansible-playbook playbooks/configure_monitoring.yml
+
+# Or as part of full deployment
+ansible-playbook playbooks/full.yml
+```
+
+## Monitoring Dashboard
+
+Access monitoring information:
+
+```bash
+# Check system health
+sudo /opt/monitoring/health-check.sh
+
+# View resource usage
+sudo /opt/monitoring/resource-monitor.sh
+
+# Check service status
+sudo /opt/monitoring/service-check.sh
+```
+
+## Alerting
+
+- **Email notifications**: For critical system issues
+- **Log monitoring**: For security and performance issues
+- **Service alerts**: For service failures
+
+## Files Created
+
+- `/opt/monitoring/` - Monitoring scripts directory
+- `/var/log/monitoring/` - Monitoring logs
+- `/etc/cron.d/monitoring` - Cron jobs
+- `/etc/logrotate.d/monitoring` - Log rotation
+
+## Troubleshooting
+
+- **Check monitoring logs**: `tail -f /var/log/monitoring/`
+- **Verify cron jobs**: `crontab -l`
+- **Test email alerts**: Check email configuration
+- **Service status**: `systemctl status monitoring`

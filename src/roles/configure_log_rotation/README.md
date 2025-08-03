@@ -38,6 +38,16 @@ This role configures logrotate for automatic log management and disk space optim
 - **Location**: `/var/log/auth.log`
 - **Post-rotation**: Reloads rsyslog service
 
+## Configuration Variables
+
+```yaml
+# Log rotation configuration
+configure_log_rotation_enabled: true
+configure_log_rotation_retention: 4
+configure_log_rotation_frequency: "weekly"
+configure_log_rotation_compress: true
+```
+
 ## Configuration Files
 
 - `/etc/logrotate.conf` - Main configuration
@@ -51,3 +61,38 @@ This role configures logrotate for automatic log management and disk space optim
 - **Performance** - Smaller log files improve system performance
 - **Organization** - Date-stamped rotated logs for better tracking
 - **Service compatibility** - Proper service reloads after rotation
+
+## Usage
+
+```bash
+# Run individually
+ansible-playbook playbooks/configure_log_rotation.yml
+
+# Or as part of full deployment
+ansible-playbook playbooks/full.yml
+```
+
+## Testing
+
+Test log rotation configuration:
+
+```bash
+# Test configuration
+sudo logrotate -d /etc/logrotate.conf
+
+# Force rotation
+sudo logrotate -f /etc/logrotate.d/docker
+```
+
+## Monitoring
+
+- **Check log sizes**: `du -sh /var/log/*`
+- **Monitor rotation**: `tail -f /var/log/logrotate`
+- **Verify retention**: `ls -la /var/log/*.log.*`
+
+## Troubleshooting
+
+- **Configuration errors**: Check `/var/log/logrotate`
+- **Permission issues**: Verify log file permissions
+- **Service reloads**: Check if services restart properly
+- **Disk space**: Monitor log directory sizes

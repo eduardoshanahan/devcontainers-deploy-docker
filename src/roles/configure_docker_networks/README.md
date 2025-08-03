@@ -1,54 +1,104 @@
 # Configure Docker Networks Role
 
-This role creates custom Docker networks with specific IP ranges for better security and network segmentation.
+This role creates secure Docker networks with specific IP ranges and network segmentation.
 
 ## What it does
 
-- Creates custom Docker networks with specific IP ranges
-- Implements network segmentation for different service types
-- Ensures networks are properly configured before container deployment
-- Provides network isolation and security
+- Creates Docker networks with specific IP ranges
+- Configures network isolation and security
+- Sets up custom networks for different service types
+- Applies network labels and descriptions
+- Validates network connectivity
 
-## Network Configuration
+## Network Architecture
 
 ### Default Networks
 
-The role creates these networks by default:
-
 - **web-network** (172.20.0.0/16): For web applications and frontend services
-- **db-network** (172.21.0.0/16): For databases and backend services  
+- **db-network** (172.21.0.0/16): For databases and backend services
 - **monitoring-network** (172.22.0.0/16): For monitoring and logging services
 
-### Customizing Networks
+### Custom Networks
 
-To add or modify networks, set the `configure_docker_networks_custom_networks` variable:
-
-```yaml
-configure_docker_networks_custom_networks:
-  - name: "api-network"
-    subnet: "172.23.0.0/16"
-    driver: "bridge"
-  - name: "cache-network" 
-    subnet: "172.24.0.0/16"
-    driver: "bridge"
-```
+- **api-network** (172.23.0.0/16): API services network
+- **cache-network** (172.24.0.0/16): Cache and session storage network
 
 ## Security Features
 
-- **Network Segmentation**: Different services run on isolated networks
-- **Specific IP Ranges**: No broad network ranges like 172.16.0.0/12
-- **Controlled Communication**: Only necessary inter-network communication
-- **Audit Trail**: Network creation is logged and tracked
+- **Network segmentation**: Isolated networks for different service types
+- **Specific IP ranges**: No broad network access (172.16.0.0/12, etc.)
+- **Network isolation**: Services can only communicate within their designated networks
+- **Security labels**: Network metadata for organization
 
-## Usage
+## Configuration Variables
 
-This role should be run after Docker installation but before container deployment:
+```yaml
+# Network configuration
+configure_docker_networks_default_networks: "{{ deploy_docker_network_configuration.default_networks }}"
+configure_docker_networks_custom_networks: "{{ configure_docker_networks_custom_networks | default([]) }}"
+configure_docker_networks_remove_all: false
+```
+
+## Network Management
+
+### Remove Project Networks Only (Default)
 
 ```bash
 ansible-playbook playbooks/configure_docker_networks.yml
 ```
 
-## Dependencies
+### Remove All Networks
 
-- Requires Docker to be installed and running
-- Requires the deployment user to have Docker permissions
+```yaml
+# Add to your all.yml
+configure_docker_networks_remove_all: true
+```
+
+## Usage
+
+```bash
+# Run individually
+ansible-playbook playbooks/configure_docker_networks.yml
+
+# Or as part of full deployment
+ansible-playbook playbooks/full.yml
+```
+
+## Network Validation
+
+Test network connectivity:
+
+```bash
+# List networks
+docker network ls
+
+# Inspect network
+docker network inspect web-network
+
+# Test connectivity
+docker run --rm --network web-network alpine ping -c 1 8.8.8.8
+```
+
+## Network Policies
+
+### Web Services
+- nginx, apache, nodejs, react, vue
+
+### Database Services
+- postgres, mysql, redis, mongodb
+
+### Monitoring Services
+- prometheus, grafana, elasticsearch, kibana
+
+## Troubleshooting
+
+- **Network conflicts**: Use `configure_docker_networks_remove_all: true`
+- **Subnet issues**: Check network ranges in `all.yml`
+- **Connectivity problems**: Verify network isolation is working
+- **Container communication**: Test cross-network isolation
+
+## Files Created
+
+- Docker networks with specific subnets
+- Network labels and descriptions
+- Network isolation policies
