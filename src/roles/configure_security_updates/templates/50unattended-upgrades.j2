@@ -19,7 +19,33 @@ Unattended-Upgrade::MailReport "on-change";
 Unattended-Upgrade::MailOnlyOnError "{{ configure_security_updates_mail_on_error | lower }}";
 Unattended-Upgrade::Remove-Unused-Dependencies "true";
 Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+
+// Enhanced error handling settings
 Unattended-Upgrade::Package-Blacklist {
+    "vim";
+    "nano";
+    "emacs";
+};
+
+// Add retry mechanism for failed downloads
+Unattended-Upgrade::RetryCount "3";
+Unattended-Upgrade::RetryDelay "300";
+
+// Enhanced logging
+Unattended-Upgrade::SyslogEnable "true";
+Unattended-Upgrade::LogDir "/var/log/unattended-upgrades";
+
+// Package selection for better stability
+Unattended-Upgrade::Origins-Pattern {
+    "origin=Ubuntu,archive=${distro_codename}-security";
+    "origin=Ubuntu,archive=${distro_codename}-updates";
+};
+
+// Prevent problematic package updates
+Unattended-Upgrade::Package-Blacklist {
+    "linux-image-generic";
+    "linux-virtual";
+    "linux-image-virtual";
     "vim";
     "nano";
     "emacs";

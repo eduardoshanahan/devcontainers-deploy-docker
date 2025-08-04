@@ -9,10 +9,20 @@ configure_security_updates_auto_reboot_time: "02:00"
 configure_security_updates_mail_on_error: true
 configure_security_updates_mail_on_reboot: false
 
+# Enhanced error handling settings
+configure_security_updates_retry_count: 3
+configure_security_updates_retry_delay: 300
+configure_security_updates_enable_error_handler: true
+configure_security_updates_problematic_packages:
+  - "linux-virtual"
+  - "linux-image-virtual"
+  - "linux-image-generic"
+
 # Package configuration (Behavior)
 configure_security_updates_packages:
   - unattended-upgrades
   - curl
+  - mailutils
 
 # Directory configuration (Behavior)
 configure_security_updates_script_dir: "/opt/security-updates"

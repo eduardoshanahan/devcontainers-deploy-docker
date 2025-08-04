@@ -1,0 +1,97 @@
+#!/bin/bash
+
+# Enhanced error handler for unattended upgrades
+# This script runs daily to check and fix common issues
+
+LOG_FILE="/var/log/unattended-upgrade-error-handler.log"
+EMAIL="{{ configure_security_updates_email }}"
+
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+}
+
+notify_error() {
+    local message="$1"
+    log "ERROR: $message"
+    
+    if [ -n "$EMAIL" ]; then
+        echo "$message" | mail -s "Unattended Upgrade Error Alert" "$EMAIL"
+    fi
+}
+
+notify_success() {
+    local message="$1"
+    log "SUCCESS: $message"
+}
+
+# Check if apt is locked
+if fuser /var/lib/dpkg/lock >/dev/null 2>&1; then
+    notify_error "APT is locked, waiting for lock to be released"
+    sleep 300
+fi
+
+# Clean up any broken packages
+log "Starting repository health check and cleanup"
+
+# Update package lists
+if apt update >> "$LOG_FILE" 2>&1; then
+    notify_success "Package lists updated successfully"
+else
+    notify_error "Failed to update package lists"
+    # Try to fix repository issues
+    apt autoclean >> "$LOG_FILE" 2>&1
+    apt autoremove >> "$LOG_FILE" 2>&1
+fi
+
+# Check for and fix broken packages
+if dpkg --configure -a >> "$LOG_FILE" 2>&1; then
+    notify_success "Fixed any broken package configurations"
+else
+    notify_error "Failed to fix broken package configurations"
+fi
+
+# Check for specific problematic packages
+PROBLEMATIC_PACKAGES=("linux-virtual" "linux-image-virtual" "linux-image-generic")
+
+for package in "${PROBLEMATIC_PACKAGES[@]}"; do
+    if dpkg -l | grep -q "^ii.*$package"; then
+        log "Found potentially problematic package: $package"
+        
+        # Check if there's a newer version available
+        if apt list --upgradable 2>/dev/null | grep -q "$package"; then
+            log "Attempting to upgrade $package with error handling"
+            
+            # Try to upgrade with specific error handling
+            if apt install --only-upgrade "$package" -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" >> "$LOG_FILE" 2>&1; then
+                notify_success "Successfully upgraded $package"
+            else
+                notify_error "Failed to upgrade $package, marking as held"
+                echo "$package hold" | dpkg --set-selections
+            fi
+        fi
+    fi
+done
+
+# Check unattended upgrades logs for recent errors
+if [ -f "/var/log/unattended-upgrades/unattended-upgrades.log" ]; then
+    RECENT_ERRORS=$(tail -n 50 "/var/log/unattended-upgrades/unattended-upgrades.log" | grep -i "error\|failed\|404" | wc -l)
+    
+    if [ "$RECENT_ERRORS" -gt 0 ]; then
+        notify_error "Found $RECENT_ERRORS recent errors in unattended upgrades log"
+        
+        # Extract and report specific errors
+        tail -n 50 "/var/log/unattended-upgrades/unattended-upgrades.log" | grep -i "error\|failed\|404" | tail -n 5 >> "$LOG_FILE"
+    fi
+fi
+
+# Final cleanup
+apt autoclean >> "$LOG_FILE" 2>&1
+apt autoremove >> "$LOG_FILE" 2>&1
+
+log "Repository health check completed"
+
+# Rotate log file if it gets too large
+if [ -f "$LOG_FILE" ] && [ $(stat -c%s "$LOG_FILE") -gt 1048576 ]; then
+    mv "$LOG_FILE" "${LOG_FILE}.1"
+    gzip "${LOG_FILE}.1" 2>/dev/null || true
+fi 

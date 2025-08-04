@@ -1,10 +1,71 @@
 ---
-- name: Update package list
+- name: Clean apt cache and remove broken packages
+  ansible.builtin.apt:
+    autoclean: true
+    autoremove: true
+  become: true
+
+- name: Update package list with retry mechanism
   ansible.builtin.apt:
     update_cache: true
   become: true
+  register: apt_update_result
+  retries: 3
+  delay: 10
+  until: apt_update_result is succeeded
 
-- name: Upgrade all packages
+- name: Check for held packages
+  ansible.builtin.command: apt list --upgradable
+  register: upgradable_packages
+  changed_when: false
+  become: true
+
+- name: Display upgradable packages
+  ansible.builtin.debug:
+    msg: "{{ upgradable_packages.stdout_lines }}"
+
+- name: Upgrade all packages with error handling
   ansible.builtin.apt:
     upgrade: true
+    dpkg_options: "force-confdef,force-confold"
   become: true
+  register: apt_upgrade_result
+  retries: 2
+  delay: 30
+  until: apt_upgrade_result is succeeded
+
+- name: Handle failed package upgrades
+  block:
+    - name: Try to fix broken packages
+      ansible.builtin.apt:
+        autoclean: true
+        autoremove: true
+      become: true
+
+    - name: Attempt to configure any pending packages
+      ansible.builtin.command: dpkg --configure -a
+      become: true
+      failed_when: false
+
+    - name: Retry upgrade after fixing broken packages
+      ansible.builtin.apt:
+        upgrade: true
+        dpkg_options: "force-confdef,force-confold"
+      become: true
+  when: apt_upgrade_result is failed
+
+- name: Final cleanup
+  ansible.builtin.apt:
+    autoclean: true
+    autoremove: true
+  become: true
+
+- name: Check system health after updates
+  ansible.builtin.command: apt list --upgradable
+  register: final_check
+  changed_when: false
+  become: true
+
+- name: Display final system status
+  ansible.builtin.debug:
+    msg: "System update completed. Remaining upgradable packages: {{ final_check.stdout_lines | length - 1 }}"
