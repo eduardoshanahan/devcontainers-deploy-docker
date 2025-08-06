@@ -1,0 +1,141 @@
+#!/bin/bash
+
+# Enhanced Container Security Scanning Script
+# This script scans Docker images for vulnerabilities with comprehensive reporting
+
+LOG_FILE="/var/log/container-security.log"
+SCAN_DIR="/opt/security/scans"
+REPORT_DIR="/opt/security/reports"
+ALERT_DIR="/opt/security/alerts"
+DATE=$(date +%Y%m%d_%H%M%S)
+SEVERITY="{{ configure_container_security_scan_severity | default('HIGH,CRITICAL') }}"
+FORMAT="{{ configure_container_security_scan_format | default('json') }}"
+TIMEOUT="{{ configure_container_security_scan_timeout | default('300') }}"
+
+# Create directories
+mkdir -p "$SCAN_DIR" "$REPORT_DIR" "$ALERT_DIR"
+
+# Function to log messages
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+}
+
+# Function to send alerts
+send_alert() {
+    local message="$1"
+    local severity="$2"
+    
+    log_message "ALERT [$severity]: $message"
+    
+    # Send email alert if configured
+    if [ -n "{{ configure_container_security_alerts_email | default('') }}" ]; then
+        echo "$message" | mail -s "Container Security Alert [$severity]" "{{ configure_container_security_alerts_email }}"
+    fi
+    
+    # Send Slack alert if configured
+    if [ -n "{{ configure_container_security_alerts_slack_webhook | default('') }}" ]; then
+        curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"�� Container Security Alert [$severity]: $message\"}" \
+            "{{ configure_container_security_alerts_slack_webhook }}"
+    fi
+    
+    # Send Discord alert if configured
+    if [ -n "{{ configure_container_security_alerts_discord_webhook | default('') }}" ]; then
+        curl -X POST -H 'Content-type: application/json' \
+            --data "{\"content\":\"�� Container Security Alert [$severity]: $message\"}" \
+            "{{ configure_container_security_alerts_discord_webhook }}"
+    fi
+}
+
+log_message "Starting enhanced container security scan"
+
+# Get list of all images (not just running containers)
+ALL_IMAGES=$(docker images --format "{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}" | grep -v "<none>")
+
+if [ -z "$ALL_IMAGES" ]; then
+    log_message "No Docker images found"
+    exit 0
+fi
+
+# Initialize scan summary
+SCAN_SUMMARY_FILE="$REPORT_DIR/scan_summary_${DATE}.json"
+echo '{"scan_date":"'$DATE'","images_scanned":0,"vulnerabilities":{"critical":0,"high":0,"medium":0,"low":0},"images_with_vulnerabilities":[]}' > "$SCAN_SUMMARY_FILE"
+
+TOTAL_CRITICAL=0
+TOTAL_HIGH=0
+TOTAL_MEDIUM=0
+TOTAL_LOW=0
+IMAGES_WITH_VULNS=0
+
+# Scan each image
+for IMAGE in $ALL_IMAGES; do
+    log_message "Scanning image: $IMAGE"
+    
+    # Clean image name for filename
+    CLEAN_IMAGE_NAME=$(echo "$IMAGE" | sed 's/[^a-zA-Z0-9]/_/g')
+    SCAN_OUTPUT="$SCAN_DIR/scan_${CLEAN_IMAGE_NAME}_${DATE}.json"
+    
+    # Use Trivy to scan for vulnerabilities with timeout
+    timeout "$TIMEOUT" trivy image \
+        --format "$FORMAT" \
+        --output "$SCAN_OUTPUT" \
+        --severity "$SEVERITY" \
+        "$IMAGE" 2>/dev/null
+    
+    if [ $? -eq 0 ]; then
+        log_message "Scan completed for $IMAGE"
+        
+        # Parse vulnerability counts
+        if [ "$FORMAT" = "json" ]; then
+            CRITICAL_COUNT=$(jq '.Results[].Vulnerabilities[] | select(.Severity == "CRITICAL") | .VulnerabilityID' "$SCAN_OUTPUT" 2>/dev/null | wc -l)
+            HIGH_COUNT=$(jq '.Results[].Vulnerabilities[] | select(.Severity == "HIGH") | .VulnerabilityID' "$SCAN_OUTPUT" 2>/dev/null | wc -l)
+            MEDIUM_COUNT=$(jq '.Results[].Vulnerabilities[] | select(.Severity == "MEDIUM") | .VulnerabilityID' "$SCAN_OUTPUT" 2>/dev/null | wc -l)
+            LOW_COUNT=$(jq '.Results[].Vulnerabilities[] | select(.Severity == "LOW") | .VulnerabilityID' "$SCAN_OUTPUT" 2>/dev/null | wc -l)
+        else
+            CRITICAL_COUNT=$(trivy image --severity CRITICAL "$IMAGE" 2>/dev/null | grep -c "CRITICAL" || echo "0")
+            HIGH_COUNT=$(trivy image --severity HIGH "$IMAGE" 2>/dev/null | grep -c "HIGH" || echo "0")
+            MEDIUM_COUNT=$(trivy image --severity MEDIUM "$IMAGE" 2>/dev/null | grep -c "MEDIUM" || echo "0")
+            LOW_COUNT=$(trivy image --severity LOW "$IMAGE" 2>/dev/null | grep -c "LOW" || echo "0")
+        fi
+        
+        TOTAL_CRITICAL=$((TOTAL_CRITICAL + CRITICAL_COUNT))
+        TOTAL_HIGH=$((TOTAL_HIGH + HIGH_COUNT))
+        TOTAL_MEDIUM=$((TOTAL_MEDIUM + MEDIUM_COUNT))
+        TOTAL_LOW=$((TOTAL_LOW + LOW_COUNT))
+        
+        # Check vulnerability thresholds
+        THRESHOLD_CRITICAL={{ configure_container_security_vulnerability_threshold_critical | default(0) }}
+        THRESHOLD_HIGH={{ configure_container_security_vulnerability_threshold_high | default(5) }}
+        THRESHOLD_MEDIUM={{ configure_container_security_vulnerability_threshold_medium | default(10) }}
+        
+        if [ "$CRITICAL_COUNT" -gt "$THRESHOLD_CRITICAL" ] || [ "$HIGH_COUNT" -gt "$THRESHOLD_HIGH" ]; then
+            IMAGES_WITH_VULNS=$((IMAGES_WITH_VULNS + 1))
+            send_alert "Image $IMAGE has $CRITICAL_COUNT critical and $HIGH_COUNT high vulnerabilities" "HIGH"
+            
+            # Add to summary
+            jq --arg img "$IMAGE" --argjson crit "$CRITICAL_COUNT" --argjson high "$HIGH_COUNT" \
+                '.images_with_vulnerabilities += [{"image":$img,"critical":$crit,"high":$high}]' \
+                "$SCAN_SUMMARY_FILE" > "$SCAN_SUMMARY_FILE.tmp" && mv "$SCAN_SUMMARY_FILE.tmp" "$SCAN_SUMMARY_FILE"
+        fi
+        
+        log_message "Vulnerabilities in $IMAGE: Critical=$CRITICAL_COUNT, High=$HIGH_COUNT, Medium=$MEDIUM_COUNT, Low=$LOW_COUNT"
+    else
+        log_message "ERROR: Failed to scan $IMAGE (timeout or error)"
+        send_alert "Failed to scan image $IMAGE" "ERROR"
+    fi
+done
+
+# Update scan summary
+jq --argjson total "$(echo "$ALL_IMAGES" | wc -l)" --argjson crit "$TOTAL_CRITICAL" --argjson high "$TOTAL_HIGH" \
+    --argjson med "$TOTAL_MEDIUM" --argjson low "$TOTAL_LOW" \
+    '.images_scanned = $total | .vulnerabilities.critical = $crit | .vulnerabilities.high = $high | .vulnerabilities.medium = $med | .vulnerabilities.low = $low' \
+    "$SCAN_SUMMARY_FILE" > "$SCAN_SUMMARY_FILE.tmp" && mv "$SCAN_SUMMARY_FILE.tmp" "$SCAN_SUMMARY_FILE"
+
+# Generate HTML report
+/opt/security/generate-vulnerability-report.sh "$DATE"
+
+# Cleanup old reports (keep for 30 days)
+find "$REPORT_DIR" -name "*.json" -mtime +{{ configure_container_security_reports_retention_days | default(30) }} -delete 2>/dev/null || true
+
+log_message "Enhanced container security scan completed"
+log_message "Summary: $IMAGES_WITH_VULNS images with vulnerabilities, Total: Critical=$TOTAL_CRITICAL, High=$TOTAL_HIGH, Medium=$TOTAL_MEDIUM, Low=$TOTAL_LOW" 

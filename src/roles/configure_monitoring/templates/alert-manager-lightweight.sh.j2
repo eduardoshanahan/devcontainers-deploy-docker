@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Lightweight Alert Manager
+# Optimized for 2GB RAM VPS
+
+ALERT_FILE="/opt/monitoring/alerts/current_alerts.log"
+EMAIL="{{ configure_monitoring_alerts_email | default('') }}"
+SLACK_WEBHOOK="{{ configure_monitoring_alerts_slack_webhook | default('') }}"
+
+# Function to send email alert
+send_email_alert() {
+    local message="$1"
+    local subject="$2"
+    
+    if [ -n "$EMAIL" ]; then
+        echo "$message" | mail -s "$subject" "$EMAIL"
+    fi
+}
+
+# Function to send Slack alert
+send_slack_alert() {
+    local message="$1"
+    
+    if [ -n "$SLACK_WEBHOOK" ]; then
+        curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"🚨 $message\"}" \
+            "$SLACK_WEBHOOK"
+    fi
+}
+
+# Process current alerts
+if [ -f "$ALERT_FILE" ]; then
+    while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            send_email_alert "$line" "VPS Alert"
+            send_slack_alert "$line"
+        fi
+    done < "$ALERT_FILE"
+    
+    # Clear processed alerts
+    > "$ALERT_FILE"
+fi 

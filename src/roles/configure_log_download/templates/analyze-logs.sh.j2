@@ -1,0 +1,116 @@
+#!/bin/bash
+
+# Log Analysis Script
+# Analyzes collected logs and generates reports
+
+LOG_DIR="/opt/logs"
+ANALYSIS_DIR="$LOG_DIR/analysis"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+mkdir -p "$ANALYSIS_DIR"
+
+echo "Starting log analysis..."
+
+# Find latest log collection
+LATEST_COLLECTION=$(ls -t "$LOG_DIR/archive"/*.tar.gz 2>/dev/null | head -n1)
+
+if [ -n "$LATEST_COLLECTION" ]; then
+    echo "Analyzing: $LATEST_COLLECTION"
+    
+    # Extract to temporary directory
+    TEMP_DIR="/tmp/log_analysis_$DATE"
+    mkdir -p "$TEMP_DIR"
+    tar -xzf "$LATEST_COLLECTION" -C "$TEMP_DIR"
+    
+    # Generate analysis report
+    REPORT_FILE="$ANALYSIS_DIR/analysis_report_$DATE.txt"
+    
+    cat > "$REPORT_FILE" << EOF
+Log Analysis Report
+==================
+Analysis Date: $(date)
+Collection: $(basename "$LATEST_COLLECTION")
+
+SYSTEM OVERVIEW
+===============
+EOF
+    
+    # System information
+    if [ -f "$TEMP_DIR"/*/system_info/uname.txt ]; then
+        echo "System: $(cat "$TEMP_DIR"/*/system_info/uname.txt)" >> "$REPORT_FILE"
+    fi
+    
+    if [ -f "$TEMP_DIR"/*/system_info/memory_usage.txt ]; then
+        echo "Memory Usage:" >> "$REPORT_FILE"
+        cat "$TEMP_DIR"/*/system_info/memory_usage.txt >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+    fi
+    
+    if [ -f "$TEMP_DIR"/*/system_info/disk_usage.txt ]; then
+        echo "Disk Usage:" >> "$REPORT_FILE"
+        cat "$TEMP_DIR"/*/system_info/disk_usage.txt >> "$REPORT_FILE"
+        echo "" >> "$REPORT_FILE"
+    fi
+    
+    # Security analysis
+    cat >> "$REPORT_FILE" << EOF
+
+SECURITY ANALYSIS
+================
+EOF
+    
+    # Check for failed login attempts
+    if [ -f "$TEMP_DIR"/*/security_logs/auth.log ]; then
+        FAILED_LOGINS=$(grep "Failed password" "$TEMP_DIR"/*/security_logs/auth.log | wc -l)
+        echo "Failed login attempts: $FAILED_LOGINS" >> "$REPORT_FILE"
+    fi
+    
+    # Check for fail2ban activity
+    if [ -f "$TEMP_DIR"/*/security_logs/fail2ban.log ]; then
+        BANNED_IPS=$(grep "Ban" "$TEMP_DIR"/*/security_logs/fail2ban.log | wc -l)
+        echo "Banned IP addresses: $BANNED_IPS" >> "$REPORT_FILE"
+    fi
+    
+    # Docker analysis
+    cat >> "$REPORT_FILE" << EOF
+
+DOCKER ANALYSIS
+==============
+EOF
+    
+    # Count running containers
+    if [ -f "$TEMP_DIR"/*/docker_info.txt ]; then
+        CONTAINERS=$(grep "Containers:" "$TEMP_DIR"/*/docker_info.txt | awk '{print $2}')
+        echo "Running containers: $CONTAINERS" >> "$REPORT_FILE"
+    fi
+    
+    # Check for container errors
+    ERROR_COUNT=0
+    for log_file in "$TEMP_DIR"/*/docker_logs/*.log; do
+        if [ -f "$log_file" ]; then
+            ERRORS=$(grep -i "error\|exception\|failed" "$log_file" | wc -l)
+            ERROR_COUNT=$((ERROR_COUNT + ERRORS))
+        fi
+    done
+    echo "Total container errors: $ERROR_COUNT" >> "$REPORT_FILE"
+    
+    # Monitoring analysis
+    cat >> "$REPORT_FILE" << EOF
+
+MONITORING ANALYSIS
+==================
+EOF
+    
+    # Check for alerts
+    if [ -d "$TEMP_DIR"/*/monitoring_logs ]; then
+        ALERT_COUNT=$(find "$TEMP_DIR"/*/monitoring_logs -name "*.log" -exec grep -l "ALERT\|WARNING\|ERROR" {} \; | wc -l)
+        echo "Alert count: $ALERT_COUNT" >> "$REPORT_FILE"
+    fi
+    
+    # Cleanup
+    rm -rf "$TEMP_DIR"
+    
+    echo "Analysis completed: $REPORT_FILE"
+else
+    echo "No log collections found for analysis"
+fi 

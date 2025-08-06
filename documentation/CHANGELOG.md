@@ -9,6 +9,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Container Security Scanning**: Trivy vulnerability scanning for all Docker images
+- **Real-time Container Monitoring**: Security alerts and privileged container detection
+- **HTML Vulnerability Reports**: Automated generation of detailed security reports
+- **Security Dashboard**: Interactive dashboard for container security analysis
+- **Configurable Vulnerability Thresholds**: Customizable security limits and alerts
+- **Lightweight Monitoring System**: Prometheus Node Exporter with ~50MB RAM usage
+- **Automated Health Checks**: System health monitoring every 6 minutes
+- **Resource Monitoring**: CPU, memory, and disk monitoring every 2 minutes
+- **Container Health Monitoring**: Docker container status monitoring every 5 minutes
+- **Security Event Monitoring**: Daily analysis with automated alerts
+- **Encrypted Log Archives**: AES-256-CBC encryption for secure log storage
+- **Secure Log Download**: Ansible-based log retrieval (no HTTP server needed)
+- **Automated Log Collection**: Daily log gathering and analysis
+- **Log Analysis**: Vulnerability reporting and security insights
+- **Configurable Retention Policies**: 7-day default with customization options
+- **Enhanced Network Security**: Improved Docker network isolation and monitoring
+- **Modern GPG Key Management**: Updated to use modern GPG key storage methods
+- **Handler System Improvements**: Added missing handlers for service restarts
+
+### Changed
+
+- **Monitoring Architecture**: Switched to lightweight monitoring optimized for 2GB RAM VPS
+- **Log Management**: Implemented secure, encrypted log handling
+- **Container Security**: Enhanced with comprehensive vulnerability scanning
+- **Resource Usage**: Optimized monitoring stack to use only ~300MB RAM total
+- **GPG Key Storage**: Updated from deprecated `apt-key` to modern `/etc/apt/keyrings/` method
+- **Handler Configuration**: Added missing `restart docker` handler for monitoring role
+- **Documentation**: Updated README.md and DEPLOYMENT_SUMMARY.md with new features
+- **Markdown Formatting**: Removed emojis for better markdown compliance
+
+### Fixed
+
+- **GPG Key Deprecation Warnings**: Resolved Docker and Trivy repository key warnings
+- **Missing Handlers**: Added missing `restart docker` handler in monitoring role
+- **Docker Repository Conflicts**: Fixed conflicting repository configurations
+- **Package Update Issues**: Resolved incomplete system updates
+- **YAML Syntax**: Fixed various YAML linting and code quality issues
+- **Template References**: Corrected missing template file references
+
+### Security
+
+- **Container Vulnerability Scanning**: Comprehensive security scanning with Trivy
+- **Real-time Security Monitoring**: Continuous monitoring of container behavior
+- **Encrypted Log Storage**: Secure log archives with AES-256-CBC encryption
+- **Secure Log Transfer**: Ansible-based log download without exposed HTTP servers
+- **Network Security Enhancement**: Improved Docker network isolation and monitoring
+- **Modern GPG Key Management**: Updated to secure GPG key storage methods
+
+### Documentation
+
+- **README.md**: Updated with comprehensive feature documentation
+- **DEPLOYMENT_SUMMARY.md**: Added production-ready status and usage examples
+- **Improvements.md**: Updated with completed implementations
+- **Markdown Compliance**: Removed emojis for better markdown formatting
+- **Usage Examples**: Added comprehensive usage examples and commands
+
+## [1.1.0] - 2024-01-20
+
+### Added
+
 - **Enhanced User Permissions System**: Two-tier user architecture for multi-project support
 - **Multi-Project Documentation**: Comprehensive guide for other projects using the infrastructure
 - **Network Range Management**: Documentation and scripts for Docker network range allocation

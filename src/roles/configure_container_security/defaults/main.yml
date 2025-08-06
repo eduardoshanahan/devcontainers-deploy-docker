@@ -3,15 +3,45 @@
 configure_container_security_enabled: true
 configure_container_security_enable_content_trust: true
 configure_container_security_scan_schedule: "daily"
+configure_container_security_scan_hour: "2"
+configure_container_security_scan_minute: "0"
 configure_container_security_alert_email: ""
 
 # Scanning configuration
 configure_container_security_trivy_enabled: true
 configure_container_security_clair_enabled: false
 configure_container_security_scan_severity: "HIGH,CRITICAL"
+configure_container_security_scan_format: "json"
+configure_container_security_scan_timeout: "300"
+configure_container_security_scan_cache: true
 
 # Monitoring configuration
 configure_container_security_monitor_privileged: true
 configure_container_security_monitor_host_network: true
 configure_container_security_monitor_host_mounts: true
 configure_container_security_monitor_unusual_behavior: true
+configure_container_security_monitor_interval: "30"
+
+# Alerting configuration
+configure_container_security_alerts_enabled: true
+configure_container_security_alerts_slack_webhook: ""
+configure_container_security_alerts_discord_webhook: ""
+configure_container_security_alerts_email: ""
+
+# Reporting configuration
+configure_container_security_reports_enabled: true
+configure_container_security_reports_retention_days: "30"
+configure_container_security_reports_format: "html"
+
+# Docker security policies
+configure_container_security_docker_policies:
+  - "no-new-privileges"
+  - "read-only-root-filesystem"
+  - "no-privileged"
+  - "no-host-network"
+  - "no-host-mounts"
+
+# Vulnerability thresholds
+configure_container_security_vulnerability_threshold_critical: 0
+configure_container_security_vulnerability_threshold_high: 5
+configure_container_security_vulnerability_threshold_medium: 10

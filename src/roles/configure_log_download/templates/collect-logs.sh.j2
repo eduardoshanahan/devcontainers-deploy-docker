@@ -1,0 +1,109 @@
+#!/bin/bash
+
+# Log Collection Script
+# Collects and organizes logs for easy download
+
+LOG_DIR="/opt/logs"
+ARCHIVE_DIR="$LOG_DIR/archive"
+DATE=$(date +%Y%m%d_%H%M%S)
+COLLECTION_NAME="logs_${DATE}"
+
+# Create collection directory
+COLLECTION_PATH="$ARCHIVE_DIR/$COLLECTION_NAME"
+mkdir -p "$COLLECTION_PATH"
+
+echo "Starting log collection: $COLLECTION_NAME"
+
+# System logs
+echo "Collecting system logs..."
+cp -r /var/log/* "$COLLECTION_PATH/system_logs/" 2>/dev/null || mkdir -p "$COLLECTION_PATH/system_logs"
+
+# Docker logs
+echo "Collecting Docker logs..."
+mkdir -p "$COLLECTION_PATH/docker_logs"
+docker ps --format "{{ '{{' }}.Names{{ '}}' }}" | while read container; do
+    if [ -n "$container" ]; then
+        docker logs "$container" > "$COLLECTION_PATH/docker_logs/${container}.log" 2>/dev/null
+    fi
+done
+
+# Docker system info
+echo "Collecting Docker system info..."
+docker system df > "$COLLECTION_PATH/docker_system_info.txt" 2>/dev/null
+docker info > "$COLLECTION_PATH/docker_info.txt" 2>/dev/null
+docker network ls > "$COLLECTION_PATH/docker_networks.txt" 2>/dev/null
+
+# Security logs
+echo "Collecting security logs..."
+mkdir -p "$COLLECTION_PATH/security_logs"
+cp /var/log/auth.log* "$COLLECTION_PATH/security_logs/" 2>/dev/null
+cp /var/log/fail2ban.log* "$COLLECTION_PATH/security_logs/" 2>/dev/null
+cp /var/log/ufw.log* "$COLLECTION_PATH/security_logs/" 2>/dev/null
+
+# Monitoring logs
+echo "Collecting monitoring logs..."
+mkdir -p "$COLLECTION_PATH/monitoring_logs"
+cp /var/log/health-monitor.log* "$COLLECTION_PATH/monitoring_logs/" 2>/dev/null
+cp /var/log/resource-monitor.log* "$COLLECTION_PATH/monitoring_logs/" 2>/dev/null
+cp /opt/monitoring/alerts/* "$COLLECTION_PATH/monitoring_logs/" 2>/dev/null
+
+# Container security logs
+echo "Collecting container security logs..."
+mkdir -p "$COLLECTION_PATH/container_security_logs"
+cp /var/log/container-security.log* "$COLLECTION_PATH/container_security_logs/" 2>/dev/null
+cp /opt/security/scans/* "$COLLECTION_PATH/container_security_logs/" 2>/dev/null
+
+# System information
+echo "Collecting system information..."
+mkdir -p "$COLLECTION_PATH/system_info"
+uname -a > "$COLLECTION_PATH/system_info/uname.txt"
+df -h > "$COLLECTION_PATH/system_info/disk_usage.txt"
+free -h > "$COLLECTION_PATH/system_info/memory_usage.txt"
+top -bn1 > "$COLLECTION_PATH/system_info/processes.txt"
+ps aux > "$COLLECTION_PATH/system_info/all_processes.txt"
+netstat -tuln > "$COLLECTION_PATH/system_info/network_connections.txt"
+
+# Service status
+echo "Collecting service status..."
+mkdir -p "$COLLECTION_PATH/service_status"
+systemctl list-units --type=service --state=running > "$COLLECTION_PATH/service_status/running_services.txt"
+systemctl list-units --type=service --state=failed > "$COLLECTION_PATH/service_status/failed_services.txt"
+
+# Create summary
+echo "Creating collection summary..."
+cat > "$COLLECTION_PATH/collection_summary.txt" << EOF
+Log Collection Summary
+=====================
+Collection Date: $(date)
+Collection Name: $COLLECTION_NAME
+Hostname: $(hostname)
+Uptime: $(uptime)
+
+System Information:
+- OS: $(lsb_release -d 2>/dev/null | cut -f2)
+- Kernel: $(uname -r)
+- CPU: $(nproc) cores
+- Memory: $(free -h | awk 'NR==2{print $2}')
+- Disk Usage: $(df -h / | awk 'NR==2{print $5}')
+
+Docker Information:
+- Containers: $(docker ps -q | wc -l) running
+- Images: $(docker images -q | wc -l) total
+- Networks: $(docker network ls -q | wc -l) networks
+
+Log Files Collected:
+- System logs: $(find "$COLLECTION_PATH/system_logs" -type f | wc -l) files
+- Docker logs: $(find "$COLLECTION_PATH/docker_logs" -type f | wc -l) files
+- Security logs: $(find "$COLLECTION_PATH/security_logs" -type f | wc -l) files
+- Monitoring logs: $(find "$COLLECTION_PATH/monitoring_logs" -type f | wc -l) files
+- Container security logs: $(find "$COLLECTION_PATH/container_security_logs" -type f | wc -l) files
+EOF
+
+# Create archive
+echo "Creating archive..."
+cd "$ARCHIVE_DIR"
+tar -czf "${COLLECTION_NAME}.tar.gz" "$COLLECTION_NAME"
+rm -rf "$COLLECTION_NAME"
+
+echo "Log collection completed: ${COLLECTION_NAME}.tar.gz"
+echo "Archive location: $ARCHIVE_DIR/${COLLECTION_NAME}.tar.gz" 

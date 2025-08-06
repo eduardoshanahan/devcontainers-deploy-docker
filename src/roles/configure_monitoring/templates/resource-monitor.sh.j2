@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Lightweight Resource Monitor
+# Optimized for 2GB RAM VPS
+
+LOG_FILE="/var/log/resource-monitor.log"
+DATE=$(date +%Y-%m-%d_%H:%M:%S)
+
+log_message() {
+    echo "$DATE - $1" >> "$LOG_FILE"
+}
+
+# Get system resources (lightweight)
+CPU_USAGE=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | sed 's/%us,//')
+MEMORY_USAGE=$(free | awk 'NR==2{printf "%.0f", $3*100/$2}')
+DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+LOAD_AVERAGE=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+
+# Log resource usage
+log_message "CPU: ${CPU_USAGE}%, Memory: ${MEMORY_USAGE}%, Disk: ${DISK_USAGE}%, Load: ${LOAD_AVERAGE}"
+
+# Check for high resource usage
+if [ "$CPU_USAGE" -gt 80 ]; then
+    log_message "WARNING: High CPU usage detected"
+fi
+
+if [ "$MEMORY_USAGE" -gt 85 ]; then
+    log_message "WARNING: High memory usage detected"
+fi
+
+if [ "$DISK_USAGE" -gt 85 ]; then
+    log_message "WARNING: High disk usage detected"
+fi
+
+# Docker resource usage (lightweight)
+if command -v docker >/dev/null 2>&1; then
+    DOCKER_CPU=$(docker stats --no-stream --format "{{ '{{' }}.CPUPerc{{ '}}' }}" 2>/dev/null | head -n1 | sed 's/%//')
+    DOCKER_MEMORY=$(docker stats --no-stream --format "{{ '{{' }}.MemPerc{{ '}}' }}" 2>/dev/null | head -n1 | sed 's/%//')
+    
+    if [ -n "$DOCKER_CPU" ] && [ "$DOCKER_CPU" -gt 80 ]; then
+        log_message "WARNING: High Docker CPU usage: ${DOCKER_CPU}%"
+    fi
+    
+    if [ -n "$DOCKER_MEMORY" ] && [ "$DOCKER_MEMORY" -gt 80 ]; then
+        log_message "WARNING: High Docker memory usage: ${DOCKER_MEMORY}%"
+    fi
+fi 

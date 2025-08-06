@@ -1,0 +1,33 @@
+---
+- name: Test Container Security Scanning
+  hosts: all
+  become: true
+  vars:
+    ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
+  tasks:
+    - name: Test Trivy installation
+      ansible.builtin.command: trivy --version
+      register: trivy_test
+      changed_when: false
+
+    - name: Display Trivy version
+      ansible.builtin.debug:
+        msg: "Trivy version: {{ trivy_test.stdout }}"
+
+    - name: Run container security scan
+      ansible.builtin.command: /opt/security/container-scan.sh
+      register: security_scan
+      changed_when: false
+
+    - name: Display scan results
+      ansible.builtin.debug:
+        msg: "{{ security_scan.stdout_lines }}"
+
+    - name: Generate security dashboard
+      ansible.builtin.command: /opt/security/container-security-dashboard.sh
+      register: dashboard_output
+      changed_when: false
+
+    - name: Display dashboard
+      ansible.builtin.debug:
+        msg: "{{ dashboard_output.stdout_lines }}"

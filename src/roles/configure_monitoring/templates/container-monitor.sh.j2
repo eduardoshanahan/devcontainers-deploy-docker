@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Container Monitor Script
+# Monitors Docker containers for health and performance
+
+LOG_FILE="/var/log/container-monitor.log"
+DATE=$(date +%Y-%m-%d_%H:%M:%S)
+
+log_message() {
+    echo "$DATE - $1" >> "$LOG_FILE"
+}
+
+log_message "Starting container monitoring"
+
+# Check if Docker is running
+if ! systemctl is-active --quiet docker; then
+    log_message "ERROR: Docker service is not running"
+    exit 1
+fi
+
+# Get container statistics
+RUNNING_CONTAINERS=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" 2>/dev/null)
+
+if [ -z "$RUNNING_CONTAINERS" ]; then
+    log_message "INFO: No containers running"
+    exit 0
+fi
+
+# Monitor each container
+for container in $RUNNING_CONTAINERS; do
+    log_message "Monitoring container: $container"
+    
+    # Get container stats
+    STATS=$(docker stats --no-stream --format "{{ '{{' }}.CPUPerc{{ '}}' }},{{ '{{' }}.MemPerc{{ '}}' }},{{ '{{' }}.NetIO{{ '}}' }}" "$container" 2>/dev/null)
+    
+    if [ -n "$STATS" ]; then
+        CPU_USAGE=$(echo "$STATS" | cut -d',' -f1 | sed 's/%//')
+        MEMORY_USAGE=$(echo "$STATS" | cut -d',' -f2 | sed 's/%//')
+        
+        # Check thresholds
+        if [ "$CPU_USAGE" -gt 80 ]; then
+            log_message "WARNING: Container $container has high CPU usage: ${CPU_USAGE}%"
+        fi
+        
+        if [ "$MEMORY_USAGE" -gt 80 ]; then
+            log_message "WARNING: Container $container has high memory usage: ${MEMORY_USAGE}%"
+        fi
+    fi
+    
+    # Check container health
+    HEALTH=$(docker inspect --format='{{ '{{' }}.State.Health.Status{{ '}}' }}' "$container" 2>/dev/null)
+    if [ "$HEALTH" = "unhealthy" ]; then
+        log_message "ERROR: Container $container is unhealthy"
+    fi
+done
+
+log_message "Container monitoring completed" 

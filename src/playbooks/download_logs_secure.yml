@@ -1,0 +1,47 @@
+---
+- name: Download Logs Securely via Ansible
+  hosts: all
+  gather_facts: false
+  vars:
+    ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
+    local_log_dir: "./logs/{{ inventory_hostname }}"
+  tasks:
+    - name: Create local logs directory
+      ansible.builtin.file:
+        path: "{{ local_log_dir }}"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+
+    - name: Export logs on remote server
+      ansible.builtin.command: /opt/logs/export-logs.sh
+      become: true
+
+    - name: Get list of available log files
+      ansible.builtin.find:
+        paths: /opt/logs/export
+        patterns: "*.tar.gz"
+        file_type: file
+      register: log_files
+      become: true
+
+    - name: Download log files securely
+      ansible.builtin.fetch:
+        src: "{{ item.path }}"
+        dest: "{{ local_log_dir }}/"
+        flat: true
+      loop: "{{ log_files.files }}"
+      become: true
+
+    - name: Download analysis report
+      ansible.builtin.fetch:
+        src: /opt/logs/analysis/analysis_report_*.txt
+        dest: "{{ local_log_dir }}/"
+        flat: true
+      become: true
+      ignore_errors: true
+
+    - name: Display downloaded files
+      ansible.builtin.debug:
+        msg: "Logs downloaded securely to {{ local_log_dir }}"
+      delegate_to: localhost

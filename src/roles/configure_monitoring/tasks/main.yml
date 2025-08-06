@@ -1,5 +1,5 @@
 ---
-- name: Install monitoring and security tools
+- name: Install lightweight monitoring tools
   ansible.builtin.apt:
     name:
       - htop
@@ -8,6 +8,11 @@
       - logwatch
       - auditd
       - aide
+      - jq
+      - curl
+      - wget
+      - rsyslog
+      - logrotate
     state: present
     update_cache: true
   become: true
@@ -21,10 +26,52 @@
     group: root
   loop:
     - /opt/monitoring
+    - /opt/monitoring/scripts
+    - /opt/monitoring/dashboards
+    - /opt/monitoring/alerts
     - /opt/security
     - /var/log/security
+    - /var/log/monitoring
   become: true
 
+# Lightweight Prometheus Node Exporter (if enabled)
+- name: Download Prometheus Node Exporter
+  ansible.builtin.get_url:
+    url: "https://github.com/prometheus/node_exporter/releases/download/v1.6.1/node_exporter-1.6.1.linux-amd64.tar.gz"
+    dest: /tmp/node_exporter.tar.gz
+    mode: "0644"
+  become: true
+  when: configure_monitoring_prometheus_enabled | default(false)
+
+- name: Extract Prometheus Node Exporter
+  ansible.builtin.unarchive:
+    src: /tmp/node_exporter.tar.gz
+    dest: /opt/monitoring/
+    remote_src: true
+    creates: /opt/monitoring/node_exporter-1.6.1.linux-amd64/node_exporter
+  become: true
+  when: configure_monitoring_prometheus_enabled | default(false)
+
+- name: Create Node Exporter service
+  ansible.builtin.template:
+    src: node-exporter.service.j2
+    dest: /etc/systemd/system/node-exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when: configure_monitoring_prometheus_enabled | default(false)
+
+- name: Start and enable Node Exporter
+  ansible.builtin.systemd:
+    name: node-exporter
+    state: started
+    enabled: true
+    daemon_reload: true
+  become: true
+  when: configure_monitoring_prometheus_enabled | default(false)
+
+# Enhanced Security Monitoring
 - name: Configure security event logging
   ansible.builtin.template:
     src: security-events.conf.j2
@@ -78,7 +125,56 @@
   become: true
   notify: restart auditd
 
-- name: Create security monitoring cron jobs
+# Lightweight Health Monitoring Scripts
+- name: Configure lightweight health check script
+  ansible.builtin.template:
+    src: health-check-lightweight.sh.j2
+    dest: /opt/monitoring/health-check.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Configure resource monitoring script
+  ansible.builtin.template:
+    src: resource-monitor.sh.j2
+    dest: /opt/monitoring/resource-monitor.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Configure container monitoring script
+  ansible.builtin.template:
+    src: container-monitor.sh.j2
+    dest: /opt/monitoring/container-monitor.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Configure lightweight alerting script
+  ansible.builtin.template:
+    src: alert-manager-lightweight.sh.j2
+    dest: /opt/monitoring/alert-manager.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+# Docker Logging Configuration (lightweight)
+- name: Configure Docker logging driver (lightweight)
+  ansible.builtin.template:
+    src: daemon-logging-lightweight.json.j2
+    dest: /etc/docker/daemon-logging.json
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: restart docker
+
+# Create monitoring cron jobs
+- name: Create lightweight monitoring cron jobs
   ansible.builtin.cron:
     name: "{{ item.name }}"
     hour: "{{ item.hour }}"
@@ -104,12 +200,24 @@
         minute: "0",
         job: "/opt/monitoring/health-check.sh",
       }
+    - {
+        name: "Resource Monitoring",
+        hour: "*/2",
+        minute: "0",
+        job: "/opt/monitoring/resource-monitor.sh",
+      }
+    - {
+        name: "Container Monitoring",
+        hour: "*/5",
+        minute: "0",
+        job: "/opt/monitoring/container-monitor.sh",
+      }
   become: true
 
-- name: Configure log rotation for security logs
+- name: Configure log rotation for monitoring logs
   ansible.builtin.template:
-    src: security-logs.j2
-    dest: /etc/logrotate.d/security-logs
+    src: monitoring-logs-lightweight.j2
+    dest: /etc/logrotate.d/monitoring-logs
     owner: root
     group: root
     mode: "0644"

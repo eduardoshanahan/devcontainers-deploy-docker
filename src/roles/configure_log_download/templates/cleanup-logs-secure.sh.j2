@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Secure Log Cleanup Script
+# Removes sensitive data and old logs
+
+LOG_DIR="/opt/logs"
+EXPORT_DIR="$LOG_DIR/export"
+RETENTION_DAYS={{ configure_log_download_retention_days | default(7) }}
+
+echo "Starting secure log cleanup..."
+
+# Remove old exports (including password files)
+find "$EXPORT_DIR" -name "*.tar.gz" -mtime +1 -delete
+find "$EXPORT_DIR" -name "password_*.txt" -mtime +1 -delete
+find "$EXPORT_DIR" -name "download_instructions.txt" -mtime +1 -delete
+
+# Remove old archives
+find "$LOG_DIR/archive" -name "*.tar.gz" -mtime +$RETENTION_DAYS -delete
+
+# Clean up analysis reports (may contain sensitive data)
+find "$LOG_DIR/analysis" -name "*.txt" -mtime +$RETENTION_DAYS -delete
+
+# Secure cleanup of temporary files
+find /tmp -name "log_analysis_*" -mtime +1 -exec rm -rf {} \; 2>/dev/null
+
+# Clean up Docker logs (remove sensitive data)
+docker system prune -f --volumes 2>/dev/null || true
+
+echo "Secure log cleanup completed" 

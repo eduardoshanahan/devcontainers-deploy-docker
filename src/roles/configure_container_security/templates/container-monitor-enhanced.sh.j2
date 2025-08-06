@@ -1,0 +1,96 @@
+#!/bin/bash
+
+# Enhanced Container Security Monitoring Script
+# This script monitors containers for security events and unusual behavior
+
+LOG_FILE="/var/log/container-security.log"
+ALERT_FILE="/opt/security/alerts/container_alerts_$(date +%Y%m%d).log"
+
+# Function to log messages
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+}
+
+# Function to send alerts
+send_alert() {
+    local message="$1"
+    local severity="$2"
+    
+    log_message "ALERT [$severity]: $message"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - [$severity] $message" >> "$ALERT_FILE"
+    
+    # Send email alert if configured
+    if [ -n "{{ configure_container_security_alerts_email | default('') }}" ]; then
+        echo "$message" | mail -s "Container Security Alert [$severity]" "{{ configure_container_security_alerts_email }}"
+    fi
+}
+
+log_message "Starting enhanced container security monitoring"
+
+# Monitor for privileged containers
+if [ "{{ configure_container_security_monitor_privileged | default(true) }}" = "true" ]; then
+    PRIVILEGED_CONTAINERS=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" --filter "label=privileged=true" 2>/dev/null)
+    
+    if [ -n "$PRIVILEGED_CONTAINERS" ]; then
+        send_alert "Privileged containers detected: $PRIVILEGED_CONTAINERS" "HIGH"
+    fi
+fi
+
+# Monitor for containers with host network
+if [ "{{ configure_container_security_monitor_host_network | default(true) }}" = "true" ]; then
+    HOST_NETWORK_CONTAINERS=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" --filter "network=host" 2>/dev/null)
+    
+    if [ -n "$HOST_NETWORK_CONTAINERS" ]; then
+        send_alert "Containers with host network detected: $HOST_NETWORK_CONTAINERS" "MEDIUM"
+    fi
+fi
+
+# Monitor for containers with host mounts
+if [ "{{ configure_container_security_monitor_host_mounts | default(true) }}" = "true" ]; then
+    HOST_MOUNT_CONTAINERS=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" --filter "volume=/:/host" 2>/dev/null)
+    
+    if [ -n "$HOST_MOUNT_CONTAINERS" ]; then
+        send_alert "Containers with host mounts detected: $HOST_MOUNT_CONTAINERS" "HIGH"
+    fi
+fi
+
+# Monitor for containers with unusual behavior
+if [ "{{ configure_container_security_monitor_unusual_behavior | default(true) }}" = "true" ]; then
+    UNUSUAL_CONTAINERS=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" --filter "label=security=unusual" 2>/dev/null)
+    
+    if [ -n "$UNUSUAL_CONTAINERS" ]; then
+        send_alert "Unusual container behavior detected: $UNUSUAL_CONTAINERS" "CRITICAL"
+    fi
+fi
+
+# Monitor for containers with excessive resource usage
+EXCESSIVE_CPU=$(docker stats --no-stream --format "{{ '{{' }}.Container{{ '}}' }},{{ '{{' }}.CPUPerc{{ '}}' }}" | awk -F',' '$2 > 80 {print $1}')
+if [ -n "$EXCESSIVE_CPU" ]; then
+    send_alert "Containers with excessive CPU usage: $EXCESSIVE_CPU" "MEDIUM"
+fi
+
+# Monitor for containers with excessive memory usage
+EXCESSIVE_MEMORY=$(docker stats --no-stream --format "{{ '{{' }}.Container{{ '}}' }},{{ '{{' }}.MemPerc{{ '}}' }}" | awk -F',' '$2 > 80 {print $1}')
+if [ -n "$EXCESSIVE_MEMORY" ]; then
+    send_alert "Containers with excessive memory usage: $EXCESSIVE_MEMORY" "MEDIUM"
+fi
+
+# Monitor for containers with unusual network connections
+UNUSUAL_NETWORK=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" | xargs -I {} sh -c 'docker exec {} netstat -tuln 2>/dev/null | grep -E ":(22|23|3389|5900)" && echo "{}"' 2>/dev/null)
+if [ -n "$UNUSUAL_NETWORK" ]; then
+    send_alert "Containers with unusual network connections: $UNUSUAL_NETWORK" "HIGH"
+fi
+
+# Monitor for containers with root user
+ROOT_CONTAINERS=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" | xargs -I {} sh -c 'docker exec {} whoami 2>/dev/null | grep -q "root" && echo "{}"' 2>/dev/null)
+if [ -n "$ROOT_CONTAINERS" ]; then
+    send_alert "Containers running as root: $ROOT_CONTAINERS" "MEDIUM"
+fi
+
+# Monitor for containers with writable root filesystem
+WRITABLE_ROOT=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" | xargs -I {} sh -c 'docker exec {} test -w / && echo "{}"' 2>/dev/null)
+if [ -n "$WRITABLE_ROOT" ]; then
+    send_alert "Containers with writable root filesystem: $WRITABLE_ROOT" "MEDIUM"
+fi
+
+log_message "Enhanced container security monitoring completed" 

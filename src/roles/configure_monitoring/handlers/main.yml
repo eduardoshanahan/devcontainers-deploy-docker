@@ -17,6 +17,12 @@
     state: restarted
   become: true
 
+- name: Restart docker
+  ansible.builtin.service:
+    name: docker
+    state: restarted
+  become: true
+
 - name: Reload rsyslog
   ansible.builtin.service:
     name: rsyslog

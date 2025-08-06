@@ -1,0 +1,113 @@
+#!/bin/bash
+
+# Container Security Dashboard
+# Provides a real-time overview of container security status
+
+echo "=========================================="
+echo "    Container Security Dashboard"
+echo "=========================================="
+echo "Generated: $(date)"
+echo ""
+
+# System Information
+echo "�� SYSTEM INFORMATION"
+echo "====================="
+echo "Hostname: $(hostname)"
+echo "Docker Version: $(docker --version 2>/dev/null | cut -d' ' -f3 | sed 's/,//')"
+echo "Trivy Version: $(trivy --version 2>/dev/null | head -n1 | cut -d' ' -f2)"
+echo ""
+
+# Container Status
+echo "�� CONTAINER STATUS"
+echo "=================="
+RUNNING_CONTAINERS=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" | wc -l)
+TOTAL_CONTAINERS=$(docker ps -a --format "{{ '{{' }}.Names{{ '}}' }}" | wc -l)
+echo "Running Containers: $RUNNING_CONTAINERS"
+echo "Total Containers: $TOTAL_CONTAINERS"
+echo ""
+
+# Security Status
+echo "🔒 SECURITY STATUS"
+echo "================="
+
+# Check for privileged containers
+PRIVILEGED_COUNT=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" --filter "label=privileged=true" 2>/dev/null | wc -l)
+if [ "$PRIVILEGED_COUNT" -gt 0 ]; then
+    echo "⚠️  Privileged Containers: $PRIVILEGED_COUNT"
+else
+    echo "✅ No Privileged Containers"
+fi
+
+# Check for host network containers
+HOST_NETWORK_COUNT=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" --filter "network=host" 2>/dev/null | wc -l)
+if [ "$HOST_NETWORK_COUNT" -gt 0 ]; then
+    echo "⚠️  Host Network Containers: $HOST_NETWORK_COUNT"
+else
+    echo "✅ No Host Network Containers"
+fi
+
+# Check for root containers
+ROOT_COUNT=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" | xargs -I {} sh -c 'docker exec {} whoami 2>/dev/null | grep -q "root" && echo "{}"' 2>/dev/null | wc -l)
+if [ "$ROOT_COUNT" -gt 0 ]; then
+    echo "⚠️  Root Containers: $ROOT_COUNT"
+else
+    echo "✅ No Root Containers"
+fi
+
+echo ""
+
+# Recent Vulnerabilities
+echo "🔍 RECENT VULNERABILITIES"
+echo "========================"
+RECENT_SCAN=$(find /opt/security/scans -name "*.json" -mtime -1 2>/dev/null | head -n1)
+if [ -n "$RECENT_SCAN" ]; then
+    CRITICAL_COUNT=$(jq '.Results[].Vulnerabilities[] | select(.Severity == "CRITICAL") | .VulnerabilityID' "$RECENT_SCAN" 2>/dev/null | wc -l)
+    HIGH_COUNT=$(jq '.Results[].Vulnerabilities[] | select(.Severity == "HIGH") | .VulnerabilityID' "$RECENT_SCAN" 2>/dev/null | wc -l)
+    MEDIUM_COUNT=$(jq '.Results[].Vulnerabilities[] | select(.Severity == "MEDIUM") | .VulnerabilityID' "$RECENT_SCAN" 2>/dev/null | wc -l)
+    
+    if [ "$CRITICAL_COUNT" -gt 0 ]; then
+        echo "🚨 Critical Vulnerabilities: $CRITICAL_COUNT"
+    fi
+    if [ "$HIGH_COUNT" -gt 0 ]; then
+        echo "⚠️  High Vulnerabilities: $HIGH_COUNT"
+    fi
+    if [ "$MEDIUM_COUNT" -gt 0 ]; then
+        echo "⚠️  Medium Vulnerabilities: $MEDIUM_COUNT"
+    fi
+    if [ "$CRITICAL_COUNT" -eq 0 ] && [ "$HIGH_COUNT" -eq 0 ] && [ "$MEDIUM_COUNT" -eq 0 ]; then
+        echo "✅ No High/Critical Vulnerabilities Found"
+    fi
+else
+    echo "ℹ️  No recent scan data available"
+fi
+
+echo ""
+
+# Network Security
+echo "�� NETWORK SECURITY"
+echo "=================="
+DOCKER_NETWORKS=$(docker network ls --format "{{ '{{' }}.Name{{ '}}' }}" | grep -v "bridge\|host\|none" | wc -l)
+echo "Custom Docker Networks: $DOCKER_NETWORKS"
+
+# Check firewall status
+if command -v ufw >/dev/null 2>&1; then
+    UFW_STATUS=$(ufw status | grep "Status" | cut -d' ' -f2)
+    echo "Firewall Status: $UFW_STATUS"
+else
+    echo "Firewall: Not installed"
+fi
+
+echo ""
+
+# Recent Alerts
+echo "🚨 RECENT ALERTS"
+echo "==============="
+RECENT_ALERTS=$(find /opt/security/alerts -name "*.log" -mtime -1 2>/dev/null | xargs cat 2>/dev/null | tail -n5)
+if [ -n "$RECENT_ALERTS" ]; then
+    echo "$RECENT_ALERTS"
+else
+    echo "✅ No recent alerts"
+fi
+
+echo ""
+echo "==========================================" 

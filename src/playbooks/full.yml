@@ -17,6 +17,7 @@
     - deploy_docker
     - configure_docker_networks
     - configure_container_security
+    - configure_log_download
     - test_network_security
 
 - name: Send deployment completion notification

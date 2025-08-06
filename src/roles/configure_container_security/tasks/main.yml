@@ -10,16 +10,27 @@
     update_cache: true
   become: true
 
-- name: Add Trivy repository key
-  ansible.builtin.apt_key:
-    url: https://aquasecurity.github.io/trivy-repo/deb/public.key
-    state: present
+- name: Create Trivy GPG key directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
   become: true
 
-- name: Add Trivy repository
+- name: Add Trivy repository key (modern method)
+  ansible.builtin.get_url:
+    url: https://aquasecurity.github.io/trivy-repo/deb/public.key
+    dest: /etc/apt/keyrings/trivy.gpg
+    mode: "0644"
+  become: true
+
+- name: Add Trivy repository (modern method)
   ansible.builtin.apt_repository:
-    repo: "deb https://aquasecurity.github.io/trivy-repo/deb {{ ansible_distribution_release }} main"
+    repo: "deb [signed-by=/etc/apt/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb {{ ansible_distribution_release }} main"
     state: present
+    filename: trivy
   become: true
 
 - name: Install Trivy

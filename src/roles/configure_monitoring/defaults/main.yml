@@ -2,14 +2,35 @@
 # Monitoring behavior settings
 configure_monitoring_enabled: true
 
-# Health check configuration (Behavior)
+# Lightweight Configuration (optimized for 2GB RAM)
+configure_monitoring_elk_enabled: false # Disabled for 2GB RAM
+configure_monitoring_prometheus_enabled: true # Lightweight option
+configure_monitoring_prometheus_port: 9100
+
+# Health check configuration
 configure_monitoring_health_check_interval: 300 # 5 minutes
 configure_monitoring_disk_threshold: 85 # Alert when disk usage > 85%
 configure_monitoring_memory_threshold: 90 # Alert when memory usage > 90%
 configure_monitoring_cpu_threshold: 80 # Alert when CPU usage > 80%
+configure_monitoring_network_threshold: 80 # Alert when network usage > 80%
 
-# Logging configuration (Behavior)
+# Logging configuration (lightweight)
 configure_monitoring_log_file: "/var/log/health-monitor.log"
-# Environment-specific settings (moved to inventory)
-# configure_monitoring_alert_email: ""
-# configure_monitoring_alert_webhook: ""
+configure_monitoring_log_retention_days: 7 # Reduced retention
+configure_monitoring_max_log_size: "10M" # Smaller log files
+
+# Alerting configuration
+configure_monitoring_alerts_enabled: true
+configure_monitoring_alerts_email: ""
+configure_monitoring_alerts_slack_webhook: ""
+configure_monitoring_alerts_discord_webhook: ""
+
+# Docker monitoring configuration (lightweight)
+configure_monitoring_docker_logs_enabled: true
+configure_monitoring_docker_log_driver: "json-file"
+configure_monitoring_docker_log_max_size: "10m"
+configure_monitoring_docker_log_max_files: "3"
+
+# Resource limits for monitoring
+configure_monitoring_memory_limit: "512M" # Max 512MB for monitoring
+configure_monitoring_cpu_limit: "1" # Max 1 CPU core for monitoring

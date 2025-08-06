@@ -1,0 +1,15 @@
+---
+# Log Download Configuration (Secure by Default)
+configure_log_download_enabled: true
+configure_log_download_auto_collect: true
+configure_log_download_auto_cleanup: true
+configure_log_download_retention_days: 7
+
+# Security settings
+configure_log_download_secure_only: true # Disable HTTP server by default
+configure_log_download_encrypt_exports: true # Encrypt exported logs
+configure_log_download_cleanup_passwords: true # Auto-cleanup password files
+
+# Access control
+configure_log_download_allowed_ips: [] # Restrict access to specific IPs
+configure_log_download_require_auth: true # Require authentication

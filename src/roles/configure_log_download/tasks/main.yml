@@ -1,0 +1,85 @@
+---
+- name: Install log management tools
+  ansible.builtin.apt:
+    name:
+      - rsync
+      - tar
+      - gzip
+      - curl
+      - jq
+      - zip
+      - openssl
+    state: present
+    update_cache: true
+  become: true
+
+- name: Create log management directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  loop:
+    - /opt/logs
+    - /opt/logs/archive
+    - /opt/logs/export
+    - /opt/logs/backup
+    - /opt/logs/analysis
+  become: true
+
+- name: Configure log collection script
+  ansible.builtin.template:
+    src: collect-logs.sh.j2
+    dest: /opt/logs/collect-logs.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Configure secure log export script
+  ansible.builtin.template:
+    src: export-logs-secure.sh.j2
+    dest: /opt/logs/export-logs.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Configure secure log cleanup script
+  ansible.builtin.template:
+    src: cleanup-logs-secure.sh.j2
+    dest: /opt/logs/cleanup-logs.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Configure log analysis script
+  ansible.builtin.template:
+    src: analyze-logs.sh.j2
+    dest: /opt/logs/analyze-logs.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Create log collection cron job
+  ansible.builtin.cron:
+    name: "Log Collection"
+    hour: "0"
+    minute: "0"
+    job: "/opt/logs/collect-logs.sh"
+    user: root
+  become: true
+  when: configure_log_download_auto_collect | default(true)
+
+- name: Create log cleanup cron job
+  ansible.builtin.cron:
+    name: "Log Cleanup"
+    hour: "2"
+    minute: "0"
+    job: "/opt/logs/cleanup-logs.sh"
+    user: root
+  become: true
+  when: configure_log_download_auto_cleanup | default(true)

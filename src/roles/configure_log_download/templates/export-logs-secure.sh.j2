@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# Secure Log Export Script
+# Creates encrypted archives with password protection
+
+LOG_DIR="/opt/logs"
+EXPORT_DIR="$LOG_DIR/export"
+ARCHIVE_DIR="$LOG_DIR/archive"
+DATE=$(date +%Y%m%d_%H%M%S)
+PASSWORD=$(openssl rand -base64 32)
+
+# Create export directory
+mkdir -p "$EXPORT_DIR"
+
+echo "Starting secure log export..."
+
+# Find latest log collection
+LATEST_COLLECTION=$(ls -t "$ARCHIVE_DIR"/*.tar.gz 2>/dev/null | head -n1)
+
+if [ -n "$LATEST_COLLECTION" ]; then
+    echo "Found latest collection: $LATEST_COLLECTION"
+    
+    # Create encrypted archive
+    FILENAME="logs_secure_$DATE.tar.gz.enc"
+    openssl enc -aes-256-cbc -salt -in "$LATEST_COLLECTION" \
+        -out "$EXPORT_DIR/$FILENAME" -pass pass:"$PASSWORD"
+    
+    # Create password file (for authorized users only)
+    echo "$PASSWORD" > "$EXPORT_DIR/password_$DATE.txt"
+    chmod 600 "$EXPORT_DIR/password_$DATE.txt"
+    
+    # Create download instructions
+    cat > "$EXPORT_DIR/download_instructions.txt" << EOF
+Secure Log Download Instructions
+===============================
+Filename: $FILENAME
+Password File: password_$DATE.txt
+Created: $(date)
+
+To decrypt:
+openssl enc -aes-256-cbc -d -in $FILENAME -out logs.tar.gz -pass pass:PASSWORD
+
+IMPORTANT: Delete password file after download for security!
+EOF
+    
+    echo "Secure logs exported: $EXPORT_DIR/$FILENAME"
+    echo "Password: $PASSWORD"
+else
+    echo "No log collections found. Running collection first..."
+    /opt/logs/collect-logs.sh
+    
+    # Try again
+    LATEST_COLLECTION=$(ls -t "$ARCHIVE_DIR"/*.tar.gz 2>/dev/null | head -n1)
+    if [ -n "$LATEST_COLLECTION" ]; then
+        FILENAME="logs_secure_$DATE.tar.gz.enc"
+        openssl enc -aes-256-cbc -salt -in "$LATEST_COLLECTION" \
+            -out "$EXPORT_DIR/$FILENAME" -pass pass:"$PASSWORD"
+        echo "Secure logs exported: $EXPORT_DIR/$FILENAME"
+    else
+        echo "Failed to create log collection"
+        exit 1
+    fi
+fi 

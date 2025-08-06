@@ -1,0 +1,75 @@
+#!/bin/bash
+
+# Lightweight Health Check Script
+# Optimized for 2GB RAM VPS
+
+LOG_FILE="/var/log/health-monitor.log"
+ALERT_FILE="/opt/monitoring/alerts/health_alerts_$(date +%Y%m%d).log"
+DATE=$(date +%Y-%m-%d_%H:%M:%S)
+
+# Resource thresholds
+DISK_THRESHOLD={{ configure_monitoring_disk_threshold | default(85) }}
+MEMORY_THRESHOLD={{ configure_monitoring_memory_threshold | default(90) }}
+CPU_THRESHOLD={{ configure_monitoring_cpu_threshold | default(80) }}
+
+# Function to log messages
+log_message() {
+    echo "$DATE - $1" | tee -a "$LOG_FILE"
+}
+
+# Function to send alerts
+send_alert() {
+    local message="$1"
+    local severity="$2"
+    
+    log_message "ALERT [$severity]: $message"
+    echo "$DATE - [$severity] $message" >> "$ALERT_FILE"
+    
+    # Send email alert if configured
+    if [ -n "{{ configure_monitoring_alerts_email | default('') }}" ]; then
+        echo "$message" | mail -s "VPS Health Alert [$severity]" "{{ configure_monitoring_alerts_email }}"
+    fi
+}
+
+log_message "Starting lightweight health check"
+
+# Check disk usage
+DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+if [ "$DISK_USAGE" -gt "$DISK_THRESHOLD" ]; then
+    send_alert "Disk usage is ${DISK_USAGE}% (threshold: ${DISK_THRESHOLD}%)" "HIGH"
+fi
+
+# Check memory usage
+MEMORY_USAGE=$(free | awk 'NR==2{printf "%.0f", $3*100/$2}')
+if [ "$MEMORY_USAGE" -gt "$MEMORY_THRESHOLD" ]; then
+    send_alert "Memory usage is ${MEMORY_USAGE}% (threshold: ${MEMORY_THRESHOLD}%)" "HIGH"
+fi
+
+# Check CPU usage (lightweight check)
+CPU_USAGE=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | sed 's/%us,//')
+if [ "$CPU_USAGE" -gt "$CPU_THRESHOLD" ]; then
+    send_alert "CPU usage is ${CPU_USAGE}% (threshold: ${CPU_THRESHOLD}%)" "MEDIUM"
+fi
+
+# Check Docker service
+if ! systemctl is-active --quiet docker; then
+    send_alert "Docker service is not running" "CRITICAL"
+fi
+
+# Check critical services
+SERVICES=("ssh" "ufw" "fail2ban")
+for service in "${SERVICES[@]}"; do
+    if ! systemctl is-active --quiet "$service"; then
+        send_alert "Service $service is not running" "HIGH"
+    fi
+done
+
+# Check container health (lightweight)
+RUNNING_CONTAINERS=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" 2>/dev/null | wc -l)
+if [ "$RUNNING_CONTAINERS" -eq 0 ]; then
+    log_message "No containers running"
+else
+    log_message "$RUNNING_CONTAINERS containers running"
+fi
+
+log_message "Lightweight health check completed" 
