@@ -234,3 +234,79 @@ ansible-playbook playbooks/show_network_info.yml
 ---
 
 For more details on the playbooks, roles, or project structure, explore the respective directories in the repository.
+
+## Multi-Project Setup
+
+### User Permissions and Access
+
+This project supports multiple teams/projects using the same server through a carefully designed permission system:
+
+#### **Two-Tier User System**
+
+1. **Initial Deployment User (`ubuntu`)**
+   - Used only for system-level deployment
+   - Full system access for initial setup
+   - Not needed for daily operations
+
+2. **Container Deployment User (`docker_deployment`)**
+   - Used by all projects for daily operations
+   - Enhanced permissions for Docker and network management
+   - Limited system access for security
+
+#### **What Other Projects Need**
+
+Other projects **only need the `docker_deployment` user** and can perform all necessary operations:
+
+```yaml
+# Minimal configuration for other projects
+vps_server_ip: "your-server-ip"
+containers_deployment_user: "docker_deployment"
+containers_deployment_user_ssh_key: "~/.ssh/your-deployment-key"
+```
+
+#### **Available Operations for Other Projects**
+
+```bash
+# Docker operations (no sudo needed)
+docker ps
+docker-compose up -d
+docker network create my-network
+
+# System management (with sudo)
+sudo systemctl status docker
+sudo ufw allow from 172.25.0.0/16
+
+# Network management
+docker network ls
+docker network inspect my-network
+```
+
+For detailed information about user permissions and multi-project setup, see:
+
+- [Docker Networks Documentation](documentation/DOCKER_NETWORKS.md)
+- [Network Range Checker Script](src/scripts/check_network_ranges.sh)
+
+## Recent Improvements
+
+### ✅ **Enhanced User Permissions**
+
+- **Two-tier user system** for secure multi-project access
+- **Enhanced sudo permissions** for `docker_deployment` user
+- **Principle of least privilege** implementation
+
+### ✅ **Fixed Docker Configuration**
+
+- **Resolved Docker restart issues** caused by invalid configuration
+- **Proper content trust setup** via environment variables
+- **Enhanced Docker daemon configuration**
+
+### ✅ **Network Management**
+
+- **Test network cleanup** after validation
+- **Network range documentation** for other projects
+- **Firewall management** for Docker networks
+
+### ✅ **System Updates**
+
+- **Complete package updates** using `upgrade: full`
+- **Enhanced update role** for comprehensive system maintenance

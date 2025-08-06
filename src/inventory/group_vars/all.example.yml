@@ -126,3 +126,6 @@ configure_remote_logging_forward_docker_logs: true
 docker_user_enhanced_permissions: true
 docker_user_network_management: true
 docker_user_system_monitoring: true
+
+# Network cleanup configuration (USE WITH CAUTION)
+configure_docker_networks_remove_all: false

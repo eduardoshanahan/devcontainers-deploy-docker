@@ -9,26 +9,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Comprehensive documentation structure
-- API reference documentation
-- Contributing guidelines
-- Troubleshooting guide
-- Architecture overview
-- Security documentation
-- Deployment guide
-- Role documentation
+- **Enhanced User Permissions System**: Two-tier user architecture for multi-project support
+- **Multi-Project Documentation**: Comprehensive guide for other projects using the infrastructure
+- **Network Range Management**: Documentation and scripts for Docker network range allocation
+- **Enhanced Docker Configuration**: Fixed Docker daemon configuration issues
+- **Container Security Improvements**: Proper content trust configuration via environment variables
+- **Network Cleanup Features**: Automatic removal of test networks and orphaned resources
+- **Enhanced Sudo Permissions**: Granular permissions for `docker_deployment` user
+- **Firewall Management**: Enhanced UFW permissions for Docker network management
 
 ### Changed
 
-- Enhanced documentation organization
-- Improved code examples
-- Updated security guidelines
+- **User Architecture**: Implemented `initial_deployment_user` vs `containers_deployment_user` separation
+- **Docker Content Trust**: Fixed from invalid daemon.json configuration to proper environment variables
+- **Network Configuration**: Updated to use test networks with clear naming conventions
+- **Update Ubuntu Role**: Enhanced to use `upgrade: full` for complete package updates
+- **Documentation Structure**: Added comprehensive multi-project setup guides
+- **Security Permissions**: Enhanced sudo permissions for container deployment user
 
 ### Fixed
 
-- Documentation typos and inconsistencies
-- Missing configuration examples
-- Incomplete role descriptions
+- **Docker Daemon Configuration**: Resolved invalid `content-trust` configuration causing restart failures
+- **Package Updates**: Fixed incomplete system updates by using proper upgrade method
+- **Network Cleanup**: Implemented proper cleanup of test networks after validation
+- **User Permissions**: Fixed enhanced permissions for Docker and system management
+- **Task Ordering**: Fixed Ansible task key ordering for better code quality
+- **Linter Issues**: Resolved various YAML linting and code quality issues
+
+### Security
+
+- **Enhanced User Isolation**: Limited `docker_deployment` user to necessary operations only
+- **Principle of Least Privilege**: Implemented focused permissions for container operations
+- **Network Security**: Maintained strict network isolation while enabling multi-project access
+- **Firewall Management**: Enhanced UFW permissions for Docker network management
+
+### Documentation
+
+- **Multi-Project Setup**: Added comprehensive guide for other projects
+- **User Permissions**: Documented two-tier user system and enhanced permissions
+- **Network Management**: Added Docker network range documentation and scripts
+- **Troubleshooting**: Updated with Docker configuration fixes and solutions
 
 ## [1.0.0] - 2024-01-15
 
@@ -98,8 +118,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`disable_password_authentication.yml`**: SSH security hardening
 - **`test_network_security.yml`**: Security validation testing
 - **`reboot_server.yml`**: Safe server reboot procedures
-- **`configure_container_security.yml`**: Container security hardening
-- **`configure_remote_logging.yml`**: Centralized logging setup
 
 ### Roles
 

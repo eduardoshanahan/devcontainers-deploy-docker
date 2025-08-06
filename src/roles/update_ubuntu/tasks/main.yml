@@ -26,7 +26,7 @@
 
 - name: Upgrade all packages with error handling
   ansible.builtin.apt:
-    upgrade: true
+    upgrade: full # Changed from 'true' to 'full'
     dpkg_options: "force-confdef,force-confold"
   become: true
   register: apt_upgrade_result
@@ -35,6 +35,7 @@
   until: apt_upgrade_result is succeeded
 
 - name: Handle failed package upgrades
+  when: apt_upgrade_result is failed
   block:
     - name: Try to fix broken packages
       ansible.builtin.apt:
@@ -46,13 +47,13 @@
       ansible.builtin.command: dpkg --configure -a
       become: true
       failed_when: false
+      changed_when: false
 
     - name: Retry upgrade after fixing broken packages
       ansible.builtin.apt:
         upgrade: true
         dpkg_options: "force-confdef,force-confold"
       become: true
-  when: apt_upgrade_result is failed
 
 - name: Final cleanup
   ansible.builtin.apt:

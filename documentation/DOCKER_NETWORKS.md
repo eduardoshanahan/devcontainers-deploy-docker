@@ -26,6 +26,131 @@ This document describes the Docker network ranges used in this project and provi
 | `172.30.0.0/16` | Available | Monitoring |
 | `172.31.0.0/16` | Available | Logging |
 
+## Multi-Project User Permissions
+
+### User Roles and Permissions
+
+This project uses two distinct user roles for different levels of access:
+
+#### 1. Initial Deployment User (`ubuntu`)
+
+- **Purpose**: System-level deployment and configuration
+- **Permissions**: Full system access for initial setup
+- **Usage**: Only needed for the main project deployment
+- **Security**: High-privilege user for system administration
+
+#### 2. Container Deployment User (`docker_deployment`)
+
+- **Purpose**: Docker operations and application deployment
+- **Permissions**: Docker management, network operations, limited system access
+- **Usage**: Used by all projects for their daily operations
+- **Security**: Limited permissions following principle of least privilege
+
+### What Other Projects Can Do
+
+Other projects **only need the `docker_deployment` user** and can perform all necessary operations:
+
+#### ✅ **Available Operations**
+
+```bash
+# Docker operations (no sudo needed)
+docker ps
+docker-compose up -d
+docker network create my-network
+docker network ls
+
+# System management (with sudo)
+sudo systemctl status docker
+sudo ufw status
+sudo ufw allow from 172.25.0.0/16
+
+# Network management
+docker network inspect my-network
+docker network connect my-network container-name
+```
+
+#### ❌ **Restricted Operations**
+
+- System package installation
+- User account modification
+- System configuration changes
+- Ubuntu updates
+
+### Enhanced Permissions for Container Deployment User
+
+The `docker_deployment` user has been configured with enhanced permissions:
+
+#### **Docker Group Membership**
+
+- Direct access to Docker daemon
+- No sudo required for Docker commands
+- Full Docker management capabilities
+
+#### **Enhanced Sudo Permissions**
+
+```bash
+# Docker management
+sudo docker system prune
+sudo systemctl restart docker
+
+# Firewall management
+sudo ufw allow from 172.25.0.0/16
+sudo ufw status
+
+# System monitoring
+sudo systemctl status docker
+sudo systemctl status ufw
+```
+
+#### **Network Management**
+
+- Create and manage Docker networks
+- Configure firewall rules for new networks
+- Monitor network connectivity
+
+### Configuration for Other Projects
+
+#### **Minimal Required Configuration**
+
+```yaml
+# Server information
+vps_server_ip: "your-server-ip"
+containers_deployment_user: "docker_deployment"
+containers_deployment_user_ssh_key: "~/.ssh/your-deployment-key"
+
+# SSH configuration
+ansible_ssh_common_args: "-o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
+ansible_python_interpreter: "/usr/bin/python3.10"
+
+# Optional: Your project's network ranges
+configure_firewall_docker_networks:
+  - 172.25.0.0/16  # Your project networks
+  - 172.26.0.0/16  # Additional networks if needed
+```
+
+#### **What You DON'T Need**
+
+- ❌ `initial_deployment_user` details
+- ❌ `initial_deployment_ssh_key`
+- ❌ System-level deployment permissions
+- ❌ Ubuntu update permissions
+
+### Security Benefits
+
+#### **Principle of Least Privilege**
+
+- Limited system access
+- Focused on Docker operations only
+- Reduced attack surface
+- Isolated permissions
+
+#### **Multi-Project Isolation**
+
+- Each project uses same user but different networks
+- Network isolation prevents conflicts
+- Firewall rules isolate traffic
+- No interference between projects
+
 ## Usage Instructions
 
 ### For Other Projects
@@ -105,16 +230,9 @@ sudo ufw status | grep "172\."
 # Remove specific network
 docker network rm network-name
 
-# Remove firewall rule
-sudo ufw delete allow from 172.25.0.0/16
+# Remove unused networks
+docker network prune
 ```
-
-## Best Practices
-
-1. **Coordinate ranges** - Check with other projects before using a range
-2. **Document usage** - Update this document when using a range
-3. **Clean up** - Remove networks and firewall rules when no longer needed
-4. **Test connectivity** - Verify containers can communicate after setup
 
 ## Troubleshooting
 
@@ -133,3 +251,9 @@ sudo ufw delete allow from 172.25.0.0/16
 - Check network assignment: `docker inspect container-name`
 - Verify firewall rules: `sudo ufw status verbose`
 - Test connectivity: `docker exec container-name ping 8.8.8.8`
+
+### Permission Issues
+
+- Verify user is in docker group: `groups docker_deployment`
+- Check sudo permissions: `sudo -l`
+- Test Docker access: `docker ps`

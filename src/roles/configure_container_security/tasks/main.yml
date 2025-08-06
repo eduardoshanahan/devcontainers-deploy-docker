@@ -73,12 +73,11 @@
     user: root
   become: true
 
-- name: Configure Docker content trust
+- name: Configure Docker content trust (environment variable)
   ansible.builtin.lineinfile:
-    path: /etc/docker/daemon.json
-    regexp: '"content-trust"'
-    line: '  "content-trust": true,'
-    insertafter: '"experimental": false,'
+    path: /etc/environment
+    line: "DOCKER_CONTENT_TRUST=1"
+    state: present
   become: true
   when: configure_container_security_enable_content_trust | default(true)
 
