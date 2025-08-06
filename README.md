@@ -9,13 +9,15 @@
 
 I needed a way to fire up a fresh VPS with Ubuntu, update it and deploy Docker to later run services in containers. I also wanted to be able to update an existing server. And I want to be able to work inside a devcontainer. And I like Ansible a lot more than I like Bash.
 
+This is also an experiment on working with an LLM as a full time tool. I am currently with Cursor, and did all the changes in the last couple of weeks using it all the time. I am very happy with the results.
+
 ## Purpose
 
-Automate server preparation: Update Ubuntu and install Docker on remote servers using Ansible playbooks.
-Enable containerized deployments: Set up servers to be ready for containerized applications, reducing manual configuration and potential errors.
-Leverage Devcontainers: Use Visual Studio Code Devcontainers for a consistent development and automation environment.
-Secure deployments: Implement host key verification and secure SSH configurations for production deployments.
-Network security: Configure secure Docker networks with specific IP ranges and network segmentation.
+- Automate server preparation: Update Ubuntu and install Docker on remote servers using Ansible playbooks.
+- Enable containerized deployments: Set up servers to be ready for containerized applications, reducing manual configuration and potential errors.
+- Leverage Devcontainers: Use Visual Studio Code Devcontainers for a consistent development and automation environment.
+- Secure deployments: Implement host key verification and secure SSH configurations for production deployments.
+- Network security: Configure secure Docker networks with specific IP ranges and network segmentation.
 
 ## **PROJECT STATUS: PRODUCTION READY**
 
