@@ -39,21 +39,21 @@ configure_firewall_logging_level: "medium"
 # Docker Configuration
 deploy_docker_network_configuration:
   default_networks:
-    - name: "web-network"
+    - name: "test-to-delete-web-network"
       subnet: "172.20.0.0/16"
       driver: "bridge"
-      description: "Network for web applications and frontend services"
-    - name: "db-network"
+      description: "TEST NETWORK - Web applications and frontend services (DELETE AFTER TESTING)"
+    - name: "test-db-network"
       subnet: "172.21.0.0/16"
       driver: "bridge"
-      description: "Network for databases and backend services"
-    - name: "monitoring-network"
+      description: "TEST NETWORK - Databases and backend services (DELETE AFTER TESTING)"
+    - name: "test-to-delete-monitoring-network"
       subnet: "172.22.0.0/16"
       driver: "bridge"
-      description: "Network for monitoring and logging services"
+      description: "TEST NETWORK - Monitoring and logging services (DELETE AFTER TESTING)"
   
   network_isolation: true
-  default_container_network: "web-network"
+  default_container_network: "test-to-delete-web-network"
   
   network_security:
     enable_bridge_netfilter: true
@@ -62,29 +62,29 @@ deploy_docker_network_configuration:
 
 # Docker Network Configuration (Environment-specific)
 configure_docker_networks_default_networks:
-  - name: "web-network"
+  - name: "test-to-delete-web-network"
     subnet: "172.20.0.0/16"
     driver: "bridge"
-    description: "Network for web applications and frontend services"
-  - name: "db-network"
+    description: "TEST NETWORK - Web applications and frontend services (DELETE AFTER TESTING)"
+  - name: "test-db-network"
     subnet: "172.21.0.0/16"
     driver: "bridge"
-    description: "Network for databases and backend services"
-  - name: "monitoring-network"
+    description: "TEST NETWORK - Databases and backend services (DELETE AFTER TESTING)"
+  - name: "test-to-delete-monitoring-network"
     subnet: "172.22.0.0/16"
     driver: "bridge"
-    description: "Network for monitoring and logging services"
+    description: "TEST NETWORK - Monitoring and logging services (DELETE AFTER TESTING)"
 
 # Additional custom networks (optional)
 configure_docker_networks_custom_networks:
-  - name: "api-network"
+  - name: "test-api-network"
     subnet: "172.23.0.0/16"
     driver: "bridge"
-    description: "API services network"
-  - name: "cache-network"
+    description: "TEST NETWORK - API services network (DELETE AFTER TESTING)"
+  - name: "test-cache-network"
     subnet: "172.24.0.0/16"
     driver: "bridge"
-    description: "Cache and session storage network"
+    description: "TEST NETWORK - Cache and session storage network (DELETE AFTER TESTING)"
 
 # Network Policies
 deploy_docker_network_policies:
@@ -111,3 +111,18 @@ deploy_docker_network_policies:
 configure_monitoring_enabled: true
 configure_monitoring_alert_email: "your-email@example.com"
 configure_monitoring_alert_webhook: ""
+
+# Remote Logging Configuration (Environment-specific)
+configure_remote_logging_enabled: true
+configure_remote_logging_server: "your-logging-server-ip"
+configure_remote_logging_protocol: "udp"
+configure_remote_logging_port: 514
+configure_remote_logging_forward_all_logs: true
+configure_remote_logging_forward_security_logs: true
+configure_remote_logging_forward_system_logs: true
+configure_remote_logging_forward_docker_logs: true
+
+# Enhanced Docker User Configuration
+docker_user_enhanced_permissions: true
+docker_user_network_management: true
+docker_user_system_monitoring: true

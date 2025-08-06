@@ -5,7 +5,7 @@
     state: present
     shell: /bin/bash
     create_home: true
-    groups: sudo,docker
+    groups: docker # Removed sudo group, kept only docker
     append: true
 
 - name: Ensure .ssh directory exists for the deployment user
@@ -44,7 +44,7 @@
     group: "{{ containers_deployment_user }}"
   become: true
 
-- name: Configure restricted sudo for the deployment user
+- name: Configure enhanced restricted sudo for the deployment user
   ansible.builtin.template:
     src: sudoers.j2
     dest: "/etc/sudoers.d/{{ containers_deployment_user }}"

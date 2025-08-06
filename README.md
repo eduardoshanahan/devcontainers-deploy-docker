@@ -214,6 +214,23 @@ This project implements secure Docker network configuration:
 
 For detailed information about security configuration, host key management, network security, and troubleshooting, see `src/SECURITY.md`.
 
+## Docker Network Management
+
+For information about Docker network ranges and firewall management, see:
+
+- [Docker Networks Documentation](documentation/DOCKER_NETWORKS.md)
+- [Network Range Checker Script](src/scripts/check_network_ranges.sh)
+
+### Quick Commands
+
+```bash
+# Check available network ranges
+./src/scripts/check_network_ranges.sh
+
+# Show network information via Ansible
+ansible-playbook playbooks/show_network_info.yml
+```
+
 ---
 
 For more details on the playbooks, roles, or project structure, explore the respective directories in the repository.

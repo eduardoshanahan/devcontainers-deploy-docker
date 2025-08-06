@@ -23,11 +23,11 @@
     name: "{{ item }}"
     state: absent
   loop:
-    - "web-network"
-    - "db-network"
-    - "monitoring-network"
-    - "api-network"
-    - "cache-network"
+    - "test-to-delete-web-network"
+    - "test-db-network"
+    - "test-to-delete-monitoring-network"
+    - "test-api-network"
+    - "test-cache-network"
   become: true
   failed_when: false
 
@@ -99,7 +99,7 @@
 
 # Verify network connectivity (only in test mode)
 - name: Test network connectivity
-  ansible.builtin.command: docker run --rm --network web-network alpine ping -c 1 8.8.8.8
+  ansible.builtin.command: docker run --rm --network test-to-delete-web-network alpine ping -c 1 8.8.8.8
   register: network_test
   changed_when: false
   failed_when: false

@@ -2,11 +2,10 @@
 - name: Restart docker
   ansible.builtin.service:
     name: docker
-    state: reloaded
+    state: restarted
   become: true
 
-- name: Reload Docker daemon
-  ansible.builtin.service:
-    name: docker
-    state: reloaded
+- name: Wait for docker
+  ansible.builtin.wait_for:
+    timeout: 30
   become: true

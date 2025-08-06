@@ -69,7 +69,7 @@ test_docker_networks() {
     echo -e "\n${YELLOW}Testing Docker Networks...${NC}"
     
     # Check if required networks exist
-    for network in web-network db-network monitoring-network; do
+    for network in test-to-delete-web-network test-db-network test-to-delete-monitoring-network; do
         if docker network ls | grep -q "$network"; then
             echo -e "${GREEN}✓ Network $network exists${NC}"
         else
@@ -101,8 +101,8 @@ test_network_isolation() {
     
     # Create test containers
     echo "Creating test containers..."
-    docker run -d --name test-web --network web-network alpine tail -f /dev/null
-    docker run -d --name test-db --network db-network alpine tail -f /dev/null
+    docker run -d --name test-web --network test-to-delete-web-network alpine tail -f /dev/null
+    docker run -d --name test-db --network test-db-network alpine tail -f /dev/null
     
     # Test cross-network communication (should fail)
     if docker exec test-web ping -c 1 test-db 2>/dev/null; then

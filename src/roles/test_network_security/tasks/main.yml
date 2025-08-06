@@ -101,9 +101,9 @@
 - name: Test 2.3 - Validate required networks exist
   ansible.builtin.assert:
     that:
-      - docker_networks.stdout is search("web-network")
-      - docker_networks.stdout is search("db-network")
-      - docker_networks.stdout is search("monitoring-network")
+      - docker_networks.stdout is search("test-to-delete-web-network")
+      - docker_networks.stdout is search("test-db-network")
+      - docker_networks.stdout is search("test-to-delete-monitoring-network")
     fail_msg: "Required Docker networks are not created"
     success_msg: "✓ All required Docker networks are created"
 

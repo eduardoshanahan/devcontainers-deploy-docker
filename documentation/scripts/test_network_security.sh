@@ -1,1 +1,0 @@
-../../scripts/test_network_security.sh

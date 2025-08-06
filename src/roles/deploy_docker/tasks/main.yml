@@ -59,6 +59,7 @@
   ansible.builtin.command: docker system prune -f
   become: true
   failed_when: false
+  changed_when: false
 
 - name: Start Docker with default configuration
   ansible.builtin.service:
@@ -113,6 +114,17 @@
     name: "{{ containers_deployment_user }}"
     groups: docker
     append: true
+  become: true
+
+- name: Restart Docker daemon to apply group changes
+  ansible.builtin.service:
+    name: docker
+    state: restarted
+  become: true
+
+- name: Wait for Docker to be ready after restart
+  ansible.builtin.wait_for:
+    timeout: 30
   become: true
 
 - name: Configure Docker network security settings
