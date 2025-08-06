@@ -1,1 +1,4 @@
-{{ containers_deployment_user }} ALL=(ALL) NOPASSWD: /usr/bin/mkdir -p /opt/*, /usr/bin/touch /opt/*, /usr/bin/chown -R {{ containers_deployment_user }}:{{ containers_deployment_user }} /opt/*, /usr/bin/systemctl reload docker, /usr/bin/docker, /usr/bin/docker-compose, /usr/bin/docker compose, /usr/bin/docker ps, /usr/bin/docker ps -a, /usr/bin/docker logs * --tail *
+{{ containers_deployment_user }} ALL=(ALL) NOPASSWD: \
+    /usr/bin/systemctl reload docker, \
+    /usr/bin/systemctl status docker, \
+    /usr/bin/systemctl is-active docker

@@ -10,6 +10,13 @@
     msg: "Docker is not running. Please install and start Docker first."
   when: docker_info.rc != 0
 
+# Get list of all networks (for removal operations)
+- name: Get existing Docker networks
+  ansible.builtin.command: docker network ls --format "{{ '{{' }}.Name{{ '}}' }}"
+  register: existing_networks
+  changed_when: false
+  become: true
+
 # Remove project-specific networks
 - name: Remove project Docker networks
   community.docker.docker_network:
@@ -34,12 +41,9 @@
   failed_when: false
   when: configure_docker_networks_remove_all | default(false)
 
-# Get list of all networks (only if removing all)
-- name: Get existing Docker networks
-  ansible.builtin.command: docker network ls --format "{{ '{{' }}.Name{{ '}}' }}"
-  register: existing_networks
-  changed_when: false
-  become: true
+- name: Debug network removal
+  ansible.builtin.debug:
+    msg: "Removed {{ existing_networks.stdout_lines | select('match', '^(?!bridge|host|none).*$') | list | length }} custom networks"
   when: configure_docker_networks_remove_all | default(false)
 
 # Prune unused networks
