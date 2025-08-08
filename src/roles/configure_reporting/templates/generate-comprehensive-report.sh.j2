@@ -1,0 +1,191 @@
+#!/bin/bash
+
+# Comprehensive System Report Generator
+# Generates detailed system reports with multiple data sources
+
+LOG_FILE="/var/log/reporting/report-generation.log"
+REPORT_DIR="{{ configure_reporting_storage_dir }}"
+DATE=$(date +%Y%m%d_%H%M%S)
+REPORT_TYPE="$1"
+REPORT_FILE="$REPORT_DIR/${REPORT_TYPE}_report_$DATE.html"
+
+# Email configuration
+EMAIL="{{ configure_reporting_email }}"
+GMAIL_ENABLED="{{ configure_reporting_gmail_enabled | lower }}"
+GMAIL_USER="{{ configure_reporting_gmail_user }}"
+GMAIL_PASSWORD="{{ configure_reporting_gmail_password }}"
+GMAIL_SMTP_SERVER="{{ configure_reporting_gmail_smtp_server }}"
+GMAIL_SMTP_PORT="{{ configure_reporting_gmail_smtp_port }}"
+
+# Function to log messages
+log_message() {
+    local level="$1"
+    local message="$2"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] [$level] $message" | tee -a "$LOG_FILE"
+}
+
+# Function to get system information
+get_system_info() {
+    cat << EOF
+    <h2>System Information</h2>
+    <table class="info-table">
+        <tr><td>Hostname:</td><td>$(hostname)</td></tr>
+        <tr><td>OS:</td><td>$(lsb_release -d | cut -f2)</td></tr>
+        <tr><td>Kernel:</td><td>$(uname -r)</td></tr>
+        <tr><td>Uptime:</td><td>$(uptime -p)</td></tr>
+        <tr><td>Load Average:</td><td>$(uptime | awk -F'load average:' '{print $2}')</td></tr>
+    </table>
+EOF
+}
+
+# Function to get resource usage
+get_resource_usage() {
+    local disk_usage=$(df / | awk 'NR==2 {print $5}')
+    local memory_usage=$(free | awk 'NR==2{printf "%.1f", $3*100/$2}')
+    local cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | sed 's/%us,//')
+    
+    cat << EOF
+    <h2>Resource Usage</h2>
+    <table class="info-table">
+        <tr><td>Disk Usage:</td><td>$disk_usage</td></tr>
+        <tr><td>Memory Usage:</td><td>${memory_usage}%</td></tr>
+        <tr><td>CPU Usage:</td><td>${cpu_usage}%</td></tr>
+    </table>
+EOF
+}
+
+# Function to get Docker information
+get_docker_info() {
+    local running_containers=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" 2>/dev/null | wc -l)
+    local total_containers=$(docker ps -a --format "{{ '{{' }}.Names{{ '}}' }}" 2>/dev/null | wc -l)
+    local docker_images=$(docker images --format "{{ '{{' }}.Repository{{ '}}' }}" 2>/dev/null | wc -l)
+    
+    cat << EOF
+    <h2>Docker Status</h2>
+    <table class="info-table">
+        <tr><td>Running Containers:</td><td>$running_containers</td></tr>
+        <tr><td>Total Containers:</td><td>$total_containers</td></tr>
+        <tr><td>Docker Images:</td><td>$docker_images</td></tr>
+    </table>
+EOF
+}
+
+# Function to get security information
+get_security_info() {
+    local failed_logins=$(grep "Failed password" /var/log/auth.log 2>/dev/null | wc -l)
+    local banned_ips=$(grep "Ban" /var/log/fail2ban.log 2>/dev/null | wc -l)
+    local security_alerts=$(grep -c "ALERT\|WARNING\|ERROR" /var/log/health-monitor.log 2>/dev/null || echo "0")
+    
+    cat << EOF
+    <h2>Security Status</h2>
+    <table class="info-table">
+        <tr><td>Failed Login Attempts:</td><td>$failed_logins</td></tr>
+        <tr><td>Banned IP Addresses:</td><td>$banned_ips</td></tr>
+        <tr><td>Security Alerts:</td><td>$security_alerts</td></tr>
+    </table>
+EOF
+}
+
+# Function to get recent alerts
+get_recent_alerts() {
+    cat << EOF
+    <h2>Recent Alerts (Last 24 Hours)</h2>
+    <div class="alerts-section">
+EOF
+    
+    # Get alerts from various log files
+    if [ -f "/var/log/health-monitor.log" ]; then
+        echo "<h3>Health Monitor Alerts:</h3>"
+        echo "<pre>"
+        tail -20 /var/log/health-monitor.log | grep "ALERT\|WARNING\|ERROR" || echo "No recent alerts"
+        echo "</pre>"
+    fi
+    
+    if [ -f "/var/log/container-security.log" ]; then
+        echo "<h3>Container Security Alerts:</h3>"
+        echo "<pre>"
+        tail -20 /var/log/container-security.log | grep "ALERT\|WARNING\|ERROR" || echo "No recent alerts"
+        echo "</pre>"
+    fi
+    
+    cat << EOF
+    </div>
+EOF
+}
+
+# Function to generate HTML report
+generate_html_report() {
+    local report_title="$1"
+    local report_period="$2"
+    
+    cat > "$REPORT_FILE" << EOF
+<!DOCTYPE html>
+<html>
+<head>
+    <title>$report_title</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background-color: #f0f0f0; padding: 20px; border-radius: 5px; }
+        .info-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        .info-table td { padding: 8px; border: 1px solid #ddd; }
+        .info-table td:first-child { font-weight: bold; background-color: #f9f9f9; }
+        .alerts-section { margin: 20px 0; }
+        .alerts-section pre { background-color: #f5f5f5; padding: 10px; border-radius: 3px; }
+        .status-good { color: green; }
+        .status-warning { color: orange; }
+        .status-critical { color: red; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>$report_title</h1>
+        <p>Generated on: $(date)</p>
+        <p>Report Period: $report_period</p>
+        <p>Server: $(hostname)</p>
+    </div>
+    
+    $(get_system_info)
+    $(get_resource_usage)
+    $(get_docker_info)
+    $(get_security_info)
+    $(get_recent_alerts)
+    
+    <div class="footer">
+        <p>This report was automatically generated by the system monitoring service.</p>
+    </div>
+</body>
+</html>
+EOF
+}
+
+# Main execution
+log_message "INFO" "Starting $REPORT_TYPE report generation"
+
+case "$REPORT_TYPE" in
+    "daily")
+        generate_html_report "Daily System Report" "Last 24 hours"
+        ;;
+    "weekly")
+        generate_html_report "Weekly System Report" "Last 7 days"
+        ;;
+    "monthly")
+        generate_html_report "Monthly System Report" "Last 30 days"
+        ;;
+    *)
+        log_message "ERROR" "Invalid report type: $REPORT_TYPE"
+        exit 1
+        ;;
+esac
+
+log_message "INFO" "Report generated: $REPORT_FILE"
+
+# Email the report if email is configured
+if [ -n "$EMAIL" ]; then
+    log_message "INFO" "Sending report via email to $EMAIL"
+    /opt/reports/email-report.sh "$REPORT_TYPE" "$REPORT_FILE"
+else
+    log_message "WARN" "No email configured for reports"
+fi
+
+log_message "INFO" "$REPORT_TYPE report generation completed"

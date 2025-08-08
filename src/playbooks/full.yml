@@ -18,6 +18,7 @@
     - configure_docker_networks
     - configure_container_security
     - configure_log_download
+    - configure_reporting
     - test_network_security
 
 - name: Send deployment completion notification
@@ -44,6 +45,6 @@
       ansible.builtin.shell: |
         /opt/security-updates/security-update-notify.sh \
           "Server Deployment Complete" \
-          "Full system deployment completed successfully on {{ inventory_hostname }} at {{ deployment_time.stdout }}."
+          "Full system deployment completed successfully on {{ inventory_hostname }} at {{ deployment_time.stdout }}. Reporting system is now active."
       changed_when: false
       when: configure_security_updates_email is defined and configure_security_updates_email != ""

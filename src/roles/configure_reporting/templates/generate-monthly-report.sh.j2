@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Monthly Report Generator
+# Generates and emails monthly system reports
+
+LOG_FILE="/var/log/reporting/monthly-report.log"
+DATE=$(date +%Y%m%d)
+
+# Log function
+log_message() {
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] $1" | tee -a "$LOG_FILE"
+}
+
+log_message "Starting monthly report generation"
+
+# Generate comprehensive monthly report
+/opt/reports/generate-comprehensive-report.sh monthly
+
+# Include monthly trend analysis
+MONTHLY_TRENDS_FILE="/opt/reports/monthly_trends_$DATE.txt"
+
+cat > "$MONTHLY_TRENDS_FILE" << EOF
+Monthly System Trends
+====================
+Report Date: $(date)
+Server: $(hostname)
+
+Monthly Statistics:
+- System Uptime: $(uptime -p)
+- Total Disk Usage: $(df / | awk 'NR==2 {print $5}')
+- Average Memory Usage: $(free | awk 'NR==2{printf "%.1f", $3*100/$2}')%
+
+Security Trends (Last 30 Days):
+- Failed Login Attempts: $(grep "Failed password" /var/log/auth.log 2>/dev/null | wc -l)
+- Banned IP Addresses: $(grep "Ban" /var/log/fail2ban.log 2>/dev/null | wc -l)
+- Security Alerts: $(grep -c "ALERT\|WARNING\|ERROR" /var/log/health-monitor.log 2>/dev/null || echo "0")
+
+Docker Trends:
+- Running Containers: $(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" 2>/dev/null | wc -l)
+- Total Containers: $(docker ps -a --format "{{ '{{' }}.Names{{ '}}' }}" 2>/dev/null | wc -l)
+- Docker Images: $(docker images --format "{{ '{{' }}.Repository{{ '}}' }}" 2>/dev/null | wc -l)
+
+Resource Usage Trends:
+- Peak CPU Usage: $(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | sed 's/%us,//')%
+- Peak Memory Usage: $(free | awk 'NR==2{printf "%.1f", $3*100/$2}')%
+- Disk Usage Trend: $(df / | awk 'NR==2 {print $5}')
+EOF
+
+log_message "Monthly report generation completed"

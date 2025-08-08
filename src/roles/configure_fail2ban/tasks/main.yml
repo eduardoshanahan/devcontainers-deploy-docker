@@ -22,7 +22,7 @@
     mode: "0644"
     backup: true
   become: true
-  notify: restart fail2ban
+  notify: Restart fail2ban
 
 - name: Configure SSH jail
   ansible.builtin.template:
@@ -33,7 +33,7 @@
     mode: "0644"
     backup: true
   become: true
-  notify: restart fail2ban
+  notify: Restart fail2ban
 
 - name: Check fail2ban service status
   ansible.builtin.service:

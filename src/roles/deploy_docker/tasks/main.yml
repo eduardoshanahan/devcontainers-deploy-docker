@@ -21,36 +21,112 @@
     group: root
   become: true
 
-- name: Add Docker's official GPG key (modern method)
-  ansible.builtin.get_url:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    dest: /etc/apt/keyrings/docker.gpg
-    mode: "0644"
+- name: Check for existing Docker keys
+  ansible.builtin.command: apt-key list | grep -i docker
+  register: existing_docker_keys
+  changed_when: false
+  failed_when: false
   become: true
 
-- name: Remove old Docker repository files
+- name: Remove existing Docker keys (generic approach)
+  ansible.builtin.command: apt-key del {{ item }}
+  loop: "{{ existing_docker_keys.stdout_lines | select('match', '^pub') | map('regex_replace', '^pub.*([A-F0-9]{16}).*', '\\1') | list }}"
+  when: existing_docker_keys.stdout_lines | length > 0
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Remove ALL old Docker GPG keys and repositories
   ansible.builtin.file:
     path: "{{ item }}"
     state: absent
   loop:
+    - /etc/apt/keyrings/docker.gpg
+    - /etc/apt/trusted.gpg.d/docker.gpg
     - /etc/apt/sources.list.d/docker.list
     - /etc/apt/sources.list.d/download_docker_com_linux_ubuntu.list
+    - /etc/apt/sources.list.d/docker.list.save
   become: true
 
-- name: Add Docker repository (modern method)
-  ansible.builtin.apt_repository:
-    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_lsb.codename }} stable"
-    state: present
-    filename: docker
-    update_cache: true
+- name: Clear ALL apt cache and lists
+  ansible.builtin.command: rm -rf /var/lib/apt/lists/*
   become: true
+  changed_when: false
 
-- name: Install Docker Engine and containerd
+- name: Clear apt cache completely
   ansible.builtin.apt:
-    name: "{{ deploy_docker_packages }}"
-    state: present
+    update_cache: true
+    cache_valid_time: 0
+  become: true
+
+- name: Download Docker GPG key with retry
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.gpg
+    mode: "0644"
+    timeout: 30
+  become: true
+  retries: 3
+  delay: 5
+
+- name: Verify Docker GPG key was downloaded
+  ansible.builtin.stat:
+    path: /etc/apt/keyrings/docker.gpg
+  register: docker_gpg_key
+
+- name: Fail if Docker GPG key is missing
+  ansible.builtin.fail:
+    msg: "Docker GPG key download failed"
+  when: not docker_gpg_key.stat.exists
+
+- name: Set correct permissions for Docker GPG key
+  ansible.builtin.file:
+    path: /etc/apt/keyrings/docker.gpg
+    mode: "0644"
+    owner: root
+    group: root
+  become: true
+
+- name: Update apt cache
+  ansible.builtin.apt:
     update_cache: true
   become: true
+
+# Try direct installation first (bypass repository issues)
+- name: Install Docker Engine directly
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+  register: docker_direct_install
+  failed_when: false
+  become: true
+
+- name: Install Docker using alternative method if direct install failed
+  when: docker_direct_install is failed
+  block:
+    - name: Add Docker repository manually
+      ansible.builtin.shell: |
+        set -o pipefail
+        echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu jammy stable" | sudo tee /etc/apt/sources.list.d/docker.list
+      become: true
+
+    - name: Update apt cache after manual repository addition
+      ansible.builtin.apt:
+        update_cache: true
+      become: true
+
+    - name: Install Docker Engine and containerd
+      ansible.builtin.apt:
+        name: "{{ deploy_docker_packages }}"
+        state: present
+        update_cache: true
+      become: true
 
 - name: Install Docker Python library for Ansible
   ansible.builtin.pip:

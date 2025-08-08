@@ -73,8 +73,8 @@
     },
     "runArgs": [
         "--hostname=${localEnv:CONTAINER_HOSTNAME:devcontainers-ansible}",
-        "--memory=${localEnv:CONTAINER_MEMORY:4g}",
-        "--cpus=${localEnv:CONTAINER_CPUS:2}",
-        "--shm-size=${localEnv:CONTAINER_SHM_SIZE:2g}"
+        "--memory=${localEnv:CONTAINER_MEMORY:6g}",
+        "--cpus=${localEnv:CONTAINER_CPUS:4}",
+        "--shm-size=${localEnv:CONTAINER_SHM_SIZE:4g}"
     ]
 }

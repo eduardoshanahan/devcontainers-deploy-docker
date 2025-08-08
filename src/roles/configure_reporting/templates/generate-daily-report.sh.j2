@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Daily Report Generator
+# Generates and emails daily system reports
+
+LOG_FILE="/var/log/reporting/daily-report.log"
+DATE=$(date +%Y%m%d)
+
+# Log function
+log_message() {
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] $1" | tee -a "$LOG_FILE"
+}
+
+log_message "Starting daily report generation"
+
+# Generate comprehensive daily report
+/opt/reports/generate-comprehensive-report.sh daily
+
+# Check for critical alerts and send immediate notification if needed
+CRITICAL_ALERTS=$(grep -c "CRITICAL" /var/log/health-monitor.log 2>/dev/null || echo "0")
+if [ "$CRITICAL_ALERTS" -gt "{{ configure_reporting_critical_threshold | default(3) }}" ]; then
+    log_message "WARNING: $CRITICAL_ALERTS critical alerts detected"
+    /opt/security-updates/security-update-notify.sh \
+        "Daily Report - Critical Alerts Detected" \
+        "System has $CRITICAL_ALERTS critical alerts. Please check the daily report for details."
+fi
+
+log_message "Daily report generation completed"

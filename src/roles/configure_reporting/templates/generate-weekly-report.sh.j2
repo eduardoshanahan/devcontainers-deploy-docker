@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Weekly Report Generator
+# Generates and emails weekly system reports
+
+LOG_FILE="/var/log/reporting/weekly-report.log"
+DATE=$(date +%Y%m%d)
+
+# Log function
+log_message() {
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] $1" | tee -a "$LOG_FILE"
+}
+
+log_message "Starting weekly report generation"
+
+# Generate comprehensive weekly report
+/opt/reports/generate-comprehensive-report.sh weekly
+
+# Include weekly summary statistics
+WEEKLY_STATS_FILE="/opt/reports/weekly_stats_$DATE.txt"
+
+cat > "$WEEKLY_STATS_FILE" << EOF
+Weekly System Statistics
+=======================
+Report Date: $(date)
+Server: $(hostname)
+
+System Uptime: $(uptime -p)
+Total Disk Usage: $(df / | awk 'NR==2 {print $5}')
+Average Memory Usage: $(free | awk 'NR==2{printf "%.1f", $3*100/$2}')%
+
+Security Events:
+- Failed Login Attempts: $(grep "Failed password" /var/log/auth.log 2>/dev/null | wc -l)
+- Banned IP Addresses: $(grep "Ban" /var/log/fail2ban.log 2>/dev/null | wc -l)
+- Security Alerts: $(grep -c "ALERT\|WARNING\|ERROR" /var/log/health-monitor.log 2>/dev/null || echo "0")
+
+Docker Status:
+- Running Containers: $(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" 2>/dev/null | wc -l)
+- Total Containers: $(docker ps -a --format "{{ '{{' }}.Names{{ '}}' }}" 2>/dev/null | wc -l)
+- Docker Images: $(docker images --format "{{ '{{' }}.Repository{{ '}}' }}" 2>/dev/null | wc -l)
+EOF
+
+log_message "Weekly report generation completed"

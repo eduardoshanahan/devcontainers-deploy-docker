@@ -1,0 +1,132 @@
+#!/bin/bash
+
+# Report Email Script
+# Sends reports via email using existing notification infrastructure
+
+REPORT_TYPE="$1"
+REPORT_FILE="$2"
+EMAIL="{{ configure_reporting_email }}"
+GMAIL_ENABLED="{{ configure_reporting_gmail_enabled | lower }}"
+GMAIL_USER="{{ configure_reporting_gmail_user }}"
+GMAIL_PASSWORD="{{ configure_reporting_gmail_password }}"
+GMAIL_SMTP_SERVER="{{ configure_reporting_gmail_smtp_server }}"
+GMAIL_SMTP_PORT="{{ configure_reporting_gmail_smtp_port }}"
+
+LOG_FILE="/var/log/reporting/email-reports.log"
+
+# Function to log messages
+log_message() {
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] $1" | tee -a "$LOG_FILE"
+}
+
+# Function to send Gmail notification
+send_gmail_report() {
+    local subject="$1"
+    local body="$2"
+    local attachment="$3"
+    
+    if [ "$GMAIL_ENABLED" = "true" ] && [ -n "$GMAIL_USER" ] && [ -n "$GMAIL_PASSWORD" ]; then
+        log_message "Sending Gmail report: $subject"
+        
+        # Create email content
+        local email_content="Subject: $subject
+From: $GMAIL_USER
+To: $EMAIL
+Content-Type: text/html; charset=UTF-8
+
+$body
+
+---
+Sent from $(hostname) at $(date)
+"
+        
+        # Send via curl with Gmail SMTP
+        if echo "$email_content" | curl --silent --fail \
+            --mail-from "$GMAIL_USER" \
+            --mail-rcpt "$EMAIL" \
+            --upload-file - \
+            --user "$GMAIL_USER:$GMAIL_PASSWORD" \
+            --ssl-reqd \
+            "smtps://$GMAIL_SMTP_SERVER:$GMAIL_SMTP_PORT" 2>/dev/null; then
+            log_message "Gmail report sent successfully"
+            return 0
+        else
+            log_message "Failed to send Gmail report"
+            return 1
+        fi
+    else
+        log_message "Gmail notification not configured"
+        return 1
+    fi
+}
+
+# Function to send system mail
+send_system_mail() {
+    local subject="$1"
+    local body="$2"
+    local attachment="$3"
+    
+    if [ -n "$EMAIL" ]; then
+        log_message "Sending system mail report: $subject"
+        
+        if [ -n "$attachment" ] && [ -f "$attachment" ]; then
+            # Send with attachment
+            echo "$body" | mail -s "$subject" -a "$attachment" "$EMAIL"
+        else
+            # Send without attachment
+            echo "$body" | mail -s "$subject" "$EMAIL"
+        fi
+        
+        if [ $? -eq 0 ]; then
+            log_message "System mail report sent successfully"
+            return 0
+        else
+            log_message "Failed to send system mail report"
+            return 1
+        fi
+    else
+        log_message "Email address not configured"
+        return 1
+    fi
+}
+
+# Main execution
+if [ $# -lt 2 ]; then
+    log_message "ERROR: Usage: $0 <report_type> <report_file>"
+    exit 1
+fi
+
+REPORT_TYPE="$1"
+REPORT_FILE="$2"
+
+if [ ! -f "$REPORT_FILE" ]; then
+    log_message "ERROR: Report file not found: $REPORT_FILE"
+    exit 1
+fi
+
+# Generate email subject and body
+case "$REPORT_TYPE" in
+    "daily")
+        SUBJECT="Daily System Report - $(hostname) - $(date +%Y-%m-%d)"
+        ;;
+    "weekly")
+        SUBJECT="Weekly System Report - $(hostname) - $(date +%Y-%m-%d)"
+        ;;
+    "monthly")
+        SUBJECT="Monthly System Report - $(hostname) - $(date +%Y-%m-%d)"
+        ;;
+    *)
+        SUBJECT="System Report - $(hostname) - $(date +%Y-%m-%d)"
+        ;;
+esac
+
+# Read report content
+REPORT_CONTENT=$(cat "$REPORT_FILE")
+
+# Try Gmail first, then fallback to system mail
+if ! send_gmail_report "$SUBJECT" "$REPORT_CONTENT" "$REPORT_FILE"; then
+    send_system_mail "$SUBJECT" "$REPORT_CONTENT" "$REPORT_FILE"
+fi
+
+log_message "Report email process completed"

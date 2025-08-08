@@ -448,7 +448,7 @@ ansible all -m shell -a "sudo fail2ban-client set sshd unbanip YOUR_IP"
 ansible all -m shell -a "sudo ufw allow from YOUR_IP"
 
 # Restart fail2ban
-ansible all -m shell -a "sudo systemctl restart fail2ban"
+ansible all -m shell -a "sudo systemctl Restart fail2ban"
 
 # Adjust fail2ban configuration
 ansible all -m shell -a "sudo nano /etc/fail2ban/jail.local"

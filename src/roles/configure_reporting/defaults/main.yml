@@ -1,0 +1,62 @@
+---
+# Reporting Configuration
+configure_reporting_enabled: true
+
+# Report Types and Scheduling
+configure_reporting_daily_enabled: true
+configure_reporting_weekly_enabled: true
+configure_reporting_monthly_enabled: true
+
+# Daily Report Configuration
+configure_reporting_daily_hour: "6"
+configure_reporting_daily_minute: "0"
+configure_reporting_daily_retention_days: 7
+
+# Weekly Report Configuration
+# Use numeric format for maximum compatibility
+# 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
+configure_reporting_weekly_day: "0" # Sunday
+configure_reporting_weekly_hour: "7"
+configure_reporting_weekly_minute: "0"
+configure_reporting_weekly_retention_days: 30
+
+# Monthly Report Configuration
+configure_reporting_monthly_day: "1" # 1st of month
+configure_reporting_monthly_hour: "8"
+configure_reporting_monthly_minute: "0"
+configure_reporting_monthly_retention_days: 90
+
+# Email Configuration (uses existing security updates email settings)
+configure_reporting_email: "{{ configure_security_updates_email | default('') }}"
+configure_reporting_gmail_enabled: "{{ configure_security_updates_gmail_enabled | default(false) }}"
+configure_reporting_gmail_user: "{{ configure_security_updates_gmail_user | default('') }}"
+configure_reporting_gmail_password: "{{ configure_security_updates_gmail_password | default('') }}"
+configure_reporting_gmail_smtp_server: "{{ configure_security_updates_gmail_smtp_server | default('smtp.gmail.com') }}"
+configure_reporting_gmail_smtp_port: "{{ configure_security_updates_gmail_smtp_port | default('465') }}"
+
+# Report Content Configuration
+configure_reporting_include_system_health: true
+configure_reporting_include_security_events: true
+configure_reporting_include_container_status: true
+configure_reporting_include_resource_usage: true
+configure_reporting_include_network_security: true
+configure_reporting_include_docker_logs: true
+configure_reporting_include_failed_logins: true
+
+# Report Format Configuration
+configure_reporting_format: "html" # html, text, json
+configure_reporting_include_charts: false # Disabled for lightweight setup
+configure_reporting_include_attachments: false # Disabled for lightweight setup
+
+# Report Storage
+configure_reporting_storage_dir: "/opt/reports"
+configure_reporting_archive_dir: "/opt/reports/archive"
+
+# Alert Thresholds for Reports
+configure_reporting_critical_threshold: 3 # Number of critical alerts to trigger immediate report
+configure_reporting_high_threshold: 10 # Number of high alerts to trigger immediate report
+
+# Performance Configuration (lightweight)
+configure_reporting_memory_limit: "256M"
+configure_reporting_timeout: 300 # 5 minutes max for report generation
+configure_reporting_max_log_size: "5M"

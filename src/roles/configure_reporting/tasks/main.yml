@@ -1,0 +1,156 @@
+---
+- name: Install reporting dependencies
+  ansible.builtin.apt:
+    name:
+      - jq
+      - curl
+      - bc
+      - mailutils
+      - zip
+      - tar
+    state: present
+    update_cache: true
+  become: true
+
+- name: Create reporting directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  loop:
+    - "{{ configure_reporting_storage_dir }}"
+    - "{{ configure_reporting_archive_dir }}"
+    - "/opt/reports/daily"
+    - "/opt/reports/weekly"
+    - "/opt/reports/monthly"
+    - "/opt/reports/templates"
+    - "/var/log/reporting"
+  become: true
+
+- name: Configure daily report generation script
+  ansible.builtin.template:
+    src: generate-daily-report.sh.j2
+    dest: /opt/reports/generate-daily-report.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Configure weekly report generation script
+  ansible.builtin.template:
+    src: generate-weekly-report.sh.j2
+    dest: /opt/reports/generate-weekly-report.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Configure monthly report generation script
+  ansible.builtin.template:
+    src: generate-monthly-report.sh.j2
+    dest: /opt/reports/generate-monthly-report.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Configure comprehensive report script
+  ansible.builtin.template:
+    src: generate-comprehensive-report.sh.j2
+    dest: /opt/reports/generate-comprehensive-report.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Configure report email script
+  ansible.builtin.template:
+    src: email-report.sh.j2
+    dest: /opt/reports/email-report.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Configure report cleanup script
+  ansible.builtin.template:
+    src: cleanup-reports.sh.j2
+    dest: /opt/reports/cleanup-reports.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Create daily report cron job
+  ansible.builtin.cron:
+    name: "Daily System Report"
+    hour: "{{ configure_reporting_daily_hour }}"
+    minute: "{{ configure_reporting_daily_minute }}"
+    job: "/opt/reports/generate-daily-report.sh"
+    user: root
+  become: true
+  when: configure_reporting_daily_enabled | default(true)
+
+- name: Create weekly report cron job (with compatibility check)
+  ansible.builtin.cron:
+    name: "Weekly System Report"
+    weekday: "{{ configure_reporting_weekly_day }}"
+    hour: "{{ configure_reporting_weekly_hour }}"
+    minute: "{{ configure_reporting_weekly_minute }}"
+    job: "/opt/reports/generate-weekly-report.sh"
+    user: root
+  become: true
+  when: configure_reporting_weekly_enabled | default(true)
+  register: weekly_cron_result
+  failed_when: false
+
+- name: Handle weekly cron compatibility issue
+  ansible.builtin.cron:
+    name: "Weekly System Report"
+    weekday: "0" # Force Sunday (0) for maximum compatibility
+    hour: "{{ configure_reporting_weekly_hour }}"
+    minute: "{{ configure_reporting_weekly_minute }}"
+    job: "/opt/reports/generate-weekly-report.sh"
+    user: root
+  become: true
+  when:
+    - configure_reporting_weekly_enabled | default(true)
+    - weekly_cron_result is failed
+  failed_when: false
+
+- name: Create monthly report cron job
+  ansible.builtin.cron:
+    name: "Monthly System Report"
+    day: "{{ configure_reporting_monthly_day }}"
+    hour: "{{ configure_reporting_monthly_hour }}"
+    minute: "{{ configure_reporting_monthly_minute }}"
+    job: "/opt/reports/generate-monthly-report.sh"
+    user: root
+  become: true
+  when: configure_reporting_monthly_enabled | default(true)
+
+- name: Create report cleanup cron job
+  ansible.builtin.cron:
+    name: "Report Cleanup"
+    hour: "2"
+    minute: "0"
+    job: "/opt/reports/cleanup-reports.sh"
+    user: root
+  become: true
+
+- name: Configure log rotation for reports
+  ansible.builtin.template:
+    src: reporting-logrotate.j2
+    dest: /etc/logrotate.d/reporting
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+
+- name: Test report generation
+  ansible.builtin.command: /opt/reports/generate-daily-report.sh
+  become: true
+  changed_when: false
+  failed_when: false

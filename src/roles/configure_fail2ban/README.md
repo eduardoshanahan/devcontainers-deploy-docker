@@ -38,4 +38,4 @@ This role configures fail2ban for SSH protection against brute force attacks.
 
 ## Handlers
 
-- `restart fail2ban` - Restarts fail2ban service when configuration changes
+- `Restart fail2ban` - Restarts fail2ban service when configuration changes
