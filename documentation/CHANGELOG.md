@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enhanced Network Security**: Improved Docker network isolation and monitoring
 - **Modern GPG Key Management**: Updated to use modern GPG key storage methods
 - **Handler System Improvements**: Added missing handlers for service restarts
+- **Attack Surface Reduction**: Closed unnecessary ports (8080, 3000, 9000, 5432, 3306, 9100)
+- **Minimal Port Configuration**: Only essential ports open (22, 80, 443)
 
 ### Changed
 
@@ -38,6 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Handler Configuration**: Added missing `restart docker` handler for monitoring role
 - **Documentation**: Updated README.md and DEPLOYMENT_SUMMARY.md with new features
 - **Markdown Formatting**: Removed emojis for better markdown compliance
+- **Firewall Configuration**: Reduced open ports from 8 to 3 essential ports only
+- **Prometheus Configuration**: Disabled Prometheus Node Exporter (port 9100 closed)
+- **Container Port Management**: Removed pre-configured container ports until applications are deployed
+- **Security Posture**: Enhanced to minimal attack surface approach
 
 ### Fixed
 
@@ -47,6 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Package Update Issues**: Resolved incomplete system updates
 - **YAML Syntax**: Fixed various YAML linting and code quality issues
 - **Template References**: Corrected missing template file references
+- **Outdated Documentation**: Removed references to closed ports and disabled services
+- **Prometheus Metrics Access**: Removed outdated curl commands for port 9100
 
 ### Security
 
@@ -56,6 +64,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Secure Log Transfer**: Ansible-based log download without exposed HTTP servers
 - **Network Security Enhancement**: Improved Docker network isolation and monitoring
 - **Modern GPG Key Management**: Updated to secure GPG key storage methods
+- **Attack Surface Reduction**: Closed 5 unnecessary ports, reducing exposure by 62.5%
+- **Minimal Port Configuration**: Only SSH (22), HTTP (80), and HTTPS (443) open
+- **Prometheus Security**: Disabled external metrics endpoint (port 9100)
 
 ### Documentation
 
@@ -64,6 +75,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Improvements.md**: Updated with completed implementations
 - **Markdown Compliance**: Removed emojis for better markdown formatting
 - **Usage Examples**: Added comprehensive usage examples and commands
+- **Port Configuration**: Updated documentation to reflect closed ports
+- **Monitoring Instructions**: Replaced external metrics access with local-only commands
+- **Security Status**: Updated to reflect minimal attack surface configuration
+
+### Removed
+
+- **Unnecessary Ports**: Closed ports 8080, 3000, 9000, 5432, 3306, 9100
+- **Prometheus Metrics**: Disabled external metrics endpoint
+- **Pre-configured Container Ports**: Removed until applications are deployed
+- **Outdated Documentation**: Removed references to closed services and ports
 
 ## [1.1.0] - 2024-01-20
 

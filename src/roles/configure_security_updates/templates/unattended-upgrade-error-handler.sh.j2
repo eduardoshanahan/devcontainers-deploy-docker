@@ -30,14 +30,25 @@ if fuser /var/lib/dpkg/lock >/dev/null 2>&1; then
     sleep 300
 fi
 
-# Clean up any broken packages
-log "Starting repository health check and cleanup"
+# AGGRESSIVE CACHE CLEARING - Clear all caches every time
+log "Starting aggressive cache clearing and repository health check"
 
-# Update package lists
+# Clear all apt caches
+apt clean >> "$LOG_FILE" 2>&1
+apt autoclean >> "$LOG_FILE" 2>&1
+apt autoremove >> "$LOG_FILE" 2>&1
+
+# Clear package lists cache
+rm -rf /var/lib/apt/lists/* >> "$LOG_FILE" 2>&1 || true
+
+# Clear dpkg cache
+rm -rf /var/cache/apt/archives/*.deb >> "$LOG_FILE" 2>&1 || true
+
+# Force update package lists with fresh cache
 if apt update >> "$LOG_FILE" 2>&1; then
-    notify_success "Package lists updated successfully"
+    notify_success "Package lists updated successfully after cache clearing"
 else
-    notify_error "Failed to update package lists"
+    notify_error "Failed to update package lists after cache clearing"
     # Try to fix repository issues
     apt autoclean >> "$LOG_FILE" 2>&1
     apt autoremove >> "$LOG_FILE" 2>&1
@@ -50,7 +61,7 @@ else
     notify_error "Failed to fix broken package configurations"
 fi
 
-# Check for specific problematic packages
+# Enhanced handling for problematic kernel packages
 PROBLEMATIC_PACKAGES=("linux-virtual" "linux-image-virtual" "linux-image-generic")
 
 for package in "${PROBLEMATIC_PACKAGES[@]}"; do
@@ -59,36 +70,80 @@ for package in "${PROBLEMATIC_PACKAGES[@]}"; do
         
         # Check if there's a newer version available
         if apt list --upgradable 2>/dev/null | grep -q "$package"; then
-            log "Attempting to upgrade $package with error handling"
+            log "Attempting to upgrade $package with enhanced error handling"
             
-            # Try to upgrade with specific error handling
-            if apt install --only-upgrade "$package" -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" >> "$LOG_FILE" 2>&1; then
+            # First, try to remove any held packages
+            echo "$package install" | dpkg --set-selections
+            
+            # Try to upgrade with specific error handling and force options
+            if apt install --only-upgrade "$package" -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-depends" >> "$LOG_FILE" 2>&1; then
                 notify_success "Successfully upgraded $package"
             else
-                notify_error "Failed to upgrade $package, marking as held"
-                echo "$package hold" | dpkg --set-selections
+                notify_error "Failed to upgrade $package, attempting alternative approach"
+                
+                # Try to install the latest available version
+                if apt install "$package" -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" >> "$LOG_FILE" 2>&1; then
+                    notify_success "Successfully installed latest version of $package"
+                else
+                    notify_error "Failed to install $package, marking as held and skipping"
+                    echo "$package hold" | dpkg --set-selections
+                fi
             fi
         fi
     fi
 done
 
-# Check unattended upgrades logs for recent errors
+# Check for specific 404 errors in unattended upgrades logs
 if [ -f "/var/log/unattended-upgrades/unattended-upgrades.log" ]; then
-    RECENT_ERRORS=$(tail -n 50 "/var/log/unattended-upgrades/unattended-upgrades.log" | grep -i "error\|failed\|404" | wc -l)
+    RECENT_404_ERRORS=$(tail -n 100 "/var/log/unattended-upgrades/unattended-upgrades.log" | grep -i "404\|not found" | wc -l)
     
-    if [ "$RECENT_ERRORS" -gt 0 ]; then
-        notify_error "Found $RECENT_ERRORS recent errors in unattended upgrades log"
+    if [ "$RECENT_404_ERRORS" -gt 0 ]; then
+        notify_error "Found $RECENT_404_ERRORS recent 404 errors in unattended upgrades log"
         
-        # Extract and report specific errors
-        tail -n 50 "/var/log/unattended-upgrades/unattended-upgrades.log" | grep -i "error\|failed\|404" | tail -n 5 >> "$LOG_FILE"
+        # Extract specific 404 errors and attempt to fix them
+        tail -n 100 "/var/log/unattended-upgrades/unattended-upgrades.log" | grep -i "404\|not found" | while read -r line; do
+            log "404 Error found: $line"
+            
+            # Extract package name from 404 error
+            if echo "$line" | grep -q "linux-virtual\|linux-image"; then
+                log "Attempting to fix kernel package 404 error"
+                
+                # Force update of package lists with cache clearing
+                apt clean >> "$LOG_FILE" 2>&1
+                apt update --fix-missing >> "$LOG_FILE" 2>&1
+                
+                # Try to install the latest available kernel packages
+                apt install --only-upgrade linux-virtual linux-image-virtual linux-image-generic -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" >> "$LOG_FILE" 2>&1 || true
+            fi
+        done
     fi
 fi
 
-# Final cleanup
+# Check for any held packages and try to resolve them
+HELD_PACKAGES=$(dpkg --get-selections | grep hold | awk '{print $1}')
+if [ -n "$HELD_PACKAGES" ]; then
+    log "Found held packages: $HELD_PACKAGES"
+    
+    for package in $HELD_PACKAGES; do
+        if [[ "$package" =~ linux- ]]; then
+            log "Attempting to resolve held kernel package: $package"
+            
+            # Try to install the latest version
+            echo "$package install" | dpkg --set-selections
+            apt install "$package" -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" >> "$LOG_FILE" 2>&1 || true
+        fi
+    done
+fi
+
+# Final aggressive cleanup and repository refresh
+apt clean >> "$LOG_FILE" 2>&1
 apt autoclean >> "$LOG_FILE" 2>&1
 apt autoremove >> "$LOG_FILE" 2>&1
 
-log "Repository health check completed"
+# Force update of package lists to ensure we have the latest repository information
+apt update --fix-missing >> "$LOG_FILE" 2>&1
+
+log "Enhanced repository health check with aggressive cache clearing completed"
 
 # Rotate log file if it gets too large
 if [ -f "$LOG_FILE" ] && [ $(stat -c%s "$LOG_FILE") -gt 1048576 ]; then

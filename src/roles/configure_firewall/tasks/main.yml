@@ -44,6 +44,7 @@
   become: true
   when: configure_firewall_docker_networks | length > 0
 
+# Only allow container ports if they are explicitly configured
 - name: Allow specific container ports
   community.general.ufw:
     rule: allow

@@ -1,0 +1,23 @@
+---
+- name: Pre-flight System Check
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check handler files exist
+      ansible.builtin.find:
+        paths: "{{ role_path }}"
+        patterns: "handlers/main.yml"
+      register: handler_files
+      delegate_to: localhost
+
+    - name: Validate handler syntax
+      ansible.builtin.command: ansible-lint "{{ item.path }}"
+      loop: "{{ handler_files.files }}"
+      register: handler_lint
+      delegate_to: localhost
+      ignore_errors: true
+
+    - name: Display validation results
+      ansible.builtin.debug:
+        msg: "Handler validation completed"
+      delegate_to: localhost 

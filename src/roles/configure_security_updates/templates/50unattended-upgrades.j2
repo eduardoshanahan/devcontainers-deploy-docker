@@ -28,8 +28,8 @@ Unattended-Upgrade::Package-Blacklist {
 };
 
 // Add retry mechanism for failed downloads
-Unattended-Upgrade::RetryCount "3";
-Unattended-Upgrade::RetryDelay "300";
+Unattended-Upgrade::RetryCount "5";
+Unattended-Upgrade::RetryDelay "600";
 
 // Enhanced logging
 Unattended-Upgrade::SyslogEnable "true";
@@ -41,7 +41,7 @@ Unattended-Upgrade::Origins-Pattern {
     "origin=Ubuntu,archive=${distro_codename}-updates";
 };
 
-// Prevent problematic package updates
+// Prevent problematic package updates with enhanced handling
 Unattended-Upgrade::Package-Blacklist {
     "linux-image-generic";
     "linux-virtual";
@@ -50,3 +50,10 @@ Unattended-Upgrade::Package-Blacklist {
     "nano";
     "emacs";
 };
+
+// Enhanced download settings
+Unattended-Upgrade::Download-Upgradeable-Packages "true";
+Unattended-Upgrade::Download-Upgradeable-Packages-Debdelta "true";
+
+// Force package list updates before upgrades
+Unattended-Upgrade::Update-Package-Lists "true";

@@ -4,7 +4,7 @@ configure_monitoring_enabled: true
 
 # Lightweight Configuration (optimized for 2GB RAM)
 configure_monitoring_elk_enabled: false # Disabled for 2GB RAM
-configure_monitoring_prometheus_enabled: true # Lightweight option
+configure_monitoring_prometheus_enabled: false # Disabled - not using metrics page
 configure_monitoring_prometheus_port: 9100
 
 # Health check configuration
@@ -21,7 +21,7 @@ configure_monitoring_max_log_size: "10M" # Smaller log files
 
 # Alerting configuration
 configure_monitoring_alerts_enabled: true
-configure_monitoring_alerts_email: ""
+configure_monitoring_alerts_email: "eduardoshanahan@gmail.com"
 configure_monitoring_alerts_slack_webhook: ""
 configure_monitoring_alerts_discord_webhook: ""
 

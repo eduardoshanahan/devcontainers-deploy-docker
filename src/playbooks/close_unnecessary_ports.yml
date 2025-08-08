@@ -1,0 +1,35 @@
+---
+- name: Close unnecessary ports and disable monitoring
+  hosts: all
+  become: true
+  tasks:
+    - name: Remove container port rules from UFW
+      community.general.ufw:
+        rule: deny
+        port: "{{ item }}"
+      loop:
+        - 8080
+        - 3000
+        - 9000
+        - 5432
+        - 3306
+        - 9100
+      become: true
+
+    - name: Stop and disable Prometheus Node Exporter
+      ansible.builtin.service:
+        name: node-exporter
+        state: stopped
+        enabled: false
+      become: true
+      ignore_errors: true
+
+    - name: Display updated UFW status
+      ansible.builtin.command: ufw status verbose
+      register: ufw_status
+      changed_when: false
+      become: true
+
+    - name: Debug UFW status
+      ansible.builtin.debug:
+        msg: "{{ ufw_status.stdout_lines }}" 

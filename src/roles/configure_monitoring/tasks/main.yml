@@ -34,6 +34,16 @@
     - /var/log/monitoring
   become: true
 
+# Remove the problematic validation task - handlers are defined in the role
+# - name: Validate required handlers exist
+#   ansible.builtin.assert:
+#     that:
+#       - "'restart docker' in (ansible_playbook_python | default('')) or 'restart docker' in (ansible_playbook_python | default(''))"
+#     fail_msg: "Required handler 'restart docker' is missing"
+#     success_msg: "All required handlers are available"
+#   delegate_to: localhost
+#   run_once: true
+
 # Lightweight Prometheus Node Exporter (if enabled)
 - name: Download Prometheus Node Exporter
   ansible.builtin.get_url:
@@ -80,7 +90,7 @@
     group: root
     mode: "0644"
   become: true
-  notify: restart rsyslog
+  notify: Restart rsyslog
 
 - name: Configure log integrity monitoring
   ansible.builtin.template:
@@ -113,7 +123,7 @@
     group: root
     mode: "0644"
   become: true
-  notify: restart auditd
+  notify: Restart auditd
 
 - name: Configure audit rules
   ansible.builtin.template:
@@ -123,7 +133,7 @@
     group: root
     mode: "0644"
   become: true
-  notify: restart auditd
+  notify: Restart auditd
 
 # Lightweight Health Monitoring Scripts
 - name: Configure lightweight health check script
@@ -162,7 +172,7 @@
     group: root
   become: true
 
-# Docker Logging Configuration (lightweight)
+# Docker Logging Configuration (lightweight) - with error handling
 - name: Configure Docker logging driver (lightweight)
   ansible.builtin.template:
     src: daemon-logging-lightweight.json.j2
@@ -171,7 +181,7 @@
     group: root
     mode: "0644"
   become: true
-  notify: restart docker
+  notify: Restart docker
 
 # Create monitoring cron jobs
 - name: Create lightweight monitoring cron jobs
@@ -182,36 +192,26 @@
     job: "{{ item.job }}"
     user: root
   loop:
-    - {
-        name: "Security Log Analysis",
-        hour: "1",
-        minute: "0",
-        job: "/opt/security/log-monitor.sh",
-      }
-    - {
-        name: "File Integrity Check",
-        hour: "3",
-        minute: "0",
-        job: "aide --check",
-      }
-    - {
-        name: "System Health Check",
-        hour: "*/6",
-        minute: "0",
-        job: "/opt/monitoring/health-check.sh",
-      }
-    - {
-        name: "Resource Monitoring",
-        hour: "*/2",
-        minute: "0",
-        job: "/opt/monitoring/resource-monitor.sh",
-      }
-    - {
-        name: "Container Monitoring",
-        hour: "*/5",
-        minute: "0",
-        job: "/opt/monitoring/container-monitor.sh",
-      }
+    - name: "Security Log Analysis"
+      hour: "1"
+      minute: "0"
+      job: "/opt/security/log-monitor.sh"
+    - name: "File Integrity Check"
+      hour: "3"
+      minute: "0"
+      job: "aide --check"
+    - name: "System Health Check"
+      hour: "*/6"
+      minute: "0"
+      job: "/opt/monitoring/health-check.sh"
+    - name: "Resource Monitoring"
+      hour: "*/2"
+      minute: "0"
+      job: "/opt/monitoring/resource-monitor.sh"
+    - name: "Container Monitoring"
+      hour: "*/5"
+      minute: "0"
+      job: "/opt/monitoring/container-monitor.sh"
   become: true
 
 - name: Configure log rotation for monitoring logs

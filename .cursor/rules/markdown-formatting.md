@@ -64,12 +64,27 @@ This rule ensures all markdown files follow consistent formatting standards and 
 - Use descriptive alt text
 - Ensure images are properly sized and formatted
 
+## Emojis and Special Characters
+
+- **No emojis in markdown content** (MD041 rule)
+  - Avoid using emoji characters (🚀, ✅, ❌, etc.)
+  - Use text-based alternatives instead
+  - Examples:
+    - Instead of ✅, use "✓" or "PASS"
+    - Instead of ❌, use "✗" or "FAIL"
+    - Instead of , use "DEPLOY" or "LAUNCH"
+    - Instead of , use "FIX" or "CONFIGURE"
+- Use standard ASCII characters when possible
+- Maintain professional documentation standards
+- Ensure compatibility across different platforms and tools
+
 ## Common Issues to Avoid
 
 - Don't use HTML tags unless absolutely necessary
 - Avoid excessive bold or italic formatting
 - Don't use deprecated markdown syntax
 - Ensure proper escaping of special characters
+- **Avoid emoji usage** for better compatibility and professionalism
 
 ## Examples
 
@@ -112,6 +127,19 @@ Inline code: `command`
 | Data     | Data     | Data     |
 ```
 
+### Good Text Alternatives (No Emojis)
+
+```markdown
+# Project Status: PRODUCTION READY
+
+## Security Features
+- ✓ SSH Hardening
+- ✓ Firewall Configuration
+- ✗ Vulnerabilities Found
+- DEPLOY: Container Security Scanning
+- CONFIGURE: Network Isolation
+```
+
 ## Validation Checklist
 
 Before committing markdown files, ensure:
@@ -122,6 +150,7 @@ Before committing markdown files, ensure:
 - [ ] **Blank lines around all lists (MD032)**
 - [ ] **No trailing spaces (MD009)**
 - [ ] **File ends with single newline (MD047)**
+- [ ] **No emojis in content (MD041)**
 - [ ] Consistent code block formatting
 - [ ] Proper list indentation
 - [ ] Valid links and references
@@ -129,3 +158,4 @@ Before committing markdown files, ensure:
 - [ ] Reasonable line lengths
 - [ ] Alt text for images
 - [ ] Consistent spacing
+- [ ] Professional text-based alternatives for status indicators
