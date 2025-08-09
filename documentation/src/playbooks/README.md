@@ -1,1 +1,0 @@
-../../../src/playbooks/README.md

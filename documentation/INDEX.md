@@ -25,8 +25,7 @@ documentation/
 │   │   ├── deploy_docker/            # Docker deployment role
 │   │   └── test_network_security/   # Network security testing role
 │   ├── playbooks/
-│   │   ├── README.md                 # Playbooks guide
-│   │   └── REBOOT_INSTRUCTIONS.md   # Reboot instructions
+│   │   └── README.md                 # Playbooks guide
 │   └── inventory/
 │       └── group_vars/
 │           └── README.md             # Inventory variables guide

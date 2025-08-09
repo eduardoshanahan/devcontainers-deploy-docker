@@ -228,6 +228,7 @@ ansible-playbook playbooks/download_logs_secure.yml
 ### **Docker Cleanup & Security**
 
 #### **Clean Slate Deployment**
+
 To remove all existing Docker images and containers during deployment:
 
 ```bash
@@ -243,6 +244,7 @@ ansible-playbook playbooks/deploy_docker.yml -e "deploy_docker_clean_slate=true"
 ```
 
 #### **Dedicated Cleanup Playbook**
+
 To clean up Docker images without reinstalling Docker:
 
 ```bash
@@ -251,6 +253,7 @@ ansible-playbook playbooks/cleanup_docker_images.yml
 ```
 
 #### **Auto-Cleanup Vulnerable Images**
+
 Automatically remove Docker images with high/critical vulnerabilities:
 
 ```yaml
@@ -259,12 +262,14 @@ configure_container_security_auto_cleanup: true
 ```
 
 This will:
+
 - Scan all Docker images daily for vulnerabilities
 - Automatically remove images exceeding vulnerability thresholds
 - Run cleanup at 3:00 AM daily
 - Log all cleanup activities
 
 #### **Manual Cleanup Commands**
+
 If you need to clean up manually:
 
 ```bash
@@ -646,62 +651,6 @@ This Ansible project has been successfully implemented with all major security a
 - **Performance optimization** - Resource usage optimization
 
 **The VPS is now ready for production workloads with enterprise-grade security and monitoring!**
-
-## 6. Create a playbook to apply these changes
-
-```yaml:src/playbooks/close_unnecessary_ports.yml
----
-- name: Close unnecessary ports and disable monitoring
-  hosts: all
-  become: true
-  tasks:
-    - name: Remove container port rules from UFW
-      community.general.ufw:
-        rule: deny
-        port: "{{ item }}"
-      loop:
-        - 8080
-        - 3000
-        - 9000
-        - 5432
-        - 3306
-        - 9100
-      become: true
-
-    - name: Stop and disable Prometheus Node Exporter
-      ansible.builtin.service:
-        name: node-exporter
-        state: stopped
-        enabled: false
-      become: true
-      ignore_errors: true
-
-    - name: Display updated UFW status
-      ansible.builtin.command: ufw status verbose
-      register: ufw_status
-      changed_when: false
-      become: true
-
-    - name: Debug UFW status
-      ansible.builtin.debug:
-        msg: "{{ ufw_status.stdout_lines }}"
-```
-
-## **To Apply These Changes:**
-
-```bash
-cd src
-ansible-playbook playbooks/close_unnecessary_ports.yml
-```
-
-This will:
-
-1. **Close all unnecessary ports** (8080, 3000, 9000, 5432, 3306, 9100)
-2. **Disable Prometheus Node Exporter**
-3. **Update documentation** to reflect the minimal attack surface
-4. **Maintain only essential ports** (22, 80, 443)
-
-The result will be a **much more secure configuration** with only the absolutely necessary ports open.
 
 ## **Current Open Ports**
 
