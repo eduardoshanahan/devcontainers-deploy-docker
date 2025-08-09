@@ -87,6 +87,14 @@ initial_deployment_user: "your-username"
 initial_deployment_ssh_key: "~/.ssh/your-key"
 ```
 
+**Note**: The project uses a three-tier variable system:
+
+- `defaults.yml` - Non-confidential default values
+- `all.yml` - Environment-specific configuration (your server details)
+- `features.yml` - Behavior configuration and feature flags
+
+Copy `src/inventory/group_vars/all.example.yml` to `src/inventory/group_vars/all.yml` and customize it for your environment.
+
 ### **2. Run Pre-flight Checks**
 
    ```bash
@@ -103,22 +111,22 @@ ansible-playbook playbooks/full.yml
 
 ### **4. Download Logs Securely**
 
-   ```bash
-   cd src
+```bash
+cd src
 ansible-playbook playbooks/download_logs_secure.yml
 ```
-   
+
 ### **5. Test Container Security**
-   
+
 ```bash
 cd src
 ansible-playbook playbooks/test_container_security.yml
-   ```
+```
 
 ### **6. Test System Handlers (Optional)**
 
-   ```bash
-   cd src
+```bash
+cd src
 ansible-playbook playbooks/test_handlers.yml
 ```
 

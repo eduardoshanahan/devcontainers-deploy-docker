@@ -75,6 +75,15 @@
     group: root
   become: true
 
+- name: Configure container security dashboard
+  ansible.builtin.template:
+    src: container-security-dashboard.sh.j2
+    dest: /opt/security/container-security-dashboard.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
 - name: Create container security cron job
   ansible.builtin.cron:
     name: "Container Security Scan"

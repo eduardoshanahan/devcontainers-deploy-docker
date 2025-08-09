@@ -2,6 +2,10 @@
 - name: Test System Handlers
   hosts: all
   become: true
+  vars_files:
+    - ../inventory/group_vars/defaults.yml
+    - ../inventory/group_vars/all.yml
+    - ../inventory/group_vars/features.yml
   vars:
     ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
   tasks:
@@ -14,7 +18,7 @@
     - name: Test UFW service restart
       ansible.builtin.service:
         name: ufw
-        state: reloaded
+        state: restarted
       become: true
 
     - name: Test Fail2ban service restart

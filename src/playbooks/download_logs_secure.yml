@@ -2,12 +2,16 @@
 - name: Download Logs Securely
   hosts: all
   become: true
+  vars_files:
+    - ../inventory/group_vars/defaults.yml
+    - ../inventory/group_vars/all.yml
+    - ../inventory/group_vars/features.yml
   vars:
     ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
   tasks:
-    - name: Create logs directory
+    - name: Create logs directory in home
       ansible.builtin.file:
-        path: "./logs/{{ inventory_hostname }}"
+        path: ~/ansible-logs/vps
         state: directory
         mode: "0755"
       delegate_to: localhost
@@ -15,41 +19,38 @@
     - name: Download system logs
       ansible.builtin.fetch:
         src: "{{ item }}"
-        dest: "./logs/{{ inventory_hostname }}/"
-        flat: false
+        dest: "~/ansible-logs/vps/system/"
+        flat: true
       loop:
         - /var/log/syslog
         - /var/log/auth.log
-        - /var/log/ufw.log
-        - /var/log/fail2ban.log
-        - /var/log/docker.log
-        - /var/log/health-monitor.log
-        - /var/log/security/security-events.log
-      ignore_errors: true
+        - /var/log/dpkg.log
+      failed_when: false
+      when: download_logs_secure_include_system_logs | default(true)
 
     - name: Download monitoring logs
       ansible.builtin.fetch:
         src: "{{ item }}"
-        dest: "./logs/{{ inventory_hostname }}/monitoring/"
-        flat: false
+        dest: "~/ansible-logs/vps/monitoring/"
+        flat: true
       loop:
         - /opt/monitoring/health-check-lightweight.sh
-        - /opt/monitoring/resource-monitor.sh
-        - /opt/monitoring/container-monitor.sh
-      ignore_errors: true
+        - /var/log/monitoring/
+      failed_when: false
+      when: download_logs_secure_include_docker_logs | default(true)
 
     - name: Download security logs
       ansible.builtin.fetch:
         src: "{{ item }}"
-        dest: "./logs/{{ inventory_hostname }}/security/"
-        flat: false
+        dest: "~/ansible-logs/vps/security/"
+        flat: true
       loop:
-        - /opt/security/container-scan.sh
-        - /opt/security/container-security-dashboard.sh
-        - /opt/security/trivy-reports/
-      ignore_errors: true
+        - /opt/security/
+        - /var/log/security/
+      failed_when: false
+      when: download_logs_secure_include_security_logs | default(true)
 
     - name: Display download summary
       ansible.builtin.debug:
-        msg: "Logs downloaded to ./logs/{{ inventory_hostname }}/"
+        msg: "Logs downloaded to ~/ansible-logs/vps/"
       delegate_to: localhost

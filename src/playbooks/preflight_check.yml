@@ -23,7 +23,7 @@
       ansible.builtin.command: ansible-lint "{{ item.path }}"
       loop: "{{ handler_files }}"
       register: handler_lint
-      ignore_errors: true
+      failed_when: false
       changed_when: false
 
     - name: Display validation results

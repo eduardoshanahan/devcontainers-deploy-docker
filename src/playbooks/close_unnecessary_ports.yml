@@ -2,6 +2,12 @@
 - name: Close unnecessary ports and disable monitoring
   hosts: all
   become: true
+  vars_files:
+    - ../inventory/group_vars/defaults.yml
+    - ../inventory/group_vars/all.yml
+    - ../inventory/group_vars/features.yml
+  vars:
+    ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
   tasks:
     - name: Remove container port rules from UFW
       community.general.ufw:
@@ -22,7 +28,7 @@
         state: stopped
         enabled: false
       become: true
-      ignore_errors: true
+      failed_when: false
 
     - name: Display updated UFW status
       ansible.builtin.command: ufw status verbose
