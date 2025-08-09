@@ -1,6 +1,12 @@
 ---
-- name: restart rsyslog
-  ansible.builtin.systemd:
+- name: Restart rsyslog
+  ansible.builtin.service:
     name: rsyslog
     state: restarted
-  become: true 
+  become: true
+
+- name: Restart remote logging
+  ansible.builtin.service:
+    name: rsyslog
+    state: reloaded
+  become: true

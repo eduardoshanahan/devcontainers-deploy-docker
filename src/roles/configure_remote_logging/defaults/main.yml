@@ -1,7 +1,7 @@
 ---
 # Remote logging behavior settings
 configure_remote_logging_enabled: true
-configure_remote_logging_protocol: "udp"  # udp or tcp
+configure_remote_logging_protocol: "udp" # udp or tcp
 configure_remote_logging_port: 514
 configure_remote_logging_retry_interval: 30
 configure_remote_logging_max_retries: 3
@@ -11,4 +11,3 @@ configure_remote_logging_forward_all_logs: true
 configure_remote_logging_forward_security_logs: true
 configure_remote_logging_forward_system_logs: true
 configure_remote_logging_forward_docker_logs: true
-```

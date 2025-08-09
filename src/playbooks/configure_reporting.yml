@@ -1,14 +1,12 @@
 ---
-- name: Configure System Reporting
+- name: Configure Reporting
   hosts: all
   become: true
+  vars_files:
+    - ../inventory/group_vars/defaults.yml
+    - ../inventory/group_vars/all.yml
+    - ../inventory/group_vars/features.yml
+  vars:
+    ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
   roles:
     - configure_reporting
-  vars:
-    # Email configuration (inherits from security updates)
-    configure_reporting_email: "{{ configure_security_updates_email | default('') }}"
-    configure_reporting_gmail_enabled: "{{ configure_security_updates_gmail_enabled | default(false) }}"
-    configure_reporting_gmail_user: "{{ configure_security_updates_gmail_user | default('') }}"
-    configure_reporting_gmail_password: "{{ configure_security_updates_gmail_password | default('') }}"
-    configure_reporting_gmail_smtp_server: "{{ configure_security_updates_gmail_smtp_server | default('smtp.gmail.com') }}"
-    configure_reporting_gmail_smtp_port: "{{ configure_security_updates_gmail_smtp_port | default('465') }}"

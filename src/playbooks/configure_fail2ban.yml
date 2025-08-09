@@ -2,8 +2,11 @@
 - name: Configure Fail2ban
   hosts: all
   become: true
+  vars_files:
+    - ../inventory/group_vars/defaults.yml
+    - ../inventory/group_vars/all.yml
+    - ../inventory/group_vars/features.yml
+  vars:
+    ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
   roles:
     - configure_fail2ban
-  vars:
-    configure_fail2ban_email: "{{ security_updates_email | default('') }}"
-    security_updates_email: "{{ security_updates_email | default('') }}"

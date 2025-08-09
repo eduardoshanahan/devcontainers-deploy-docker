@@ -1,0 +1,112 @@
+---
+# =============================================================================
+# VARIABLE MAPPING - OLD TO NEW STRUCTURE
+# =============================================================================
+# This file shows how the old scattered variables map to the new centralized structure.
+# Use this for reference when migrating from the old variable system.
+# =============================================================================
+
+# =============================================================================
+# SECURITY UPDATES MAPPING
+# =============================================================================
+# OLD: configure_security_updates_enabled: true
+# NEW: security.updates.enabled: true
+
+# OLD: configure_security_updates_auto_reboot: false
+# NEW: security.updates.auto_reboot: false
+
+# OLD: configure_security_updates_gmail_enabled: true
+# NEW: notifications.email.gmail_enabled: true
+
+# OLD: configure_security_updates_email: "your-email@gmail.com"
+# NEW: notifications.email.recipients: ["your-email@gmail.com"]
+
+# =============================================================================
+# MONITORING MAPPING
+# =============================================================================
+# OLD: configure_monitoring_enabled: true
+# NEW: monitoring.core.enabled: true
+
+# OLD: configure_monitoring_prometheus_enabled: false
+# NEW: monitoring.prometheus.enabled: false
+
+# OLD: configure_monitoring_alert_email: "your-email@example.com"
+# NEW: notifications.email.recipients: ["your-email@example.com"]
+
+# =============================================================================
+# REPORTING MAPPING
+# =============================================================================
+# OLD: configure_reporting_enabled: true
+# NEW: reporting.core.enabled: true
+
+# OLD: configure_reporting_daily_enabled: true
+# NEW: reporting.core.daily_enabled: true
+
+# OLD: configure_reporting_gmail_enabled: true
+# NEW: notifications.email.gmail_enabled: true
+
+# =============================================================================
+# DOCKER MAPPING
+# =============================================================================
+# OLD: deploy_docker_security_enabled: false
+# NEW: containers.docker.security_enabled: false
+
+# OLD: deploy_docker_clean_slate: false
+# NEW: containers.docker.clean_slate: false
+
+# OLD: deploy_docker_packages: [docker-ce, docker-ce-cli, containerd.io]
+# NEW: containers.docker.packages: [docker-ce, docker-ce-cli, containerd.io]
+
+# =============================================================================
+# CONTAINER SECURITY MAPPING
+# =============================================================================
+# OLD: configure_container_security_enabled: true
+# NEW: containers.security.enabled: true
+
+# OLD: configure_container_security_trivy_enabled: true
+# NEW: containers.security.trivy_enabled: true
+
+# OLD: configure_container_security_alerts_enabled: true
+# NEW: containers.security.alerts_enabled: true
+
+# =============================================================================
+# REMOTE LOGGING MAPPING
+# =============================================================================
+# OLD: configure_remote_logging_enabled: true
+# NEW: logging.remote.enabled: true
+
+# OLD: configure_remote_logging_protocol: "udp"
+# NEW: logging.remote.protocol: "udp"
+
+# =============================================================================
+# LOG DOWNLOAD MAPPING
+# =============================================================================
+# OLD: configure_log_download_enabled: true
+# NEW: logging.download.enabled: true
+
+# OLD: configure_log_download_secure_only: true
+# NEW: logging.download.secure_only: true
+
+# =============================================================================
+# FIREWALL MAPPING
+# =============================================================================
+# OLD: configure_firewall_docker_networks: [172.20.0.0/16, ...]
+# NEW: security.firewall.docker_networks: [172.20.0.0/16, ...]
+
+# OLD: configure_firewall_container_ports: [8080, 3000, ...]
+# NEW: security.firewall.container_ports: [8080, 3000, ...]
+
+# OLD: configure_firewall_logging_level: "medium"
+# NEW: security.firewall.logging_level: "medium"
+
+# =============================================================================
+# DOCKER NETWORKS MAPPING
+# =============================================================================
+# OLD: configure_docker_networks_default_networks: [...]
+# NEW: containers.networks.default_networks: [...]
+
+# OLD: configure_docker_networks_remove_all: false
+# NEW: containers.networks.remove_all: false
+
+# OLD: deploy_docker_network_policies: {...}
+# NEW: containers.networks.network_policies: {...}

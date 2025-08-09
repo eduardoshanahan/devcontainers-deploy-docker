@@ -1,47 +1,55 @@
 ---
-- name: Download Logs Securely via Ansible
+- name: Download Logs Securely
   hosts: all
-  gather_facts: false
+  become: true
   vars:
     ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
-    local_log_dir: "./logs/{{ inventory_hostname }}"
   tasks:
-    - name: Create local logs directory
+    - name: Create logs directory
       ansible.builtin.file:
-        path: "{{ local_log_dir }}"
+        path: "./logs/{{ inventory_hostname }}"
         state: directory
         mode: "0755"
       delegate_to: localhost
 
-    - name: Export logs on remote server
-      ansible.builtin.command: /opt/logs/export-logs.sh
-      become: true
-
-    - name: Get list of available log files
-      ansible.builtin.find:
-        paths: /opt/logs/export
-        patterns: "*.tar.gz"
-        file_type: file
-      register: log_files
-      become: true
-
-    - name: Download log files securely
+    - name: Download system logs
       ansible.builtin.fetch:
-        src: "{{ item.path }}"
-        dest: "{{ local_log_dir }}/"
-        flat: true
-      loop: "{{ log_files.files }}"
-      become: true
-
-    - name: Download analysis report
-      ansible.builtin.fetch:
-        src: /opt/logs/analysis/analysis_report_*.txt
-        dest: "{{ local_log_dir }}/"
-        flat: true
-      become: true
+        src: "{{ item }}"
+        dest: "./logs/{{ inventory_hostname }}/"
+        flat: false
+      loop:
+        - /var/log/syslog
+        - /var/log/auth.log
+        - /var/log/ufw.log
+        - /var/log/fail2ban.log
+        - /var/log/docker.log
+        - /var/log/health-monitor.log
+        - /var/log/security/security-events.log
       ignore_errors: true
 
-    - name: Display downloaded files
+    - name: Download monitoring logs
+      ansible.builtin.fetch:
+        src: "{{ item }}"
+        dest: "./logs/{{ inventory_hostname }}/monitoring/"
+        flat: false
+      loop:
+        - /opt/monitoring/health-check-lightweight.sh
+        - /opt/monitoring/resource-monitor.sh
+        - /opt/monitoring/container-monitor.sh
+      ignore_errors: true
+
+    - name: Download security logs
+      ansible.builtin.fetch:
+        src: "{{ item }}"
+        dest: "./logs/{{ inventory_hostname }}/security/"
+        flat: false
+      loop:
+        - /opt/security/container-scan.sh
+        - /opt/security/container-security-dashboard.sh
+        - /opt/security/trivy-reports/
+      ignore_errors: true
+
+    - name: Display download summary
       ansible.builtin.debug:
-        msg: "Logs downloaded securely to {{ local_log_dir }}"
+        msg: "Logs downloaded to ./logs/{{ inventory_hostname }}/"
       delegate_to: localhost

@@ -1,9 +1,12 @@
 ---
-- name: Configure container security
+- name: Configure Container Security
   hosts: all
   become: true
-  remote_user: "{{ containers_deployment_user }}"
+  vars_files:
+    - ../inventory/group_vars/defaults.yml
+    - ../inventory/group_vars/all.yml
+    - ../inventory/group_vars/features.yml
   vars:
-    ansible_ssh_private_key_file: "{{ containers_deployment_user_ssh_key }}"
+    ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
   roles:
     - configure_container_security

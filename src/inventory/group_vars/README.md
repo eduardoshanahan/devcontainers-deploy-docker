@@ -1,72 +1,331 @@
-# Group Variables Configuration
+# Centralized Configuration System
 
-This directory contains global variables that apply to all hosts in your Ansible inventory.
+## Overview
+
+This directory now contains a centralized configuration system that organizes all behavior flags and feature toggles in a logical, hierarchical structure. The system uses variable references to separate behavior configuration from environment-specific values.
 
 ## Files
 
-### `all.example.yml`
+### `features.yml` - Master Configuration File
 
-This is a template file showing the required variables for the Ansible playbooks. Copy this file to `all.yml` and configure it with your actual values.
+This is the main configuration file that contains all behavior flags organized by feature category. It references environment-specific values from `all.yml`.
 
-### `all.yml` (not in git)
+### `variable_mapping.yml` - Migration Reference
 
-Your actual configuration file with real values. This file is ignored by git for security reasons.
+Shows how old scattered variables map to the new centralized structure.
 
-## Required Variables
+### `all.example.yml` - Legacy Configuration
 
-### Server Configuration
+The original configuration file (still supported for backward compatibility).
 
-- `vps_server_ip`: Your VPS server's IP address or hostname
-- `initial_deployment_user`: Username for initial server access
-- `initial_deployment_ssh_key`: Path to SSH private key for initial deployment
+### `all.yml` - Environment-Specific Values
 
-### Container Deployment User
+Your actual environment configuration with real values (not in git for security).
 
-- `containers_deployment_user`: Username for container deployments
-- `containers_deployment_user_ssh_key`: Path to SSH private key for container user
-- `containers_deployment_user_ssh_key_public`: Path to SSH public key for container user
+## Variable Reference System
 
-### Ansible Configuration
+### How It Works
 
-- `ansible_ssh_common_args`: SSH connection options
-- `ansible_python_interpreter`: Python interpreter path on target server
+The `features.yml` file uses Ansible variable references to pull values from `all.yml`:
 
-## Setup Instructions
+```yaml
+# In features.yml - references values from all.yml
+notifications:
+  email:
+    gmail_enabled: "{{ configure_security_updates_gmail_enabled | default(false) }}"
+    gmail_user: "{{ configure_security_updates_gmail_user | default('') }}"
 
-1. Copy the example file:
+# In all.yml - actual environment values
+configure_security_updates_gmail_enabled: true
+configure_security_updates_gmail_user: "your-actual-email@gmail.com"
+```
 
-   ```bash
-   cp src/inventory/group_vars/all.example.yml src/inventory/group_vars/all.yml
-   ```
+### Benefits of this pattern
 
-2. Edit `all.yml` with your actual values:
+- **Separation of Concerns**: Behavior configuration vs environment values
+- **Security**: Sensitive data stays in `all.yml` (not in git)
+- **Flexibility**: Easy to change environment values without touching behavior
+- **Defaults**: Sensible defaults when values aren't provided
+- **Backward Compatibility**: Works with existing variable structure
 
-   ```yaml
-   vps_server_ip: "your-actual-server-ip"
-   initial_deployment_user: "ubuntu"
-   initial_deployment_ssh_key: "~/.ssh/your-private-key"
-   # ... configure other variables
-   ```
+## Benefits
 
-3. Ensure your SSH keys exist and have correct permissions:
+### Single Point of Control
 
-   ```bash
-   chmod 600 ~/.ssh/your-private-key
-   ```
+All behavior flags are now in one place, making it easy to:
 
-## Security Notes
+- Enable/disable entire feature categories
+- Understand feature dependencies
+- Configure the entire system at once
 
-- Never commit `all.yml` to git (it's in `.gitignore`)
-- Keep your SSH keys secure
-- Use different keys for initial deployment and container deployment
-- The `all.example.yml` file contains no sensitive information
+### Logical Organization
 
-## Variable Usage
+Features are organized by category:
 
-These variables are used throughout the playbooks to:
+- **Security**: Updates, SSH, firewall, fail2ban
+- **Monitoring**: Core monitoring, Docker monitoring, resource limits
+- **Reporting**: Daily/weekly/monthly reports, content configuration
+- **Containers**: Docker deployment, security, networks
+- **Logging**: Remote logging, log download, rotation
+- **Notifications**: Email, webhooks
 
-- Connect to your server
-- Create deployment users
-- Configure SSH access
-- Set up Docker permissions
-- Configure monitoring and security settings
+### Hierarchical Structure
+
+```yaml
+features:
+  security: true      # Master toggle for all security features
+  monitoring: true    # Master toggle for all monitoring features
+  reporting: true     # Master toggle for all reporting features
+
+security:
+  updates:
+    enabled: true     # Specific feature toggle
+    auto_reboot: false
+```
+
+## Usage
+
+### Quick Configuration
+
+```yaml
+# Disable all monitoring features
+features:
+  monitoring: false
+
+# Enable only security and containers
+features:
+  security: true
+  monitoring: false
+  reporting: false
+  containers: true
+  networking: true
+  logging: false
+```
+
+### Granular Configuration
+
+```yaml
+# Enable monitoring but disable Prometheus
+monitoring:
+  core:
+    enabled: true
+  prometheus:
+    enabled: false
+```
+
+### Environment-Specific Values
+
+Set your actual values in `all.yml`:
+
+```yaml
+# In all.yml
+configure_security_updates_gmail_enabled: true
+configure_security_updates_gmail_user: "your-actual-email@gmail.com"
+configure_security_updates_gmail_password: "your-actual-app-password"
+vps_server_ip: "192.168.1.100"
+```
+
+The `features.yml` will automatically use these values:
+
+```yaml
+# In features.yml (automatically uses values from all.yml)
+notifications:
+  email:
+    gmail_enabled: "{{ configure_security_updates_gmail_enabled | default(false) }}"
+    gmail_user: "{{ configure_security_updates_gmail_user | default('') }}"
+    gmail_password: "{{ configure_security_updates_gmail_password | default('') }}"
+
+system:
+  server:
+    ip: "{{ vps_server_ip | default('your-server-ip-or-hostname') }}"
+```
+
+## Migration
+
+### From Old System
+
+1. Copy `all.example.yml` to `all.yml` (if not already done)
+2. Copy `features.yml` to your inventory
+3. Configure the new structure in `features.yml`
+4. Set your actual values in `all.yml`
+5. The system will automatically use your values from `all.yml`
+
+### Backward Compatibility
+
+The old variable system is still supported, so existing configurations will continue to work.
+
+## Feature Dependencies
+
+### Required Dependencies
+
+- **Reporting** requires **Email notifications**
+- **Container security** requires **Docker deployment**
+- **Monitoring alerts** require **Email notifications**
+
+### Optional Dependencies
+
+- **Remote logging** can work independently
+- **Log download** can work independently
+- **Firewall** can work independently
+
+## Validation
+
+The system includes automatic validation to ensure:
+
+- Required dependencies are enabled
+- Configuration values are valid
+- No conflicting settings
+
+### Validation Examples
+
+```yaml
+# This will fail validation - reporting enabled but no email configured
+features:
+  reporting: true
+notifications:
+  email:
+    enabled: false
+
+# This will pass validation - all dependencies satisfied
+features:
+  reporting: true
+notifications:
+  email:
+    enabled: true
+    gmail_enabled: true
+    gmail_user: "{{ configure_security_updates_gmail_user }}"
+    gmail_password: "{{ configure_security_updates_gmail_password }}"
+```
+
+## Examples
+
+### Minimal Configuration
+
+```yaml
+# In features.yml
+features:
+  security: true
+  monitoring: false
+  reporting: false
+  containers: true
+  networking: true
+  logging: false
+
+# In all.yml
+configure_security_updates_gmail_enabled: true
+configure_security_updates_gmail_user: "your-email@gmail.com"
+configure_security_updates_gmail_password: "your-app-password"
+```
+
+### Full Configuration
+
+```yaml
+# In features.yml
+features:
+  security: true
+  monitoring: true
+  reporting: true
+  containers: true
+  networking: true
+  logging: true
+
+# In all.yml - configure all your actual values
+configure_security_updates_gmail_enabled: true
+configure_security_updates_gmail_user: "your-email@gmail.com"
+configure_security_updates_gmail_password: "your-app-password"
+vps_server_ip: "192.168.1.100"
+initial_deployment_user: "ubuntu"
+# ... all other environment-specific values
+```
+
+## Troubleshooting
+
+### Feature Not Working
+
+1. Check if the master feature toggle is enabled
+2. Check if the specific feature is enabled
+3. Check if required dependencies are enabled
+4. Check the logs for specific error messages
+5. Verify that values are properly set in `all.yml`
+
+### Configuration Conflicts
+
+1. Use the validation playbook to check for conflicts
+2. Review the variable mapping for correct structure
+3. Ensure no duplicate configurations exist
+4. Check that `all.yml` contains the required values
+
+### Common Issues
+
+#### Email Notifications Not Working
+
+```yaml
+# PROBLEM: Gmail enabled but no password set in all.yml
+# In all.yml
+configure_security_updates_gmail_enabled: true
+configure_security_updates_gmail_user: "your-email@gmail.com"
+# Missing: configure_security_updates_gmail_password
+
+# SOLUTION: Add the missing password to all.yml
+configure_security_updates_gmail_password: "your-app-password"
+```
+
+#### Variable References Not Working
+
+```yaml
+# PROBLEM: Variable not found
+# In features.yml
+notifications:
+  email:
+    gmail_user: "{{ configure_security_updates_gmail_user }}"
+
+# In all.yml - variable doesn't exist
+# Missing: configure_security_updates_gmail_user
+
+# SOLUTION: Add the variable to all.yml or use a default
+notifications:
+  email:
+    gmail_user: "{{ configure_security_updates_gmail_user | default('') }}"
+```
+
+#### Invalid Configuration Values
+
+```yaml
+# PROBLEM: Invalid port number in all.yml
+# In all.yml
+configure_remote_logging_port: 99999  # Invalid port
+
+# SOLUTION: Use valid port number
+configure_remote_logging_port: 514  # Valid port
+```
+
+## Best Practices
+
+### Configuration Management
+
+- Use version control for `features.yml` (behavior configuration)
+- Keep `all.yml` out of version control (contains sensitive data)
+- Test configurations in a staging environment first
+- Document any custom configurations
+- Use the validation system before deployment
+
+### Security Considerations
+
+- Never commit `all.yml` to version control (contains passwords, keys)
+- Use environment variables for sensitive data when possible
+- Regularly rotate passwords and keys
+- Use the secure configuration options provided
+
+### Performance Optimization
+
+- Disable unused features to reduce resource usage
+- Use the resource limits for monitoring features
+- Configure appropriate retention periods for logs and reports
+- Monitor system performance after configuration changes
+
+### Variable Management
+
+- Use descriptive variable names in `all.yml`
+- Provide sensible defaults in `features.yml`
+- Use the `| default()` filter for optional variables
+- Keep environment-specific values separate from behavior configuration

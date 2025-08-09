@@ -1,10 +1,12 @@
 ---
-- name: Configure firewall with UFW and Docker networks
+- name: Configure Firewall
   hosts: all
   become: true
-  remote_user: "{{ initial_deployment_user }}"
+  vars_files:
+    - ../inventory/group_vars/defaults.yml
+    - ../inventory/group_vars/all.yml
+    - ../inventory/group_vars/features.yml
   vars:
     ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
   roles:
-    - configure_docker_networks  # Run first to create networks
-    - configure_firewall         # Then configure firewall rules
+    - configure_firewall

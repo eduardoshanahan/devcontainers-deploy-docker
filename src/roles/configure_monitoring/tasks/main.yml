@@ -1,4 +1,9 @@
 ---
+- name: Check if monitoring is enabled
+  ansible.builtin.debug:
+    msg: "Monitoring is {{ 'enabled' if features.monitoring | default(true) else 'disabled' }}"
+  when: features.monitoring | default(true)
+
 - name: Install lightweight monitoring tools
   ansible.builtin.apt:
     name:
@@ -16,6 +21,7 @@
     state: present
     update_cache: true
   become: true
+  when: features.monitoring | default(true)
 
 - name: Create monitoring directories
   ansible.builtin.file:
@@ -51,7 +57,7 @@
     dest: /tmp/node_exporter.tar.gz
     mode: "0644"
   become: true
-  when: configure_monitoring_prometheus_enabled | default(false)
+  when: features.monitoring.prometheus.enabled | default(false)
 
 - name: Extract Prometheus Node Exporter
   ansible.builtin.unarchive:
@@ -60,7 +66,7 @@
     remote_src: true
     creates: /opt/monitoring/node_exporter-1.6.1.linux-amd64/node_exporter
   become: true
-  when: configure_monitoring_prometheus_enabled | default(false)
+  when: features.monitoring.prometheus.enabled | default(false)
 
 - name: Create Node Exporter service
   ansible.builtin.template:
@@ -70,7 +76,7 @@
     group: root
     mode: "0644"
   become: true
-  when: configure_monitoring_prometheus_enabled | default(false)
+  when: features.monitoring.prometheus.enabled | default(false)
 
 - name: Start and enable Node Exporter
   ansible.builtin.systemd:
@@ -79,7 +85,7 @@
     enabled: true
     daemon_reload: true
   become: true
-  when: configure_monitoring_prometheus_enabled | default(false)
+  when: features.monitoring.prometheus.enabled | default(false)
 
 # Enhanced Security Monitoring
 - name: Configure security event logging

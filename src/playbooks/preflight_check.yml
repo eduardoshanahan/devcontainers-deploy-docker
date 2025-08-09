@@ -1,23 +1,31 @@
 ---
 - name: Pre-flight System Check
-  hosts: all
+  hosts: localhost
   gather_facts: false
   tasks:
-    - name: Check handler files exist
+    - name: Find all handler files using find module
       ansible.builtin.find:
-        paths: "{{ role_path }}"
-        patterns: "handlers/main.yml"
-      register: handler_files
-      delegate_to: localhost
+        paths: "roles"
+        patterns: "main.yml"
+        recurse: true
+        file_type: file
+      register: all_files
+
+    - name: Filter handler files
+      ansible.builtin.set_fact:
+        handler_files: "{{ all_files.files | selectattr('path', 'match', '.*/handlers/main\\.yml$') | list }}"
+
+    - name: Display handler files found
+      ansible.builtin.debug:
+        msg: "Handler files found: {{ handler_files | map(attribute='path') | list }}"
 
     - name: Validate handler syntax
       ansible.builtin.command: ansible-lint "{{ item.path }}"
-      loop: "{{ handler_files.files }}"
+      loop: "{{ handler_files }}"
       register: handler_lint
-      delegate_to: localhost
       ignore_errors: true
+      changed_when: false
 
     - name: Display validation results
       ansible.builtin.debug:
-        msg: "Handler validation completed"
-      delegate_to: localhost 
+        msg: "Handler validation completed - Found {{ handler_files | length }} handler files"

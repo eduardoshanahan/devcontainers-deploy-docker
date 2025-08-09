@@ -1,8 +1,11 @@
 ---
-- name: Create deployment user for containers
+- name: Create Deployment User
   hosts: all
   become: true
-  remote_user: "{{ initial_deployment_user }}"
+  vars_files:
+    - ../inventory/group_vars/defaults.yml
+    - ../inventory/group_vars/all.yml
+    - ../inventory/group_vars/features.yml
   vars:
     ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
   roles:

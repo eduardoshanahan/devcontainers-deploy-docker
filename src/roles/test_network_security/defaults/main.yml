@@ -2,26 +2,26 @@
 # Test configuration
 test_network_security_enabled: true
 
-# Test containers for network validation
+# Test containers for network validation (reference the main configuration)
 test_network_security_test_containers:
   - name: "test-web"
     image: "alpine:latest"
-    network: "test-to-delete-web-network"
+    network: "{{ configure_docker_networks_default_networks[0].name | default('test-to-delete-web-network') }}"
     command: "tail -f /dev/null"
     service: "web"
   - name: "test-db"
     image: "alpine:latest"
-    network: "test-db-network"
+    network: "{{ configure_docker_networks_default_networks[1].name | default('test-db-network') }}"
     command: "tail -f /dev/null"
     service: "database"
   - name: "test-monitoring"
     image: "alpine:latest"
-    network: "test-to-delete-monitoring-network"
+    network: "{{ configure_docker_networks_default_networks[2].name | default('test-to-delete-monitoring-network') }}"
     command: "tail -f /dev/null"
     service: "monitoring"
 
-# Expected network configurations (use actual configuration)
-test_network_security_expected_networks: "{{ deploy_docker_network_configuration.default_networks }}"
+# Expected network configurations (reference the main configuration)
+test_network_security_expected_networks: "{{ configure_docker_networks_default_networks | default([]) }}"
 
 # Expected firewall rules (use actual configuration)
 test_network_security_expected_firewall_rules:

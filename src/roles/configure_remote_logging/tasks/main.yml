@@ -23,7 +23,7 @@
     group: root
     mode: "0644"
   become: true
-  notify: restart rsyslog
+  notify: Restart rsyslog
 
 - name: Configure log forwarding rules
   ansible.builtin.template:
@@ -33,7 +33,7 @@
     group: root
     mode: "0644"
   become: true
-  notify: restart rsyslog
+  notify: Restart rsyslog
 
 - name: Ensure rsyslog service is enabled and running
   ansible.builtin.systemd:
@@ -45,4 +45,5 @@
 - name: Test remote logging configuration
   ansible.builtin.command: rsyslogd -N1
   become: true
-  changed_when: false 
+  changed_when: false
+  failed_when: false

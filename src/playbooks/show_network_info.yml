@@ -1,45 +1,27 @@
 ---
-- name: Show Docker network information
+- name: Show Network Information
   hosts: all
-  become: false
-  remote_user: "{{ containers_deployment_user }}"
+  become: true
   vars:
-    ansible_ssh_private_key_file: "{{ containers_deployment_user_ssh_key }}"
-    ansible_ssh_common_args: "-o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
-    ansible_user: "{{ containers_deployment_user }}"
-
+    ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
   tasks:
-    - name: Get current firewall rules for Docker networks
-      ansible.builtin.command: sudo ufw status | grep "172\."
-      register: firewall_rules
+    - name: Get network interfaces
+      ansible.builtin.command: ip addr show
+      register: network_interfaces
       changed_when: false
 
-    - name: Display current firewall rules
+    - name: Display network interfaces
       ansible.builtin.debug:
-        msg: "{{ firewall_rules.stdout_lines }}"
+        msg: "{{ network_interfaces.stdout_lines }}"
 
-    - name: Show available ranges
-      ansible.builtin.debug:
-        msg: |
-          Available ranges for new projects:
-          - 172.23.0.0/16
-          - 172.24.0.0/16
-          - 172.25.0.0/16
-          - 172.26.0.0/16
-          - 172.27.0.0/16
-          - 172.28.0.0/16
-          - 172.29.0.0/16
-          - 172.30.0.0/16
-          - 172.31.0.0/16
+    - name: Get UFW status
+      ansible.builtin.command: ufw status verbose
+      register: ufw_status
+      changed_when: false
 
-    - name: Show usage instructions
+    - name: Display UFW status
       ansible.builtin.debug:
-        msg: |
-          Usage:
-          1. Choose an available range
-          2. Create network: docker network create --subnet=RANGE my-network
-          3. Add firewall rule: sudo ufw allow from RANGE
-          4. Verify: sudo ufw status verbose
+        msg: "{{ ufw_status.stdout_lines }}"
 
     - name: Get Docker networks
       ansible.builtin.command: docker network ls
@@ -49,3 +31,12 @@
     - name: Display Docker networks
       ansible.builtin.debug:
         msg: "{{ docker_networks.stdout_lines }}"
+
+    - name: Get Docker network details
+      ansible.builtin.command: docker network inspect bridge
+      register: bridge_network
+      changed_when: false
+
+    - name: Display bridge network details
+      ansible.builtin.debug:
+        msg: "{{ bridge_network.stdout_lines }}"

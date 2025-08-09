@@ -1,36 +1,38 @@
 ---
-# Monitoring behavior settings
-configure_monitoring_enabled: true
+# Monitoring Configuration - Uses centralized variables from features.yml
+# All configuration is now managed through the centralized system
 
-# Lightweight Configuration (optimized for 2GB RAM)
-configure_monitoring_elk_enabled: false # Disabled for 2GB RAM
-configure_monitoring_prometheus_enabled: false # Disabled - not using metrics page
-configure_monitoring_prometheus_port: 9100
+# Master feature toggle
+configure_monitoring_enabled: "{{ features.monitoring | default(true) }}"
 
-# Health check configuration
-configure_monitoring_health_check_interval: 300 # 5 minutes
-configure_monitoring_disk_threshold: 85 # Alert when disk usage > 85%
-configure_monitoring_memory_threshold: 90 # Alert when memory usage > 90%
-configure_monitoring_cpu_threshold: 80 # Alert when CPU usage > 80%
-configure_monitoring_network_threshold: 80 # Alert when network usage > 80%
+# Core monitoring settings
+configure_monitoring_health_check_interval: "{{ monitoring.core.health_check_interval | default(300) }}"
+configure_monitoring_disk_threshold: "{{ monitoring.core.disk_threshold | default(85) }}"
+configure_monitoring_memory_threshold: "{{ monitoring.core.memory_threshold | default(90) }}"
+configure_monitoring_cpu_threshold: "{{ monitoring.core.cpu_threshold | default(80) }}"
+configure_monitoring_network_threshold: "{{ monitoring.core.network_threshold | default(80) }}"
 
-# Logging configuration (lightweight)
-configure_monitoring_log_file: "/var/log/health-monitor.log"
-configure_monitoring_log_retention_days: 7 # Reduced retention
-configure_monitoring_max_log_size: "10M" # Smaller log files
+# Resource limits
+configure_monitoring_memory_limit: "{{ monitoring.resources.memory_limit | default('512M') }}"
+configure_monitoring_cpu_limit: "{{ monitoring.resources.cpu_limit | default('1') }}"
+configure_monitoring_log_retention_days: "{{ monitoring.resources.log_retention_days | default(7) }}"
+configure_monitoring_max_log_size: "{{ monitoring.resources.max_log_size | default('10M') }}"
 
-# Alerting configuration
-configure_monitoring_alerts_enabled: true
-configure_monitoring_alerts_email: "eduardoshanahan@gmail.com"
-configure_monitoring_alerts_slack_webhook: ""
-configure_monitoring_alerts_discord_webhook: ""
+# Docker monitoring
+configure_monitoring_docker_logs_enabled: "{{ monitoring.docker.logs_enabled | default(true) }}"
+configure_monitoring_docker_log_driver: "{{ monitoring.docker.log_driver | default('json-file') }}"
+configure_monitoring_docker_log_max_size: "{{ monitoring.docker.log_max_size | default('10m') }}"
+configure_monitoring_docker_log_max_files: "{{ monitoring.docker.log_max_files | default('3') }}"
 
-# Docker monitoring configuration (lightweight)
-configure_monitoring_docker_logs_enabled: true
-configure_monitoring_docker_log_driver: "json-file"
-configure_monitoring_docker_log_max_size: "10m"
-configure_monitoring_docker_log_max_files: "3"
+# Prometheus
+configure_monitoring_prometheus_enabled: "{{ monitoring.prometheus.enabled | default(false) }}"
+configure_monitoring_prometheus_port: "{{ monitoring.prometheus.port | default(9100) }}"
 
-# Resource limits for monitoring
-configure_monitoring_memory_limit: "512M" # Max 512MB for monitoring
-configure_monitoring_cpu_limit: "1" # Max 1 CPU core for monitoring
+# ELK Stack
+configure_monitoring_elk_enabled: "{{ monitoring.elk.enabled | default(false) }}"
+
+# Alerting
+configure_monitoring_alerts_enabled: "{{ monitoring.core.enabled | default(true) }}"
+configure_monitoring_alerts_email: "{{ notifications.email.recipients[0] | default('') }}"
+configure_monitoring_alerts_slack_webhook: "{{ notifications.webhooks.slack_webhook | default('') }}"
+configure_monitoring_alerts_discord_webhook: "{{ notifications.webhooks.discord_webhook | default('') }}"

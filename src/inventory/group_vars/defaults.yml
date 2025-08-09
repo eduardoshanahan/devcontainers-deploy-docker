@@ -1,17 +1,19 @@
 ---
 # =============================================================================
-# ENVIRONMENT-SPECIFIC CONFIGURATION
+# DEFAULT VALUES - NON-CONFIDENTIAL
 # =============================================================================
-# This file contains environment-specific values that are referenced by features.yml
-# Keep sensitive data here (not in git) and use the centralized system
+# This file contains all default values that are not confidential
+# These values are overridden by all.yml for environment-specific configuration
 # =============================================================================
 
 # =============================================================================
-# SERVER CONFIGURATION
+# SYSTEM DEFAULTS
 # =============================================================================
 vps_server_ip: "your-server-ip-or-hostname"
 initial_deployment_user: "ubuntu"
 initial_deployment_ssh_key: "~/.ssh/your-ssh-key"
+initial_deployment_ssh_port: 22
+initial_deployment_timeout: 30
 containers_deployment_user: "docker_deployment"
 containers_deployment_user_ssh_key: "~/.ssh/your-deployment-key"
 containers_deployment_user_ssh_key_public: "/path/to/your/public/key.pub"
@@ -21,19 +23,26 @@ ansible_ssh_common_args: "-o IdentitiesOnly=yes -o PreferredAuthentications=publ
 ansible_python_interpreter: "/usr/bin/python3.10"
 
 # =============================================================================
-# SECURITY CONFIGURATION
+# SECURITY CONFIGURATION DEFAULTS
 # =============================================================================
 # Security Updates Configuration
-configure_security_updates_email: "your-email@gmail.com"
-configure_security_updates_gmail_enabled: true
-configure_security_updates_gmail_user: "your-gmail@gmail.com"
-configure_security_updates_gmail_password: "your-app-password"
+configure_security_updates_email: ""
+configure_security_updates_gmail_enabled: false
+configure_security_updates_gmail_user: ""
+configure_security_updates_gmail_password: ""
 configure_security_updates_gmail_smtp_server: "smtp.gmail.com"
 configure_security_updates_gmail_smtp_port: "465"
 configure_security_updates_slack_webhook: ""
 configure_security_updates_discord_webhook: ""
 
 # Firewall Configuration
+configure_firewall_enabled: true
+configure_firewall_default_policy: "DROP"
+configure_firewall_allowed_ports:
+  - 22   # SSH
+  - 80   # HTTP
+  - 443  # HTTPS
+  - 3306 # MySQL port
 configure_firewall_logging_level: "medium"
 configure_firewall_docker_networks:
   - 172.20.0.0/16  # Web applications network
@@ -42,74 +51,58 @@ configure_firewall_docker_networks:
 configure_firewall_container_ports: []  # Empty list - no ports open
 
 # =============================================================================
-# MONITORING CONFIGURATION
+# MONITORING CONFIGURATION DEFAULTS
 # =============================================================================
 configure_monitoring_enabled: true
 configure_monitoring_prometheus_enabled: false  # Disable Prometheus Node Exporter
-configure_monitoring_alert_email: "your-email@example.com"
 configure_monitoring_alert_webhook: ""
+configure_monitoring_retention_days: 30
+configure_monitoring_disk_threshold: 80
+configure_monitoring_memory_threshold: 85
+configure_monitoring_cpu_threshold: 90
 
 # =============================================================================
-# CONTAINER SECURITY CONFIGURATION
+# CONTAINER SECURITY CONFIGURATION DEFAULTS
 # =============================================================================
 configure_container_security_enabled: true
 configure_container_security_trivy_enabled: true
 configure_container_security_alerts_enabled: true
-configure_container_security_alert_email: "your-email@example.com"
+configure_container_security_alert_email: ""
+configure_container_security_scan_images: true
+configure_container_security_scan_running: true
+configure_container_security_scan_schedule: "0 2 * * *"
+configure_container_security_severity_threshold: "HIGH"
+configure_container_security_ignore_unfixed: true
 
 # =============================================================================
-# DOCKER NETWORK CONFIGURATION
+# DOCKER NETWORK CONFIGURATION DEFAULTS
 # =============================================================================
 # Default networks
 configure_docker_networks_default_networks:
-  - name: "test-to-delete-web-network"
+  - name: "web-network"
     subnet: "172.20.0.0/16"
     driver: "bridge"
-    description: "TEST NETWORK - Web applications and frontend services (DELETE AFTER TESTING)"
-  - name: "test-db-network"
+    description: "Web applications and frontend services"
+  - name: "db-network"
     subnet: "172.21.0.0/16"
     driver: "bridge"
-    description: "TEST NETWORK - Databases and backend services (DELETE AFTER TESTING)"
-  - name: "test-to-delete-monitoring-network"
+    description: "Databases and backend services"
+  - name: "monitoring-network"
     subnet: "172.22.0.0/16"
     driver: "bridge"
-    description: "TEST NETWORK - Monitoring and logging services (DELETE AFTER TESTING)"
+    description: "Monitoring and logging services"
 
 # Custom networks
-configure_docker_networks_custom_networks:
-  - name: "test-api-network"
-    subnet: "172.23.0.0/16"
-    driver: "bridge"
-    description: "TEST NETWORK - API services network (DELETE AFTER TESTING)"
-  - name: "test-cache-network"
-    subnet: "172.24.0.0/16"
-    driver: "bridge"
-    description: "TEST NETWORK - Cache and session storage network (DELETE AFTER TESTING)"
+configure_docker_networks_custom_networks: []
 
 # Network policies
-deploy_docker_network_policies:
-  web_services:
-    - "nginx"
-    - "apache"
-    - "nodejs"
-    - "react"
-    - "vue"
-  database_services:
-    - "postgres"
-    - "mysql"
-    - "redis"
-    - "mongodb"
-  monitoring_services:
-    - "prometheus"
-    - "grafana"
-    - "elasticsearch"
-    - "kibana"
+deploy_docker_network_policies: {}
 
 # Network removal (use with caution)
 configure_docker_networks_remove_all: false
 
 # =============================================================================
-# REMOTE LOGGING CONFIGURATION
+# REMOTE LOGGING CONFIGURATION DEFAULTS
 # =============================================================================
 configure_remote_logging_enabled: true
 configure_remote_logging_server: "your-logging-server-ip"
@@ -123,7 +116,7 @@ configure_remote_logging_forward_system_logs: true
 configure_remote_logging_forward_docker_logs: true
 
 # =============================================================================
-# LOG DOWNLOAD CONFIGURATION
+# LOG DOWNLOAD CONFIGURATION DEFAULTS
 # =============================================================================
 configure_log_download_enabled: true
 configure_log_download_auto_collect: true
@@ -136,18 +129,27 @@ configure_log_download_require_auth: true
 configure_log_download_allowed_ips: []
 
 # =============================================================================
-# DOCKER USER PERMISSIONS
+# DOCKER USER PERMISSIONS DEFAULTS
 # =============================================================================
 docker_user_enhanced_permissions: true
 docker_user_network_management: true
 docker_user_system_monitoring: true
 
 # =============================================================================
-# DOCKER DEPLOYMENT CONFIGURATION
+# DOCKER DEPLOYMENT CONFIGURATION DEFAULTS
 # =============================================================================
 deploy_docker_security_enabled: true
-deploy_docker_clean_slate: false
+deploy_docker_clean_slate: true
 deploy_docker_packages:
   - docker-ce
   - docker-ce-cli
   - containerd.io
+
+# =============================================================================
+# REPORTING CONFIGURATION DEFAULTS
+# =============================================================================
+configure_reporting_enabled: true
+configure_reporting_format: "html"
+configure_reporting_include_security_scan: true
+configure_reporting_include_network_info: true
+configure_reporting_include_system_health: true

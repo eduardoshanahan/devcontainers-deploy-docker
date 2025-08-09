@@ -1,4 +1,9 @@
 ---
+- name: Check if reporting is enabled
+  ansible.builtin.debug:
+    msg: "Reporting is {{ 'enabled' if features.reporting | default(true) else 'disabled' }}"
+  when: features.reporting | default(true)
+
 - name: Install reporting dependencies
   ansible.builtin.apt:
     name:
@@ -6,11 +11,11 @@
       - curl
       - bc
       - mailutils
-      - zip
-      - tar
+      - cron
     state: present
     update_cache: true
   become: true
+  when: features.reporting | default(true)
 
 - name: Create reporting directories
   ansible.builtin.file:
@@ -86,12 +91,12 @@
 - name: Create daily report cron job
   ansible.builtin.cron:
     name: "Daily System Report"
-    hour: "{{ configure_reporting_daily_hour }}"
-    minute: "{{ configure_reporting_daily_minute }}"
+    hour: "{{ reporting.schedule.daily.hour | default('6') }}"
+    minute: "{{ reporting.schedule.daily.minute | default('0') }}"
     job: "/opt/reports/generate-daily-report.sh"
     user: root
   become: true
-  when: configure_reporting_daily_enabled | default(true)
+  when: reporting.core.daily_enabled | default(true)
 
 - name: Create weekly report cron job (with compatibility check)
   ansible.builtin.cron:

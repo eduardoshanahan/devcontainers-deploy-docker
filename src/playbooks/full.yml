@@ -1,50 +1,45 @@
 ---
-- name: Full system deployment
+- name: Load centralized configuration
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Load defaults.yml (non-confidential defaults)
+      ansible.builtin.include_vars: ../inventory/group_vars/defaults.yml
+
+    - name: Load all.yml (environment-specific values)
+      ansible.builtin.include_vars: ../inventory/group_vars/all.yml
+
+    - name: Load features.yml (behavior configuration)
+      ansible.builtin.include_vars: ../inventory/group_vars/features.yml
+
+- name: Deploy complete system
   hosts: all
   become: true
-  remote_user: "{{ initial_deployment_user }}"
-  vars:
-    ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
+  vars_files:
+    - ../inventory/group_vars/defaults.yml
+    - ../inventory/group_vars/all.yml
+    - ../inventory/group_vars/features.yml
   roles:
     - update_ubuntu
     - disable_password_authentication
     - create_deployment_user
-    - configure_firewall
-    - configure_fail2ban
-    - configure_monitoring
-    - configure_log_rotation
-    - configure_security_updates
     - deploy_docker
-    - configure_docker_networks
-    - configure_container_security
-    - configure_log_download
+    - configure_firewall
+    - configure_security_updates
+    - configure_monitoring
     - configure_reporting
+    - configure_container_security
+    - configure_remote_logging
+    - configure_log_download
+    - configure_log_rotation
     - test_network_security
+    - configure_docker_networks
+    - configure_fail2ban
 
-- name: Send deployment completion notification
-  hosts: all
-  become: true
-  vars:
-    notification_email_address: "{{ configure_security_updates_email | default('') }}"
-    gmail_enabled: "{{ configure_security_updates_gmail_enabled | default(false) }}"
-    gmail_user: "{{ configure_security_updates_gmail_user | default('') }}"
-    gmail_password: "{{ configure_security_updates_gmail_password | default('') }}"
-    gmail_smtp_server: "{{ configure_security_updates_gmail_smtp_server | default('smtp.gmail.com') }}"
-    gmail_smtp_port: "{{ configure_security_updates_gmail_smtp_port | default('587') }}"
+- name: Deployment completion notification
+  hosts: localhost
+  gather_facts: true
   tasks:
-    - name: Get system information
-      ansible.builtin.setup:
-      register: system_info
-
-    - name: Get deployment timestamp
-      ansible.builtin.command: date
-      register: deployment_time
-      changed_when: false
-
-    - name: Send deployment completion email
-      ansible.builtin.shell: |
-        /opt/security-updates/security-update-notify.sh \
-          "Server Deployment Complete" \
-          "Full system deployment completed successfully on {{ inventory_hostname }} at {{ deployment_time.stdout }}. Reporting system is now active."
-      changed_when: false
-      when: configure_security_updates_email is defined and configure_security_updates_email != ""
+    - name: Send deployment completion notification
+      ansible.builtin.debug:
+        msg: "Deployment completed successfully at {{ ansible_date_time.iso8601 }}"

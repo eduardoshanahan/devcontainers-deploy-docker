@@ -1,32 +1,40 @@
 ---
-- name: Test Monitoring Role Handlers
+- name: Test System Handlers
   hosts: all
-  gather_facts: false
+  become: true
+  vars:
+    ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
   tasks:
-    - name: Test handler file exists
-      ansible.builtin.stat:
-        path: "{{ role_path }}/handlers/main.yml"
-      register: handler_file
-      delegate_to: localhost
+    - name: Test Docker service restart
+      ansible.builtin.service:
+        name: docker
+        state: restarted
+      become: true
 
-    - name: Fail if handler file missing
-      ansible.builtin.fail:
-        msg: "Handler file missing: {{ role_path }}/handlers/main.yml"
-      when: not handler_file.stat.exists
-      delegate_to: localhost
+    - name: Test UFW service restart
+      ansible.builtin.service:
+        name: ufw
+        state: reloaded
+      become: true
 
-    - name: Validate handler file syntax
-      ansible.builtin.command: ansible-lint "{{ role_path }}/handlers/main.yml"
-      register: lint_result
-      delegate_to: localhost
-      ignore_errors: true
+    - name: Test Fail2ban service restart
+      ansible.builtin.service:
+        name: fail2ban
+        state: restarted
+      become: true
 
-    - name: Display handler validation result
+    - name: Display service status
+      ansible.builtin.service_facts:
+      become: true
+
+    - name: Show Docker status
       ansible.builtin.debug:
-        msg: "Handler validation {{ 'PASSED' if lint_result.rc == 0 else 'FAILED' }}"
-      delegate_to: localhost
+        msg: "Docker service status: {{ ansible_facts.services['docker.service'].state }}"
 
-    - name: List available handlers
+    - name: Show UFW status
       ansible.builtin.debug:
-        msg: "Available handlers in monitoring role"
-      delegate_to: localhost 
+        msg: "UFW service status: {{ ansible_facts.services['ufw.service'].state }}"
+
+    - name: Show Fail2ban status
+      ansible.builtin.debug:
+        msg: "Fail2ban service status: {{ ansible_facts.services['fail2ban.service'].state }}"

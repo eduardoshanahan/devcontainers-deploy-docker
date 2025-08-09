@@ -2,14 +2,17 @@
 # Docker deployment behavior settings
 deploy_docker_security_enabled: false
 
+# Clean slate option - removes all existing Docker images and containers
+deploy_docker_clean_slate: false
+
 # Package configuration (Behavior)
 deploy_docker_packages:
   - docker-ce
   - docker-ce-cli
   - containerd.io
 
-# Docker network configuration (use variables from all.yml)
-deploy_docker_network_configuration: "{{ deploy_docker_network_configuration | default({}) }}"
+# Docker network configuration (will be overridden by group_vars)
+deploy_docker_network_configuration: {}
 
-# Container network policies (use variables from all.yml)
-deploy_docker_network_policies: "{{ deploy_docker_network_policies | default({}) }}"
+# Container network policies (will be overridden by group_vars)
+deploy_docker_network_policies: {}

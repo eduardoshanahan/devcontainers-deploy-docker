@@ -1,6 +1,12 @@
 ---
-- name: Configure remote logging
+- name: Configure Remote Logging
   hosts: all
   become: true
+  vars_files:
+    - ../inventory/group_vars/defaults.yml
+    - ../inventory/group_vars/all.yml
+    - ../inventory/group_vars/features.yml
+  vars:
+    ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
   roles:
-    - configure_remote_logging 
+    - configure_remote_logging

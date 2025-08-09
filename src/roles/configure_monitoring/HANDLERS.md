@@ -4,28 +4,28 @@ This document lists all handlers used by the monitoring role and their purposes.
 
 ## Required Handlers
 
-### restart docker
+### Restart docker
 
 - **Purpose**: Restart Docker daemon after configuration changes
 - **Triggered by**: Docker logging configuration changes
 - **File**: `handlers/main.yml`
 - **Service**: docker
 
-### restart rsyslog
+### Restart rsyslog
 
 - **Purpose**: Restart rsyslog after configuration changes
 - **Triggered by**: Logging configuration changes
 - **File**: `handlers/main.yml`
 - **Service**: rsyslog
 
-### restart auditd
+### Restart auditd
 
 - **Purpose**: Restart auditd after configuration changes
 - **Triggered by**: Audit configuration changes
 - **File**: `handlers/main.yml`
 - **Service**: auditd
 
-### restart aide
+### Restart aide
 
 - **Purpose**: Restart AIDE after configuration changes
 - **Triggered by**: File integrity monitoring configuration changes

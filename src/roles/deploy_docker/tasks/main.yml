@@ -12,6 +12,59 @@
     update_cache: true
   become: true
 
+# Clean slate option - remove all existing Docker images and containers
+- name: Check if Docker is running (for clean slate)
+  ansible.builtin.service:
+    name: docker
+    state: started
+  register: docker_service_status
+  failed_when: false
+  become: true
+
+- name: Stop all running containers (clean slate)
+  ansible.builtin.command: docker stop $(docker ps -q)
+  when:
+    - deploy_docker_clean_slate | bool
+    - docker_service_status.state == "started"
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Remove all containers (clean slate)
+  ansible.builtin.command: docker rm $(docker ps -aq)
+  when: deploy_docker_clean_slate | bool
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Remove all Docker images (clean slate)
+  ansible.builtin.command: docker rmi $(docker images -q)
+  when: deploy_docker_clean_slate | bool
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Remove all Docker volumes (clean slate)
+  ansible.builtin.command: docker volume rm $(docker volume ls -q)
+  when: deploy_docker_clean_slate | bool
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Remove all Docker networks (except default)
+  ansible.builtin.command: docker network rm $(docker network ls --filter type=custom -q)
+  when: deploy_docker_clean_slate | bool
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Prune Docker system (clean slate)
+  ansible.builtin.command: docker system prune -af
+  when: deploy_docker_clean_slate | bool
+  failed_when: false
+  changed_when: false
+  become: true
+
 - name: Create Docker GPG key directory
   ansible.builtin.file:
     path: /etc/apt/keyrings
@@ -111,9 +164,13 @@
   when: docker_direct_install is failed
   block:
     - name: Add Docker repository manually
-      ansible.builtin.shell: |
-        set -o pipefail
-        echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu jammy stable" | sudo tee /etc/apt/sources.list.d/docker.list
+      ansible.builtin.lineinfile:
+        path: /etc/apt/sources.list.d/docker.list
+        line: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu jammy stable"
+        create: true
+        mode: "0644"
+        owner: root
+        group: root
       become: true
 
     - name: Update apt cache after manual repository addition

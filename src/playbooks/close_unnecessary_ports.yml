@@ -32,4 +32,4 @@
 
     - name: Debug UFW status
       ansible.builtin.debug:
-        msg: "{{ ufw_status.stdout_lines }}" 
+        msg: "{{ ufw_status.stdout_lines }}"

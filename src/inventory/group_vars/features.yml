@@ -1,0 +1,279 @@
+---
+# =============================================================================
+# CENTRALIZED FEATURE CONFIGURATION
+# =============================================================================
+# This file contains all behavior flags and feature toggles for the entire system.
+# It provides a single point of control for enabling/disabling features.
+# Environment-specific values are referenced from all.yml
+# =============================================================================
+
+# =============================================================================
+# MASTER FEATURE TOGGLES
+# =============================================================================
+# High-level feature categories - these control entire feature sets
+features:
+  # Core system features
+  security: true          # All security-related features
+  monitoring: true        # All monitoring and alerting features
+  reporting: true         # All reporting and notification features
+  containers: true        # All container-related features
+  networking: true        # All networking and firewall features
+  logging: true           # All logging and log management features
+
+# =============================================================================
+# SECURITY FEATURES
+# =============================================================================
+security:
+  # Security Updates
+  updates:
+    enabled: true
+    auto_reboot: false
+    auto_reboot_time: "02:00"
+    mail_on_error: true
+    mail_on_reboot: false
+    retry_count: 3
+    retry_delay: 300
+    enable_error_handler: true
+    problematic_packages:
+      - "linux-virtual"
+      - "linux-image-virtual"
+      - "linux-image-generic"
+
+  # SSH Security
+  ssh:
+    password_auth_disabled: true
+    key_based_auth_only: true
+
+  # Firewall
+  firewall:
+    enabled: true
+    logging_level: "{{ configure_firewall_logging_level | default('medium') }}"
+    docker_networks: "{{ configure_firewall_docker_networks | default(['172.20.0.0/16', '172.21.0.0/16', '172.22.0.0/16']) }}"
+    container_ports: "{{ configure_firewall_container_ports | default([8080, 3000, 9000, 5432, 3306]) }}"
+
+  # Fail2ban
+  fail2ban:
+    enabled: true
+    max_retry: 3
+    bantime: 3600
+    findtime: 600
+
+# =============================================================================
+# MONITORING FEATURES
+# =============================================================================
+monitoring:
+  # Core monitoring
+  core:
+    enabled: "{{ configure_monitoring_enabled | default(true) }}"
+    health_check_interval: 300  # 5 minutes
+    disk_threshold: 85          # Alert when disk usage > 85%
+    memory_threshold: 90        # Alert when memory usage > 90%
+    cpu_threshold: 80           # Alert when CPU usage > 80%
+    network_threshold: 80       # Alert when network usage > 80%
+
+  # Resource limits (optimized for 2GB RAM)
+  resources:
+    memory_limit: "512M"        # Max 512MB for monitoring
+    cpu_limit: "1"              # Max 1 CPU core for monitoring
+    log_retention_days: 7       # Reduced retention
+    max_log_size: "10M"         # Smaller log files
+
+  # Docker monitoring
+  docker:
+    logs_enabled: true
+    log_driver: "json-file"
+    log_max_size: "10m"
+    log_max_files: "3"
+
+  # Prometheus (disabled for 2GB RAM)
+  prometheus:
+    enabled: "{{ configure_monitoring_prometheus_enabled | default(false) }}"
+    port: 9100
+
+  # ELK Stack (disabled for 2GB RAM)
+  elk:
+    enabled: false
+
+# =============================================================================
+# REPORTING FEATURES
+# =============================================================================
+reporting:
+  # Core reporting
+  core:
+    enabled: true
+    daily_enabled: true
+    weekly_enabled: true
+    monthly_enabled: true
+
+  # Scheduling
+  schedule:
+    daily:
+      hour: "6"
+      minute: "0"
+      retention_days: 7
+    weekly:
+      day: "0"  # Sunday
+      hour: "7"
+      minute: "0"
+      retention_days: 30
+    monthly:
+      day: "1"  # 1st of month
+      hour: "8"
+      minute: "0"
+      retention_days: 90
+
+  # Content configuration
+  content:
+    include_system_health: true
+    include_security_events: true
+    include_container_status: true
+    include_resource_usage: true
+    include_network_security: true
+    include_docker_logs: true
+    include_failed_logins: true
+
+  # Format configuration
+  format:
+    html_enabled: true
+    text_enabled: true
+    json_enabled: false
+
+# =============================================================================
+# CONTAINER FEATURES
+# =============================================================================
+containers:
+  # Docker deployment
+  docker:
+    security_enabled: "{{ deploy_docker_security_enabled | default(false) }}"
+    clean_slate: "{{ deploy_docker_clean_slate | default(false) }}"
+    packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+
+  # Container security
+  security:
+    enabled: "{{ configure_container_security_enabled | default(true) }}"
+    trivy_enabled: "{{ configure_container_security_trivy_enabled | default(true) }}"
+    clair_enabled: false
+    scan_schedule: "daily"
+    scan_hour: "2"
+    scan_minute: "0"
+    scan_severity: "HIGH,CRITICAL"
+    scan_format: "json"
+    scan_timeout: "300"
+    scan_cache: true
+
+    # Monitoring
+    monitor_privileged: true
+    monitor_host_network: true
+    monitor_host_mounts: true
+    monitor_unusual_behavior: true
+    monitor_interval: "30"
+
+    # Alerting
+    alerts_enabled: "{{ configure_container_security_alerts_enabled | default(true) }}"
+    reports_enabled: true
+    reports_retention_days: "30"
+    reports_format: "html"
+
+    # Vulnerability thresholds
+    vulnerability_threshold_critical: 0
+    vulnerability_threshold_high: 5
+    vulnerability_threshold_medium: 10
+
+    # Docker security policies
+    docker_policies:
+      - "no-new-privileges"
+      - "read-only-root-filesystem"
+      - "no-privileged"
+      - "no-host-network"
+      - "no-host-mounts"
+
+  # Docker networks
+  networks:
+    remove_all: "{{ configure_docker_networks_remove_all | default(false) }}"
+    default_networks: "{{ configure_docker_networks_default_networks | default([]) }}"
+    custom_networks: "{{ configure_docker_networks_custom_networks | default([]) }}"
+    network_policies: "{{ deploy_docker_network_policies | default({}) }}"
+
+# =============================================================================
+# LOGGING FEATURES
+# =============================================================================
+logging:
+  # Remote logging
+  remote:
+    enabled: "{{ configure_remote_logging_enabled | default(true) }}"
+    protocol: "{{ configure_remote_logging_protocol | default('udp') }}"
+    port: "{{ configure_remote_logging_port | default(514) }}"
+    retry_interval: "{{ configure_remote_logging_retry_interval | default(30) }}"
+    max_retries: "{{ configure_remote_logging_max_retries | default(3) }}"
+    forward_all_logs: "{{ configure_remote_logging_forward_all_logs | default(true) }}"
+    forward_security_logs: "{{ configure_remote_logging_forward_security_logs | default(true) }}"
+    forward_system_logs: "{{ configure_remote_logging_forward_system_logs | default(true) }}"
+    forward_docker_logs: "{{ configure_remote_logging_forward_docker_logs | default(true) }}"
+
+  # Log download
+  download:
+    enabled: "{{ configure_log_download_enabled | default(true) }}"
+    auto_collect: "{{ configure_log_download_auto_collect | default(true) }}"
+    auto_cleanup: "{{ configure_log_download_auto_cleanup | default(true) }}"
+    retention_days: "{{ configure_log_download_retention_days | default(7) }}"
+    secure_only: "{{ configure_log_download_secure_only | default(true) }}"
+    encrypt_exports: "{{ configure_log_download_encrypt_exports | default(true) }}"
+    cleanup_passwords: "{{ configure_log_download_cleanup_passwords | default(true) }}"
+    require_auth: "{{ configure_log_download_require_auth | default(true) }}"
+    allowed_ips: "{{ configure_log_download_allowed_ips | default([]) }}"
+
+  # Log rotation
+  rotation:
+    enabled: true
+    max_size: "100M"
+    rotate_count: 4
+    compress: true
+    delay_compress: false
+
+# =============================================================================
+# NOTIFICATION FEATURES
+# =============================================================================
+notifications:
+  # Email configuration
+  email:
+    enabled: true
+    gmail_enabled: "{{ configure_security_updates_gmail_enabled | default(false) }}"
+    gmail_user: "{{ configure_security_updates_gmail_user | default('') }}"
+    gmail_password: "{{ configure_security_updates_gmail_password | default('') }}"
+    gmail_smtp_server: "{{ configure_security_updates_gmail_smtp_server | default('smtp.gmail.com') }}"
+    gmail_smtp_port: "{{ configure_security_updates_gmail_smtp_port | default('465') }}"
+    recipients: "{{ [configure_security_updates_email] | default(['your-email@gmail.com']) }}"
+
+  # Webhook notifications
+  webhooks:
+    slack_enabled: false
+    slack_webhook: "{{ configure_security_updates_slack_webhook | default('') }}"
+    discord_enabled: false
+    discord_webhook: "{{ configure_security_updates_discord_webhook | default('') }}"
+
+# =============================================================================
+# SYSTEM CONFIGURATION
+# =============================================================================
+system:
+  # Server configuration
+  server:
+    ip: "{{ vps_server_ip | default('your-server-ip-or-hostname') }}"
+    initial_user: "{{ initial_deployment_user | default('ubuntu') }}"
+    initial_ssh_key: "{{ initial_deployment_ssh_key | default('~/.ssh/your-ssh-key') }}"
+    deployment_user: "{{ containers_deployment_user | default('docker_deployment') }}"
+    deployment_ssh_key: "{{ containers_deployment_user_ssh_key | default('~/.ssh/your-deployment-key') }}"
+    deployment_ssh_key_public: "{{ containers_deployment_user_ssh_key_public | default('/path/to/your/public/key.pub') }}"
+
+  # SSH configuration
+  ssh:
+    common_args: "{{ ansible_ssh_common_args | default('-o IdentitiesOnly=yes -o PreferredAuthentications=publickey') }}"
+    python_interpreter: "{{ ansible_python_interpreter | default('/usr/bin/python3.10') }}"
+
+  # Enhanced Docker user permissions
+  docker_user:
+    enhanced_permissions: "{{ docker_user_enhanced_permissions | default(true) }}"
+    network_management: "{{ docker_user_network_management | default(true) }}"
+    system_monitoring: "{{ docker_user_system_monitoring | default(true) }}"

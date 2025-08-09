@@ -1,17 +1,18 @@
 # Deploy Docker Role
 
-This role installs and configures Docker on Ubuntu systems with proper security settings and network configuration.
+This role installs and configures Docker on Ubuntu systems with proper security settings, network configuration, and optional clean slate deployment.
 
 ## What it does
 
 - Installs Docker prerequisites (apt-transport-https, ca-certificates, curl, etc.)
-- Adds Docker's official GPG key
-- Configures Docker repository
+- Adds Docker's official GPG key with robust error handling
+- Configures Docker repository with fallback installation methods
 - Installs Docker Engine and containerd
 - Starts and enables Docker service
 - Adds deployment user to docker group
 - Configures Docker daemon with security settings
 - Sets up network configuration and policies
+- **NEW**: Optional clean slate deployment (removes all existing Docker resources)
 - Displays Docker and Docker Compose versions
 
 ## Docker Configuration
@@ -22,6 +23,7 @@ This role installs and configures Docker on Ubuntu systems with proper security 
 - **User permissions**: Deployment user added to docker group
 - **Security**: Hardened Docker daemon configuration
 - **Networking**: Configurable network policies and isolation
+- **Clean Slate**: Optional removal of all existing Docker resources
 
 ## Version Information
 
@@ -45,6 +47,7 @@ The role displays:
 - Hardened Docker daemon configuration
 - Network isolation and security policies
 - Bridge netfilter enabled for iptables rules
+- **NEW**: Comprehensive GPG key cleanup and management
 
 ## Configuration
 
@@ -54,7 +57,8 @@ These control how the role behaves and are defined in the role defaults:
 
 ```yaml
 # In role defaults/main.yml
-deploy_docker_security_enabled: true
+deploy_docker_security_enabled: false
+deploy_docker_clean_slate: false  # NEW: Clean slate option
 deploy_docker_packages:
   - docker-ce
   - docker-ce-cli
@@ -91,6 +95,45 @@ deploy_docker_network_policies:
     - "redis"
 ```
 
+## Clean Slate Deployment
+
+### Overview
+The clean slate option allows you to start with a completely clean Docker environment by removing all existing Docker resources.
+
+### Configuration
+```yaml
+# In your inventory variables
+deploy_docker_clean_slate: true
+```
+
+### What Gets Removed
+- All running and stopped containers
+- All Docker images
+- All Docker volumes
+- All custom Docker networks (except default)
+- All unused Docker resources (via `docker system prune -af`)
+
+### ⚠️ Warning
+This will **permanently delete** all existing Docker images, containers, and volumes!
+
+### Usage Examples
+
+**Option 1: Set in inventory**
+```yaml
+# In src/inventory/group_vars/all.yml
+deploy_docker_clean_slate: true
+```
+
+**Option 2: Command line override**
+```bash
+ansible-playbook playbooks/full.yml -e "deploy_docker_clean_slate=true"
+```
+
+**Option 3: Individual role**
+```bash
+ansible-playbook playbooks/deploy_docker.yml -e "deploy_docker_clean_slate=true"
+```
+
 ## Variable Organization
 
 ### Role Defaults (Behavior Settings)
@@ -112,6 +155,13 @@ deploy_docker_network_policies:
 ```bash
 # Deploy Docker with default configuration
 ansible-playbook playbooks/deploy_docker.yml
+```
+
+### Clean Slate Deployment
+
+```bash
+# Deploy Docker with clean slate (removes all existing resources)
+ansible-playbook playbooks/deploy_docker.yml -e "deploy_docker_clean_slate=true"
 ```
 
 ### Custom Network Configuration
@@ -168,6 +218,18 @@ The role configures the Docker daemon with:
 - Log out and back in for group changes to take effect
 - Test Docker access: `docker ps`
 
+### GPG Key Issues
+
+- **NEW**: The role now handles GPG key conflicts automatically
+- If you encounter `NO_PUBKEY` errors, the role will clean up old keys
+- Manual fix if needed: `sudo apt-key del 7EA0A9C3F273FCD8 && sudo rm -rf /var/lib/apt/lists/* && sudo apt-get update`
+
+### Clean Slate Issues
+
+- Ensure no critical containers are running before enabling clean slate
+- Backup important data in volumes before using clean slate option
+- Check Docker system status: `docker system df`
+
 ## Benefits
 
 1. **Secure Installation**: Uses official Docker repository and GPG keys
@@ -175,7 +237,9 @@ The role configures the Docker daemon with:
 3. **Network Security**: Configurable network isolation and policies
 4. **User Management**: Proper group permissions and access control
 5. **Flexibility**: Customizable network configurations per environment
+6. **NEW**: Clean slate deployment option for fresh starts
+7. **NEW**: Robust GPG key management and error handling
 
 ## Summary
 
-This role provides a **secure and properly configured** Docker installation with network security features and flexible configuration options. It follows best practices for Docker deployment while allowing customization for different environments.
+This role provides a **secure and properly configured** Docker installation with network security features, flexible configuration options, and optional clean slate deployment. It follows best practices for Docker deployment while allowing customization for different environments and handling common installation issues.
