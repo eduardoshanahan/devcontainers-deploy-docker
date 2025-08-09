@@ -17,16 +17,16 @@ log_message() {
 
 log_message "Starting container security scan"
 
-# Get list of running containers
-RUNNING_CONTAINERS=$(docker ps --format "{{ '{{' }}.Image{{ '}}' }}")
+# Get list of ALL images (not just running containers)
+ALL_IMAGES=$(docker images --format "{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}" | grep -v "<none>")
 
-if [ -z "$RUNNING_CONTAINERS" ]; then
-    log_message "No running containers found"
+if [ -z "$ALL_IMAGES" ]; then
+    log_message "No Docker images found"
     exit 0
 fi
 
-# Scan each running container
-for IMAGE in $RUNNING_CONTAINERS; do
+# Scan each image
+for IMAGE in $ALL_IMAGES; do
     log_message "Scanning image: $IMAGE"
     
     # Use Trivy to scan for vulnerabilities

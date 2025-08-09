@@ -59,7 +59,7 @@
 
 - name: Configure container scanning script
   ansible.builtin.template:
-    src: container-scan.sh.j2
+    src: container-scan-enhanced.sh.j2
     dest: /opt/security/container-scan.sh
     mode: "0755"
     owner: root

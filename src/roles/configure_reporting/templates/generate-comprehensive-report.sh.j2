@@ -105,7 +105,9 @@ EOF
     if [ -f "/var/log/container-security.log" ]; then
         echo "<h3>Container Security Alerts:</h3>"
         echo "<pre>"
-        tail -20 /var/log/container-security.log | grep "ALERT\|WARNING\|ERROR" || echo "No recent alerts"
+        # Only show alerts from the last 24 hours
+        awk -v date="$(date -d '24 hours ago' '+%Y-%m-%d %H:%M:%S')" '$0 >= date' /var/log/container-security.log | \
+        grep "ALERT\|WARNING\|ERROR" | tail -20 || echo "No recent alerts"
         echo "</pre>"
     fi
     
