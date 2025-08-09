@@ -110,3 +110,23 @@
 - name: Debug Trivy installation
   ansible.builtin.debug:
     msg: "Trivy version: {{ trivy_test.stdout }}"
+
+- name: Configure auto-cleanup of vulnerable images
+  ansible.builtin.template:
+    src: cleanup-vulnerable-images.sh.j2
+    dest: /opt/security/cleanup-vulnerable-images.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+  when: configure_container_security_auto_cleanup | default(false)
+
+- name: Create auto-cleanup cron job
+  ansible.builtin.cron:
+    name: "Auto-cleanup Vulnerable Images"
+    hour: "3"
+    minute: "0"
+    job: "/opt/security/cleanup-vulnerable-images.sh"
+    user: root
+  become: true
+  when: configure_container_security_auto_cleanup | default(false)

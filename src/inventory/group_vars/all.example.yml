@@ -56,6 +56,7 @@ configure_container_security_enabled: true
 configure_container_security_trivy_enabled: true
 configure_container_security_alerts_enabled: true
 configure_container_security_alert_email: "your-email@example.com"
+configure_container_security_auto_cleanup: false  # NEW: Auto-cleanup vulnerable images
 
 # =============================================================================
 # DOCKER NETWORK CONFIGURATION
@@ -146,7 +147,7 @@ docker_user_system_monitoring: true
 # DOCKER DEPLOYMENT CONFIGURATION
 # =============================================================================
 deploy_docker_security_enabled: true
-deploy_docker_clean_slate: false
+deploy_docker_clean_slate: false  # Set to true to remove all Docker images/containers
 deploy_docker_packages:
   - docker-ce
   - docker-ce-cli

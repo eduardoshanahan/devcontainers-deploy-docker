@@ -225,6 +225,76 @@ cd src
 ansible-playbook playbooks/download_logs_secure.yml
 ```
 
+### **Docker Cleanup & Security**
+
+#### **Clean Slate Deployment**
+To remove all existing Docker images and containers during deployment:
+
+```bash
+# Option 1: Set in configuration
+# Edit src/inventory/group_vars/all.yml
+deploy_docker_clean_slate: true
+
+# Option 2: Command line override
+ansible-playbook playbooks/full.yml -e "deploy_docker_clean_slate=true"
+
+# Option 3: Individual Docker deployment
+ansible-playbook playbooks/deploy_docker.yml -e "deploy_docker_clean_slate=true"
+```
+
+#### **Dedicated Cleanup Playbook**
+To clean up Docker images without reinstalling Docker:
+
+```bash
+cd src
+ansible-playbook playbooks/cleanup_docker_images.yml
+```
+
+#### **Auto-Cleanup Vulnerable Images**
+Automatically remove Docker images with high/critical vulnerabilities:
+
+```yaml
+# In src/inventory/group_vars/all.yml
+configure_container_security_auto_cleanup: true
+```
+
+This will:
+- Scan all Docker images daily for vulnerabilities
+- Automatically remove images exceeding vulnerability thresholds
+- Run cleanup at 3:00 AM daily
+- Log all cleanup activities
+
+#### **Manual Cleanup Commands**
+If you need to clean up manually:
+
+```bash
+# Stop all containers
+sudo docker stop $(sudo docker ps -q)
+
+# Remove all containers
+sudo docker rm $(sudo docker ps -aq)
+
+# Remove all images
+sudo docker rmi $(sudo docker images -q)
+
+# Remove all volumes
+sudo docker volume rm $(sudo docker volume ls -q)
+
+# Remove all custom networks
+sudo docker network rm $(sudo docker network ls --filter type=custom -q)
+
+# Prune everything
+sudo docker system prune -af
+```
+
+### **Container Security Features**
+
+- **Vulnerability Scanning**: Daily Trivy scans of all Docker images
+- **Auto-Cleanup**: Automatic removal of vulnerable images
+- **Security Alerts**: Email notifications for security issues
+- **HTML Reports**: Detailed vulnerability reports
+- **Security Dashboard**: Interactive security analysis tool
+
 ## **Production Features**
 
 ### **Security Excellence**

@@ -10,6 +10,8 @@ This role implements container security scanning and monitoring to detect vulner
 - Sets up security alerts and notifications
 - Configures Docker content trust
 - Creates security audit trails
+- **NEW**: Auto-cleanup of vulnerable Docker images
+- **NEW**: Dedicated cleanup playbook integration
 
 ## Security Features
 
@@ -19,6 +21,7 @@ This role implements container security scanning and monitoring to detect vulner
 - **Multiple tools**: Trivy and Clair integration
 - **Severity filtering**: Focus on HIGH and CRITICAL vulnerabilities
 - **Report generation**: JSON reports with timestamps
+- **Auto-cleanup**: Automatic removal of vulnerable images
 
 ### Container Monitoring
 
@@ -26,12 +29,14 @@ This role implements container security scanning and monitoring to detect vulner
 - **Host network**: Monitor containers using host networking
 - **Host mounts**: Detect containers with host volume mounts
 - **Unusual behavior**: Monitor for suspicious container activity
+- **Vulnerable images**: Automatic detection and cleanup
 
 ### Security Alerts
 
 - **Email notifications**: Alert on security issues
 - **Logging**: Comprehensive security event logging
 - **Audit trail**: Complete record of security events
+- **Auto-cleanup logs**: Detailed cleanup activity logging
 
 ## Configuration
 
@@ -42,6 +47,7 @@ This role implements container security scanning and monitoring to detect vulner
 configure_container_security_enabled: true
 configure_container_security_enable_content_trust: true
 configure_container_security_scan_schedule: "daily"
+configure_container_security_auto_cleanup: false  # NEW
 ```
 
 ### Environment-Specific Settings (Inventory Variables)
@@ -50,6 +56,7 @@ configure_container_security_scan_schedule: "daily"
 # In inventory/group_vars/all.yml
 configure_container_security_alert_email: "your-email@example.com"
 configure_container_security_scan_severity: "HIGH,CRITICAL"
+configure_container_security_auto_cleanup: true  # NEW
 ```
 
 ## Usage
@@ -69,6 +76,19 @@ sudo /opt/security/container-scan.sh
 
 # Check scan results
 ls -la /opt/security/scans/
+
+# Run manual cleanup
+sudo /opt/security/cleanup-vulnerable-images.sh
+```
+
+### Docker Cleanup
+
+```bash
+# Dedicated cleanup playbook
+ansible-playbook playbooks/cleanup_docker_images.yml
+
+# Clean slate deployment
+ansible-playbook playbooks/deploy_docker.yml -e "deploy_docker_clean_slate=true"
 ```
 
 ## Security Benefits
@@ -78,6 +98,8 @@ ls -la /opt/security/scans/
 3. **Monitoring**: Continuous security oversight
 4. **Alerting**: Immediate notification of security issues
 5. **Audit Trail**: Complete security event history
+6. **Auto-Cleanup**: Automatic removal of vulnerable images
+7. **Reduced Attack Surface**: Eliminates known vulnerable containers
 
 ## Troubleshooting
 

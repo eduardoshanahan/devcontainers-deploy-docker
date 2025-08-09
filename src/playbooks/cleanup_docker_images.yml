@@ -1,0 +1,82 @@
+---
+- name: Cleanup Docker Images and Containers
+  hosts: all
+  become: true
+  vars_files:
+    - ../inventory/group_vars/defaults.yml
+    - ../inventory/group_vars/all.yml
+    - ../inventory/group_vars/features.yml
+  vars:
+    ansible_ssh_private_key_file: "{{ initial_deployment_ssh_key }}"
+  tasks:
+    - name: Check if Docker is running
+      ansible.builtin.command: docker info
+      register: docker_info
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if Docker is not running
+      ansible.builtin.fail:
+        msg: "Docker is not running. Please install and start Docker first."
+      when: docker_info.rc != 0
+
+    - name: Display current Docker images
+      ansible.builtin.command: docker images
+      register: current_images
+      changed_when: false
+      become: true
+
+    - name: Show current images
+      ansible.builtin.debug:
+        msg: "{{ current_images.stdout_lines }}"
+
+    - name: Stop all running containers
+      ansible.builtin.command: docker stop $(docker ps -q)
+      failed_when: false
+      changed_when: false
+      become: true
+
+    - name: Remove all containers
+      ansible.builtin.command: docker rm $(docker ps -aq)
+      failed_when: false
+      changed_when: false
+      become: true
+
+    - name: Remove all Docker images
+      ansible.builtin.command: docker rmi $(docker images -q)
+      failed_when: false
+      changed_when: false
+      become: true
+
+    - name: Remove all Docker volumes
+      ansible.builtin.command: docker volume rm $(docker volume ls -q)
+      failed_when: false
+      changed_when: false
+      become: true
+
+    - name: Remove all custom Docker networks
+      ansible.builtin.command: docker network rm $(docker network ls --filter type=custom -q)
+      failed_when: false
+      changed_when: false
+      become: true
+
+    - name: Prune Docker system completely
+      ansible.builtin.command: docker system prune -af
+      failed_when: false
+      changed_when: false
+      become: true
+
+    - name: Verify cleanup
+      ansible.builtin.command: docker images
+      register: remaining_images
+      changed_when: false
+      become: true
+
+    - name: Display cleanup results
+      ansible.builtin.debug:
+        msg: "Docker cleanup completed. Remaining images: {{ remaining_images.stdout_lines | length - 1 }}"
+
+    - name: Show remaining images (if any)
+      ansible.builtin.debug:
+        msg: "{{ remaining_images.stdout_lines }}"
+      when: remaining_images.stdout_lines | length > 1

@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Auto-cleanup Vulnerable Images Script
+# This script automatically removes Docker images with high/critical vulnerabilities
+
+LOG_FILE="/var/log/container-security-cleanup.log"
+SEVERITY="{{ configure_container_security_scan_severity | default('HIGH,CRITICAL') }}"
+THRESHOLD_CRITICAL={{ configure_container_security_vulnerability_threshold_critical | default(0) }}
+THRESHOLD_HIGH={{ configure_container_security_vulnerability_threshold_high | default(5) }}
+
+# Function to log messages
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+}
+
+log_message "Starting auto-cleanup of vulnerable images"
+
+# Get list of all images
+ALL_IMAGES=$(docker images --format "{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}" | grep -v "<none>")
+
+if [ -z "$ALL_IMAGES" ]; then
+    log_message "No Docker images found"
+    exit 0
+fi
+
+CLEANED_IMAGES=0
+
+# Check each image for vulnerabilities
+for IMAGE in $ALL_IMAGES; do
+    log_message "Checking image: $IMAGE"
+    
+    # Use Trivy to check for high/critical vulnerabilities
+    VULN_COUNT=$(trivy image --severity "$SEVERITY" "$IMAGE" 2>/dev/null | grep -c "HIGH\|CRITICAL" || echo "0")
+    
+    if [ "$VULN_COUNT" -gt 0 ]; then
+        log_message "WARNING: Found $VULN_COUNT high/critical vulnerabilities in $IMAGE"
+        
+        # Check if image exceeds thresholds
+        CRITICAL_COUNT=$(trivy image --severity CRITICAL "$IMAGE" 2>/dev/null | grep -c "CRITICAL" || echo "0")
+        HIGH_COUNT=$(trivy image --severity HIGH "$IMAGE" 2>/dev/null | grep -c "HIGH" || echo "0")
+        
+        if [ "$CRITICAL_COUNT" -gt "$THRESHOLD_CRITICAL" ] || [ "$HIGH_COUNT" -gt "$THRESHOLD_HIGH" ]; then
+            log_message "REMOVING: Image $IMAGE exceeds vulnerability thresholds"
+            
+            # Stop containers using this image
+            docker stop $(docker ps -q --filter ancestor="$IMAGE") 2>/dev/null || true
+            
+            # Remove containers using this image
+            docker rm $(docker ps -aq --filter ancestor="$IMAGE") 2>/dev/null || true
+            
+            # Remove the image
+            docker rmi "$IMAGE" 2>/dev/null
+            
+            if [ $? -eq 0 ]; then
+                log_message "SUCCESS: Removed vulnerable image $IMAGE"
+                CLEANED_IMAGES=$((CLEANED_IMAGES + 1))
+            else
+                log_message "ERROR: Failed to remove image $IMAGE"
+            fi
+        else
+            log_message "INFO: Image $IMAGE has vulnerabilities but within thresholds"
+        fi
+    else
+        log_message "INFO: Image $IMAGE has no high/critical vulnerabilities"
+    fi
+done
+
+# Prune unused resources
+docker system prune -f 2>/dev/null || true
+
+log_message "Auto-cleanup completed. Removed $CLEANED_IMAGES vulnerable images"

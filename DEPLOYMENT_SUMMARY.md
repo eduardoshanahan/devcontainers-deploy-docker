@@ -23,6 +23,16 @@ This Ansible project has been successfully implemented with all major security a
 - **HTML vulnerability reports** - Generated automatically
 - **Security dashboard** - Available at `/opt/security/container-security-dashboard.sh`
 - **Configurable thresholds** - Customizable vulnerability limits
+- **Auto-cleanup vulnerable images** - Automatic removal of high/critical vulnerable images
+- **Dedicated cleanup playbook** - Standalone Docker cleanup functionality
+
+### **Docker Management**
+
+- **Clean slate deployment** - Option to remove all existing Docker resources
+- **Comprehensive cleanup** - Images, containers, volumes, and networks
+- **Auto-cleanup integration** - Automatic removal of vulnerable images
+- **Cleanup verification** - Status reporting and logging
+- **Safe cleanup operations** - Proper error handling and validation
 
 ### **Lightweight Monitoring System**
 
