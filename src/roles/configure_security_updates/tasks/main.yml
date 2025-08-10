@@ -86,3 +86,12 @@
   become: true
   changed_when: false
   failed_when: false
+
+- name: Create error state file
+  ansible.builtin.file:
+    path: /var/log/unattended-upgrade-errors.state
+    state: touch
+    mode: "0644"
+    owner: root
+    group: root
+  become: true

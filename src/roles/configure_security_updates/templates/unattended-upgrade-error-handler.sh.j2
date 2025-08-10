@@ -4,10 +4,26 @@
 # This script runs daily to check and fix common issues
 
 LOG_FILE="/var/log/unattended-upgrade-error-handler.log"
+ERROR_STATE_FILE="/var/log/unattended-upgrade-errors.state"
 EMAIL="{{ configure_security_updates_email }}"
 
 log() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+}
+
+# Function to check if error has already been reported
+is_error_already_reported() {
+    local error_hash="$1"
+    if [ -f "$ERROR_STATE_FILE" ] && grep -q "$error_hash" "$ERROR_STATE_FILE"; then
+        return 0  # Already reported
+    fi
+    return 1  # Not reported yet
+}
+
+# Function to mark error as reported
+mark_error_as_reported() {
+    local error_hash="$1"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $error_hash" >> "$ERROR_STATE_FILE"
 }
 
 notify_error() {
@@ -98,13 +114,25 @@ if [ -f "/var/log/unattended-upgrades/unattended-upgrades.log" ]; then
     RECENT_404_ERRORS=$(tail -n 100 "/var/log/unattended-upgrades/unattended-upgrades.log" | grep -i "404\|not found" | wc -l)
     
     if [ "$RECENT_404_ERRORS" -gt 0 ]; then
-        notify_error "Found $RECENT_404_ERRORS recent 404 errors in unattended upgrades log"
+        log "Found $RECENT_404_ERRORS 404 errors in unattended upgrades log"
         
         # Extract specific 404 errors and attempt to fix them
         tail -n 100 "/var/log/unattended-upgrades/unattended-upgrades.log" | grep -i "404\|not found" | while read -r line; do
             log "404 Error found: $line"
             
-            # Extract package name from 404 error
+            # Generate hash for this specific error
+            ERROR_HASH=$(echo "$line" | md5sum | cut -d' ' -f1)
+            
+            # Only notify if this error hasn't been reported before
+            if ! is_error_already_reported "$ERROR_HASH"; then
+                notify_error "Found new 404 error: $line"
+                mark_error_as_reported "$ERROR_HASH"
+                log "Marked error as reported with hash: $ERROR_HASH"
+            else
+                log "404 error already reported, skipping: $line"
+            fi
+            
+            # Extract package name from 404 error and attempt fixes (regardless of reporting status)
             if echo "$line" | grep -q "linux-virtual\|linux-image"; then
                 log "Attempting to fix kernel package 404 error"
                 
@@ -149,4 +177,10 @@ log "Enhanced repository health check with aggressive cache clearing completed"
 if [ -f "$LOG_FILE" ] && [ $(stat -c%s "$LOG_FILE") -gt 1048576 ]; then
     mv "$LOG_FILE" "${LOG_FILE}.1"
     gzip "${LOG_FILE}.1" 2>/dev/null || true
+fi
+
+# Rotate error state file if it gets too large (prevent it from growing indefinitely)
+if [ -f "$ERROR_STATE_FILE" ] && [ $(stat -c%s "$ERROR_STATE_FILE") -gt 1048576 ]; then
+    mv "$ERROR_STATE_FILE" "${ERROR_STATE_FILE}.1"
+    gzip "${ERROR_STATE_FILE}.1" 2>/dev/null || true
 fi 
