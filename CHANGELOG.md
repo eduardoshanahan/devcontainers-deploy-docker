@@ -1,56 +1,29 @@
 # Changelog
 
-## [2024-01-XX] - Docker Cleanup & Enhanced Container Security
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
 
 ### Added
-- **Dedicated Docker Cleanup Playbook**
-  - New `cleanup_docker_images.yml` playbook for standalone cleanup
-  - Comprehensive Docker resource removal (images, containers, volumes, networks)
-  - Verification and reporting of cleanup results
-  - Safe cleanup with proper error handling
-
-- **Auto-Cleanup Vulnerable Images**
-  - Automatic removal of Docker images with high/critical vulnerabilities
-  - Configurable vulnerability thresholds
-  - Daily automated cleanup at 3:00 AM
-  - Comprehensive logging of cleanup activities
-  - Integration with existing container security scanning
-
-- **Enhanced Container Security**
-  - New `cleanup-vulnerable-images.sh` script
-  - Automatic cleanup cron job
-  - Configurable auto-cleanup feature (`configure_container_security_auto_cleanup`)
+- Centralized Docker network test mode configuration in `features.yml`
+- Unified testing behavior across Docker networks and network security roles
 
 ### Changed
-- **Docker Cleanup Process**
-  - Enhanced clean slate functionality with better error handling
-  - Improved cleanup verification and reporting
-  - Added cleanup status display and logging
+- **BREAKING**: Moved `configure_docker_networks_test_mode` from role defaults to centralized `features.yml`
+- **BREAKING**: Moved `configure_docker_networks_remove_all` from role defaults to centralized `features.yml`
+- Network security testing now respects the centralized Docker test mode setting
+- Removed unused `configure_docker_networks_encrypted` configuration
 
-- **Container Security Configuration**
-  - Added auto-cleanup configuration option
-  - Enhanced vulnerability threshold management
-  - Improved cleanup logging and reporting
+### Fixed
+- Alpine Docker image no longer persists after full deployment when test mode is disabled
+- Container-based network security tests are properly skipped when test mode is disabled
+- Eliminated duplicate configuration definitions across multiple files
+- Fixed variable resolution issues in network security testing role
 
-### Configuration
-- **New Variables**:
-  - `configure_container_security_auto_cleanup`: Enable/disable auto-cleanup (default: false)
-  - `deploy_docker_clean_slate`: Enhanced clean slate functionality
+### Technical Details
+- Docker networks test mode is now controlled by `features.containers.networks.test_mode`
+- Network security role respects the same test mode flag for consistency
+- All container creation and network testing tasks properly skip when test mode is disabled
+- Configuration follows single source of truth principle
 
-### Usage Examples
-```bash
-# Dedicated cleanup
-ansible-playbook playbooks/cleanup_docker_images.yml
-
-# Clean slate deployment
-ansible-playbook playbooks/deploy_docker.yml -e "deploy_docker_clean_slate=true"
-
-# Enable auto-cleanup
-# Set configure_container_security_auto_cleanup: true in all.yml
-```
-
-### Security Benefits
-- **Automatic Vulnerability Management**: Removes vulnerable images automatically
-- **Reduced Attack Surface**: Eliminates known vulnerable containers
-- **Compliance**: Meets container security best practices
-- **Operational Efficiency**: Automated cleanup reduces manual intervention
+## [Previous versions...]

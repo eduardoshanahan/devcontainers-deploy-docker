@@ -101,6 +101,9 @@ deploy_docker_network_policies: {}
 # Network removal (use with caution)
 configure_docker_networks_remove_all: false
 
+# Test mode for Docker networks (enables Alpine image pulling and network testing)
+configure_docker_networks_test_mode: false
+
 # =============================================================================
 # REMOTE LOGGING CONFIGURATION DEFAULTS
 # =============================================================================

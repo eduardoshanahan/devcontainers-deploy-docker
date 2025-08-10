@@ -1,24 +1,26 @@
 ---
-# Test configuration
-test_network_security_enabled: true
+# Role behavior settings
+test_network_security_enabled: false # Now controlled by Docker test mode
+test_network_security_verbose: false
+test_network_security_fail_fast: true
 
-# Test containers for network validation (reference the main configuration)
+# Test container configurations (only used when test mode enabled)
 test_network_security_test_containers:
   - name: "test-web"
     image: "alpine:latest"
-    network: "{{ configure_docker_networks_default_networks[0].name | default('test-to-delete-web-network') }}"
+    network: "web-network"
     command: "tail -f /dev/null"
     service: "web"
   - name: "test-db"
     image: "alpine:latest"
-    network: "{{ configure_docker_networks_default_networks[1].name | default('test-db-network') }}"
+    network: "db-network"
     command: "tail -f /dev/null"
     service: "database"
-  - name: "test-monitoring"
+  - name: "test-api"
     image: "alpine:latest"
-    network: "{{ configure_docker_networks_default_networks[2].name | default('test-to-delete-monitoring-network') }}"
+    network: "api-network"
     command: "tail -f /dev/null"
-    service: "monitoring"
+    service: "api"
 
 # Expected network configurations (reference the main configuration)
 test_network_security_expected_networks: "{{ configure_docker_networks_default_networks | default([]) }}"

@@ -1,9 +1,6 @@
 ---
 # Role behavior settings (keep in role defaults)
-configure_docker_networks_test_mode: true
 configure_docker_networks_default_driver: "bridge"
-configure_docker_networks_remove_all: false
-configure_docker_networks_encrypted: false
 
 # Network labels for organization
 configure_docker_networks_labels:

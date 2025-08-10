@@ -39,12 +39,12 @@
   loop: "{{ existing_networks.stdout_lines | select('match', '^(?!bridge|host|none).*$') | list }}"
   become: true
   failed_when: false
-  when: configure_docker_networks_remove_all | default(false)
+  when: features.containers.networks.remove_all | default(false)
 
 - name: Debug network removal
   ansible.builtin.debug:
     msg: "Removed {{ existing_networks.stdout_lines | select('match', '^(?!bridge|host|none).*$') | list | length }} custom networks"
-  when: configure_docker_networks_remove_all | default(false)
+  when: features.containers.networks.remove_all | default(false)
 
 # Prune unused networks
 - name: Prune unused Docker networks
@@ -64,9 +64,9 @@
       description: "{{ item.description }}"
       environment: "{{ configure_docker_networks_labels.environment }}"
       managed_by: "{{ configure_docker_networks_labels.managed_by }}"
-  loop: "{{ configure_docker_networks_default_networks }}"
+  loop: "{{ features.containers.networks.default_networks }}"
   become: true
-  when: configure_docker_networks_test_mode | default(false)
+  when: features.containers.networks.test_mode | default(false)
 
 # Create custom networks if defined (only for testing/validation)
 - name: Create custom Docker networks for testing
@@ -80,9 +80,9 @@
       description: "{{ item.description }}"
       environment: "{{ configure_docker_networks_labels.environment }}"
       managed_by: "{{ configure_docker_networks_labels.managed_by }}"
-  loop: "{{ configure_docker_networks_custom_networks }}"
+  loop: "{{ features.containers.networks.custom_networks }}"
   become: true
-  when: configure_docker_networks_test_mode | default(false) and configure_docker_networks_custom_networks | length > 0
+  when: features.containers.networks.test_mode | default(false) and features.containers.networks.custom_networks | length > 0
 
 # Display network information (only in test mode)
 - name: List Docker networks
@@ -90,12 +90,12 @@
   register: docker_networks
   changed_when: false
   become: true
-  when: configure_docker_networks_test_mode | default(false)
+  when: features.containers.networks.test_mode | default(false)
 
 - name: Debug Docker networks
   ansible.builtin.debug:
     msg: "{{ docker_networks.stdout_lines }}"
-  when: configure_docker_networks_test_mode | default(false)
+  when: features.containers.networks.test_mode | default(false)
 
 # Verify network connectivity (only in test mode)
 - name: Test network connectivity
@@ -104,30 +104,30 @@
   changed_when: false
   failed_when: false
   become: true
-  when: configure_docker_networks_test_mode | default(false)
+  when: features.containers.networks.test_mode | default(false)
 
 - name: Debug network connectivity test
   ansible.builtin.debug:
     msg: "Network connectivity test: {{ 'PASSED' if network_test.rc == 0 else 'FAILED' }}"
-  when: configure_docker_networks_test_mode | default(false)
+  when: features.containers.networks.test_mode | default(false)
 
 # Cleanup: Remove all created networks after testing
 - name: Remove all created networks after testing
   community.docker.docker_network:
     name: "{{ item.name }}"
     state: absent
-  loop: "{{ configure_docker_networks_default_networks + configure_docker_networks_custom_networks }}"
+  loop: "{{ features.containers.networks.default_networks + features.containers.networks.custom_networks }}"
   become: true
   failed_when: false
-  when: configure_docker_networks_test_mode | default(false)
+  when: features.containers.networks.test_mode | default(false)
 
 - name: Final network cleanup
   ansible.builtin.command: docker network prune -f
   become: true
   changed_when: false
-  when: configure_docker_networks_test_mode | default(false)
+  when: features.containers.networks.test_mode | default(false)
 
 - name: Debug final cleanup
   ansible.builtin.debug:
     msg: "All test networks have been removed. No predefined networks remain."
-  when: configure_docker_networks_test_mode | default(false)
+  when: features.containers.networks.test_mode | default(false)

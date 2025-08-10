@@ -193,6 +193,7 @@ containers:
   # Docker networks
   networks:
     remove_all: "{{ configure_docker_networks_remove_all | default(false) }}"
+    test_mode: "{{ configure_docker_networks_test_mode | default(false) }}"
     default_networks: "{{ configure_docker_networks_default_networks | default([]) }}"
     custom_networks: "{{ configure_docker_networks_custom_networks | default([]) }}"
     network_policies: "{{ deploy_docker_network_policies | default({}) }}"
