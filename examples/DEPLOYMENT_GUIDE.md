@@ -13,13 +13,13 @@ This guide shows how to deploy applications using the secure network configurati
 2. **Network Configuration**: Create secure Docker networks
 
    ```bash
-   ansible-playbook playbooks/configure_docker_networks.yml
+   ansible-playbook --tags "configure_docker_networks" playbooks/full.yml
    ```
 
 3. **Firewall Configuration**: Configure firewall with secure rules
 
    ```bash
-   ansible-playbook playbooks/configure_firewall.yml
+   ansible-playbook --tags "configure_firewall" playbooks/full.yml
    ```
 
 ## Network Architecture

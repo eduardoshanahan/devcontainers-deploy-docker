@@ -1,0 +1,46 @@
+---
+# =============================================================================
+# DEVELOPMENT ENVIRONMENT CONFIGURATION
+# =============================================================================
+# This file contains development-specific overrides
+# Use safe defaults for development environments
+# =============================================================================
+
+# =============================================================================
+# SERVER CONFIGURATION
+# =============================================================================
+vps_server_ip: "vps-153d27d0.vps.ovh.net"
+initial_deployment_user: "ubuntu"
+initial_deployment_ssh_key: "~/.ssh/ovh-initial-ubuntu"
+
+# =============================================================================
+# FIREWALL CONFIGURATION
+# =============================================================================
+configure_firewall_enabled: true
+configure_firewall_default_policy: "ACCEPT"  # More permissive for dev
+configure_firewall_allowed_ports:
+  - 22   # SSH
+  - 80   # HTTP
+  - 443  # HTTPS
+  - 3000 # Node.js development
+  - 8080 # Alternative HTTP
+
+# Docker networks for firewall rules (SAME as production)
+configure_firewall_docker_networks:
+  - "172.20.0.0/16"  # web-network
+  - "172.21.0.0/16"  # db-network
+
+# =============================================================================
+# DOCKER DEPLOYMENT CONFIGURATION
+# =============================================================================
+deploy_docker_clean_slate: false  # Safe for development
+configure_docker_networks_remove_all: false  # Safe for development
+
+# =============================================================================
+# FEATURE FLAGS
+# =============================================================================
+# Control which features are enabled for this environment
+features:
+  containers:
+    networks:
+      test_mode: false  # Disable Docker network creation tests in development

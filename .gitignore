@@ -66,10 +66,70 @@ wheels/
 .coverage
 htmlcov/
 
-# Ansible
-.ansible/
+# =============================================================================
+# ANSIBLE SECURITY - CRITICAL FOR CONFIDENTIALITY
+# =============================================================================
+
+# Inventory files with sensitive data
 src/inventory/group_vars/all.yml
+src/inventory/group_vars/production.yml
+src/inventory/group_vars/staging.yml
+src/inventory/group_vars/development.yml
+src/inventory/host_vars/*.yml
+
+# CRITICAL: Protect the vault file containing encrypted sensitive data
+src/inventory/group_vars/all/vault.yml
+
+# SSH keys and known hosts
 src/inventory/known_hosts
+src/inventory/known_hosts.template
+~/.ssh/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Ansible vault files
+*.vault
+*.vault.yml
+*.vault.yaml
+vault.yml
+vault.yaml
+
+# Ansible runtime files
+.ansible/
+ansible.log
+ansible-*.log
+
+# =============================================================================
+# ENVIRONMENT-SPECIFIC CONFIGURATION
+# =============================================================================
+
+# Environment files that may contain secrets
+.env.production
+.env.staging
+.env.development
+.env.local
+.env.*.local
+
+# Configuration files with sensitive data
+config/production.yml
+config/staging.yml
+config/development.yml
+config/local.yml
+config/*.local.yml
+
+# =============================================================================
+# TEMPLATE AND EXAMPLE FILES
+# =============================================================================
+
+# Keep example files but ignore actual configs
+!src/inventory/group_vars/*.example.yml
+!src/inventory/group_vars/*.template.yml
+
+# =============================================================================
+# VIRTUAL ENVIRONMENT
+# =============================================================================
 
 # Virtual Environment
 venv/
@@ -77,6 +137,10 @@ ENV/
 env/
 .env/
 .venv/
+
+# =============================================================================
+# IDEs AND EDITORS
+# =============================================================================
 
 # IDEs and editors
 .idea/
@@ -90,6 +154,10 @@ env/
 *.swo
 *~
 
+# =============================================================================
+# OS GENERATED FILES
+# =============================================================================
+
 # OS generated files
 .DS_Store
 .DS_Store?
@@ -97,4 +165,48 @@ env/
 .Spotlight-V100
 .Trashes
 ehthumbs.db
-Thumbs.db 
+Thumbs.db
+
+# =============================================================================
+# ADDITIONAL SECURITY
+# =============================================================================
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Certificate files
+*.crt
+*.cer
+*.der
+*.p7b
+*.p7c
+
+# Private key files
+*.priv
+*.private
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Archive files that might contain sensitive data
+*.tar.gz
+*.zip
+*.rar
+*.7z 
+# =============================================================================
+# SENSITIVE INVENTORY FILES - NEVER COMMIT THESE
+# =============================================================================
+src/inventory/group_vars/production.yml
+src/inventory/group_vars/staging.yml
+src/inventory/group_vars/development.yml
+src/inventory/host_vars/vps.yml

@@ -1,1 +1,0 @@
-../../../src/roles/configure_monitoring/README.md

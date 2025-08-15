@@ -23,7 +23,9 @@
 - name: Allow SSH
   community.general.ufw:
     rule: allow
-    port: 22
+    port: "22"
+    proto: tcp
+    comment: "SSH access"
   become: true
 
 - name: Allow HTTP and HTTPS
@@ -62,6 +64,17 @@
 - name: Enable UFW
   community.general.ufw:
     state: enabled
+  become: true
+
+- name: Wait for UFW to be fully active
+  ansible.builtin.wait_for:
+    timeout: 10
+  become: true
+
+- name: Verify UFW is running
+  ansible.builtin.systemd:
+    name: ufw
+    state: started
   become: true
 
 - name: Display UFW status

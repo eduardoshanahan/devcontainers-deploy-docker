@@ -1,0 +1,26 @@
+# =============================================================================
+# ENCRYPTED SENSITIVE VARIABLES
+# =============================================================================
+# 
+# This file contains sensitive information that should be encrypted with Ansible Vault.
+# 
+# TO SET UP:
+# 1. Copy this file to src/inventory/group_vars/all/vault.yml
+# 2. Edit the values with your actual sensitive data
+# 3. Encrypt the file: ansible-vault encrypt src/inventory/group_vars/all/vault.yml
+# 
+# TO USE:
+# - Run playbooks with: ansible-playbook --ask-vault-pass playbooks/full.yml
+# - Or set ANSIBLE_VAULT_PASSWORD_FILE environment variable
+# =============================================================================
+
+# Email Configuration for Security Updates and Notifications
+configure_reporting_gmail_user: "your-email@gmail.com"
+configure_reporting_gmail_password: "your-app-password"
+configure_reporting_email: "admin@yourcompany.com"
+
+
+# Additional Sensitive Variables (add as needed)
+# database_root_password: "your-secure-password"
+# api_secret_key: "your-secret-key"
+# ssl_certificate_key: "your-private-key"

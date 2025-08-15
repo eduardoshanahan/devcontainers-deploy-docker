@@ -1,1 +1,0 @@
-../../../src/roles/configure_log_rotation/README.md

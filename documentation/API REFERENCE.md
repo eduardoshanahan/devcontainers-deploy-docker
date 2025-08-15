@@ -454,13 +454,19 @@ Applies container security hardening.
 
 Secure production-ready configuration with strict host key checking.
 
-#### `ansible.dev.cfg`
+#### Development Overrides
 
-Development configuration with relaxed security for testing.
+For development environments, use environment variables to override secure defaults:
 
-#### `ansible.prod.cfg`
+```bash
+# Disable host key checking for development
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/full.yml
 
-Production configuration with strict security settings.
+# Or use environment variables
+export ANSIBLE_HOST_KEY_CHECKING=False
+export ANSIBLE_SSH_ARGS="-o StrictHostKeyChecking=no"
+ansible-playbook playbooks/full.yml
+```
 
 ### Inventory Files
 
@@ -472,9 +478,13 @@ Host definitions and group assignments.
 
 Managed host key verification file for secure connections.
 
-#### `inventory/group_vars/all.yml`
+#### `inventory/group_vars/`
 
-Global variables for all hosts.
+Environment-specific configuration:
+- `production/main.yml` - Production settings
+- `staging/main.yml` - Staging settings  
+- `development/main.yml` - Development settings
+- `all/vault.yml` - Encrypted sensitive data
 
 ## Network Security
 
@@ -539,49 +549,49 @@ Global variables for all hosts.
 ansible-playbook playbooks/full.yml
 
 # Development deployment with relaxed security
-ansible-playbook --config-file ansible.dev.cfg playbooks/full.yml
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/full.yml
 
 # Production deployment with strict security
-ansible-playbook --config-file ansible.prod.cfg playbooks/full.yml
+ansible-playbook playbooks/full.yml
 ```
 
 ### Individual Components
 
 ```bash
 # Update system only
-ansible-playbook playbooks/update_ubuntu.yml
+ansible-playbook --tags "update_ubuntu" playbooks/full.yml
 
 # Install Docker only
-ansible-playbook playbooks/deploy_docker.yml
+ansible-playbook --tags "deploy_docker" playbooks/full.yml
 
 # Configure firewall only
-ansible-playbook playbooks/configure_firewall.yml
+ansible-playbook --tags "configure_firewall" playbooks/full.yml
 
 # Configure monitoring only
-ansible-playbook playbooks/configure_monitoring.yml
+ansible-playbook --tags "configure_monitoring" playbooks/full.yml
 ```
 
 ### Security Configuration
 
 ```bash
 # Configure security updates
-ansible-playbook playbooks/configure_security_updates.yml
+ansible-playbook --tags "configure_security_updates" playbooks/full.yml
 
 # Configure Fail2ban
-ansible-playbook playbooks/configure_fail2ban.yml
+ansible-playbook --tags "configure_fail2ban" playbooks/full.yml
 
 # Test network security
-ansible-playbook playbooks/test_network_security.yml
+ansible-playbook --tags "test_network_security" playbooks/full.yml
 ```
 
 ### Network Configuration
 
 ```bash
 # Configure Docker networks
-ansible-playbook playbooks/configure_docker_networks.yml
+ansible-playbook --tags "configure_docker_networks" playbooks/full.yml
 
 # Configure container security
-ansible-playbook playbooks/configure_container_security.yml
+ansible-playbook --tags "configure_container_security" playbooks/full.yml
 ```
 
 ## Error Handling

@@ -90,24 +90,44 @@ Yes, this project is designed for production use with:
 4. **Configure server inventory**:
 
    ```bash
-   cd src
-   cp inventory/group_vars/all.example.yml inventory/group_vars/all.yml
-   nano inventory/group_vars/all.yml
+   # Copy and customize the appropriate environment file
+   cp inventory/group_vars/production/main.yml inventory/group_vars/production/main.yml.backup
+   nano inventory/group_vars/production/main.yml
    ```
 
 ### How do I configure my server details?
 
-Edit `src/inventory/group_vars/all.yml`:
+Edit the appropriate environment file in `src/inventory/group_vars/`:
 
+**For Production:**
 ```yaml
+# src/inventory/group_vars/production/main.yml
 # Server configuration
-vps_server_ip: "your-server-ip"
+vps_server_ip: "your-production-server-ip"
 initial_deployment_user: "ubuntu"
-initial_deployment_ssh_key: "~/.ssh/your-ssh-key"
+initial_deployment_ssh_key: "~/.ssh/your-production-ssh-key"
 
 # Container deployment user
 containers_deployment_user: "docker_deployment"
-containers_deployment_user_ssh_key: "~/.ssh/your-deployment-key"
+containers_deployment_user_ssh_key: "~/.ssh/your-production-deployment-key"
+```
+
+**For Staging:**
+```yaml
+# src/inventory/group_vars/staging/main.yml
+# Server configuration
+vps_server_ip: "your-staging-server-ip"
+initial_deployment_user: "ubuntu"
+initial_deployment_ssh_key: "~/.ssh/your-staging-ssh-key"
+```
+
+**For Development:**
+```yaml
+# src/inventory/group_vars/development/main.yml
+# Server configuration
+vps_server_ip: "your-development-server-ip"
+initial_deployment_user: "ubuntu"
+initial_deployment_ssh_key: "~/.ssh/your-development-ssh-key"
 ```
 
 ### How do I add my server's host key?
@@ -179,14 +199,16 @@ configure_security_updates_gmail_enabled: true
 3. **Deploy configuration**:
 
    ```bash
-   ansible-playbook playbooks/configure_security_updates.yml
+   ansible-playbook --tags "configure_security_updates" playbooks/full.yml
    ```
 
 ### How do I add custom Docker networks?
 
-Edit `src/inventory/group_vars/all.yml`:
+Edit the appropriate environment file:
 
+**For Production:**
 ```yaml
+# src/inventory/group_vars/production/main.yml
 configure_docker_networks_custom_networks:
   - name: "api-network"
     subnet: "172.23.0.0/16"
@@ -236,8 +258,8 @@ ansible all -m shell -a "sudo sshd -T | grep -E 'password|permitroot'"
 # Check firewall status
 ansible all -m shell -a "sudo ufw status verbose"
 
-# Test network isolation
-ansible-playbook playbooks/test_network_security.yml
+# Test network security
+ansible-playbook --tags "test_network_security" playbooks/full.yml
 
 # Check fail2ban status
 ansible all -m shell -a "sudo fail2ban-client status sshd"
@@ -300,8 +322,8 @@ docker network connect db-network web-app
 ### How do I test network isolation?
 
 ```bash
-# Run network security test
-ansible-playbook playbooks/test_network_security.yml
+# Run network security test using tags
+ansible-playbook --tags "test_network_security" playbooks/full.yml
 
 # Manual testing
 docker run --rm --network web-network alpine ping -c 3 172.21.0.1
@@ -397,10 +419,15 @@ configure_docker_networks_custom_networks:
    ansible-playbook --syntax-check playbooks/full.yml
    ```
 
-4. **Use development configuration**:
+4. **Use development overrides**:
 
    ```bash
-   ansible-playbook --config-file ansible.dev.cfg playbooks/full.yml
+   # Override host key checking for development
+   ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/full.yml
+   
+   # Or use environment variables
+   export ANSIBLE_HOST_KEY_CHECKING=False
+   ansible-playbook playbooks/full.yml
    ```
 
 ### Docker issues
@@ -428,7 +455,7 @@ configure_docker_networks_custom_networks:
    docker network rm network-name
    
    # Recreate networks
-   ansible-playbook playbooks/configure_docker_networks.yml
+   ansible-playbook --tags "configure_docker_networks" playbooks/full.yml
    ```
 
 ### Firewall issues
@@ -496,7 +523,11 @@ configure_docker_networks_custom_networks:
 4. **Test deployment**:
 
    ```bash
-   ansible-playbook --config-file ansible.dev.cfg playbooks/full.yml
+   # For development with relaxed security
+   ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/full.yml
+   
+   # For production with strict security
+   ansible-playbook playbooks/full.yml
    ```
 
 ### How do I add a new role?
@@ -529,7 +560,7 @@ configure_docker_networks_custom_networks:
 1. **Override variables**:
 
    ```yaml
-   # In inventory/group_vars/all.yml
+   # In inventory/group_vars/production/main.yml (or staging/development)
    role_name_enabled: true
    role_name_custom_setting: "value"
    ```
@@ -608,17 +639,17 @@ ansible all -m shell -a "uptime"
 
 ```bash
 # Run system updates
-ansible-playbook playbooks/update_ubuntu.yml
+ansible-playbook --tags "update_ubuntu" playbooks/full.yml
 
 # Check for required reboots
-ansible-playbook playbooks/reboot_server.yml
+ansible-playbook --tags "reboot_server" playbooks/full.yml
 ```
 
 ### How do I update Docker?
 
 ```bash
 # Update Docker packages
-ansible-playbook playbooks/deploy_docker.yml
+ansible-playbook --tags "deploy_docker" playbooks/full.yml
 
 # Or manually
 sudo apt-get update

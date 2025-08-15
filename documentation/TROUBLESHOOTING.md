@@ -177,11 +177,11 @@ ansible-playbook -vvv playbooks/full.yml
 **Common Solutions**:
 
 ```bash
-# Use development configuration
-ansible-playbook --config-file ansible.dev.cfg playbooks/full.yml
+# Use development overrides for testing
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/full.yml
 
 # Check inventory variables
-cat src/inventory/group_vars/all.yml
+cat inventory/group_vars/production/main.yml
 
 # Test connectivity
 ansible all -m ping
@@ -221,7 +221,7 @@ ssh user@server "echo 'user ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/us
 ansible-inventory --list -y
 
 # Check group variables
-cat src/inventory/group_vars/all.yml
+cat inventory/group_vars/production/main.yml
 
 # Validate variable syntax
 ansible-playbook --check playbooks/full.yml
@@ -230,11 +230,11 @@ ansible-playbook --check playbooks/full.yml
 **Solutions**:
 
 ```bash
-# Copy example variables
-cp src/inventory/group_vars/all.example.yml src/inventory/group_vars/all.yml
+# Copy and customize the appropriate environment file
+cp inventory/group_vars/production/main.yml inventory/group_vars/production/main.yml.backup
 
 # Edit variables
-nano src/inventory/group_vars/all.yml
+nano inventory/group_vars/production/main.yml
 
 # Test with specific variables
 ansible-playbook playbooks/full.yml -e "variable_name=value"
@@ -302,10 +302,10 @@ ansible all -m shell -a "docker network inspect web-network"
 ansible all -m shell -a "docker network rm web-network db-network monitoring-network"
 
 # Recreate networks
-ansible-playbook playbooks/configure_docker_networks.yml
+ansible-playbook --tags "configure_docker_networks" playbooks/full.yml
 
 # Check network isolation
-ansible-playbook playbooks/test_network_security.yml
+ansible-playbook --tags "test_network_security" playbooks/full.yml
 ```
 
 #### Issue: Container Communication Issues
@@ -412,7 +412,7 @@ ansible all -m shell -a "sudo apt-get install --reinstall ufw"
 ansible all -m shell -a "sudo ufw reset"
 
 # Reconfigure firewall
-ansible-playbook playbooks/configure_firewall.yml
+ansible-playbook --tags "configure_firewall" playbooks/full.yml
 ```
 
 ### 5. Security Issues
@@ -488,7 +488,7 @@ ansible all -m shell -a "sudo systemctl restart ssh"
 ansible all -m shell -a "ls -la ~/.ssh/"
 
 # Reconfigure SSH security
-ansible-playbook playbooks/disable_password_authentication.yml
+ansible-playbook --tags "disable_password_authentication" playbooks/full.yml
 ```
 
 ### 6. Monitoring Issues
@@ -518,7 +518,7 @@ ansible all -m shell -a "echo 'Test email' | mail -s 'Test' your-email@gmail.com
 
 ```bash
 # Reconfigure security updates
-ansible-playbook playbooks/configure_security_updates.yml
+ansible-playbook --tags "configure_security_updates" playbooks/full.yml
 
 # Check Gmail app password
 # Ensure 2FA is enabled and app password is generated
@@ -552,7 +552,7 @@ ansible all -m shell -a "df -h && free -h && uptime"
 
 ```bash
 # Reconfigure monitoring
-ansible-playbook playbooks/configure_monitoring.yml
+ansible-playbook --tags "configure_monitoring" playbooks/full.yml
 
 # Check monitoring configuration
 ansible all -m shell -a "sudo cat /etc/monitoring/config.yml"

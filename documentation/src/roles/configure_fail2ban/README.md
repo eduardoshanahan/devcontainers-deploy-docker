@@ -1,1 +1,0 @@
-../../../src/roles/configure_fail2ban/README.md

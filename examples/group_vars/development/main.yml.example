@@ -1,0 +1,160 @@
+# =============================================================================
+# DEVELOPMENT ENVIRONMENT CONFIGURATION
+# =============================================================================
+# 
+# This file contains development-specific settings for local testing and development.
+# 
+# TO SET UP:
+# 1. Copy this file to src/inventory/group_vars/development/main.yml
+# 2. Customize the values for your development environment
+# 3. Ensure sensitive data is in vault.yml (encrypted)
+# =============================================================================
+
+# =============================================================================
+# SERVER CONFIGURATION
+# =============================================================================
+
+# Server IP address or hostname
+vps_server_ip: "your-development-server-ip-or-hostname"
+
+# Initial deployment user (usually 'ubuntu' for cloud providers)
+initial_deployment_user: "ubuntu"
+
+# SSH private key path for initial deployment
+initial_deployment_ssh_key: "~/.ssh/your-development-ssh-key"
+
+# =============================================================================
+# CONTAINER DEPLOYMENT USER
+# =============================================================================
+
+# Dedicated user for Docker operations
+containers_deployment_user: "docker_deployment"
+
+# SSH key for the deployment user
+containers_deployment_user_ssh_key: "~/.ssh/your-development-deployment-key"
+
+# Public key path for the deployment user
+containers_deployment_user_ssh_key_public: "/path/to/your/public/key.pub"
+
+# =============================================================================
+# SSH CONFIGURATION
+# =============================================================================
+
+# SSH common arguments for secure connections
+ansible_ssh_common_args: "-o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
+
+# Python interpreter path
+ansible_python_interpreter: "/usr/bin/python3.10"
+
+# =============================================================================
+# DOCKER NETWORK CONFIGURATION
+# =============================================================================
+
+# Default Docker networks with development naming
+configure_docker_networks_default_networks:
+  - name: "dev-web-network"
+    subnet: "172.20.0.0/16"
+    driver: "bridge"
+    description: "Development web applications network"
+  - name: "dev-db-network"
+    subnet: "172.21.0.0/16"
+    driver: "bridge"
+    description: "Development database network"
+  - name: "dev-monitoring-network"
+    subnet: "172.22.0.0/16"
+    driver: "bridge"
+    description: "Development monitoring network"
+
+# Disable network removal for development (preserve existing resources)
+configure_docker_networks_remove_all: false
+
+# =============================================================================
+# DOCKER DEPLOYMENT CONFIGURATION
+# =============================================================================
+
+# No clean slate deployment (preserve existing Docker resources)
+deploy_docker_clean_slate: false
+
+# =============================================================================
+# FIREWALL CONFIGURATION
+# =============================================================================
+
+# Enable firewall configuration
+configure_firewall_enabled: true
+
+# Docker network ranges for firewall rules
+configure_firewall_docker_networks:
+  - "172.20.0.0/16"
+  - "172.21.0.0/16"
+  - "172.22.0.0/16"
+
+# =============================================================================
+# FEATURE FLAGS
+# =============================================================================
+
+# Container network test mode (disabled for development)
+features:
+  containers:
+    networks:
+      test_mode: false
+
+# =============================================================================
+# MONITORING CONFIGURATION
+# =============================================================================
+
+# Enable system monitoring
+configure_monitoring_enabled: true
+
+# Health check intervals (in seconds) - less frequent for development
+configure_monitoring_health_check_interval: 600      # 10 minutes
+configure_monitoring_resource_check_interval: 300    # 5 minutes
+configure_monitoring_container_check_interval: 600   # 10 minutes
+
+# =============================================================================
+# LOG MANAGEMENT
+# =============================================================================
+
+# Enable log rotation
+configure_log_rotation_enabled: true
+
+# Log retention settings (shorter for development)
+configure_log_rotation_retention_days: 3
+configure_log_rotation_max_size: "25M"
+configure_log_rotation_compress: true
+
+# =============================================================================
+# SECURITY UPDATES
+# =============================================================================
+
+# Enable automatic security updates
+configure_security_updates_enabled: true
+
+# Security update configuration (sensitive data in vault.yml)
+configure_security_updates_gmail_enabled: true
+configure_security_updates_gmail_smtp_server: "smtp.gmail.com"
+configure_security_updates_gmail_smtp_port: "465"
+
+# =============================================================================
+# CONTAINER SECURITY
+# =============================================================================
+
+# Enable container security scanning
+configure_container_security_enabled: true
+
+# Trivy vulnerability scanner settings
+configure_container_security_trivy_enabled: true
+configure_container_security_scan_schedule: "0 0 * * *"  # Daily at midnight
+configure_container_security_critical_threshold: 0
+configure_container_security_high_threshold: 15
+
+# =============================================================================
+# FAIL2BAN CONFIGURATION
+# =============================================================================
+
+# Enable intrusion prevention
+configure_fail2ban_enabled: true
+
+# SSH protection settings (more lenient for development)
+configure_fail2ban_ban_time: 900       # 15 minutes
+configure_fail2ban_find_time: 300      # 5 minutes
+configure_fail2ban_max_retry: 10       # 10 attempts

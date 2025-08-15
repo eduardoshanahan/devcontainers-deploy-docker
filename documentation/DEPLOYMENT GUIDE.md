@@ -97,24 +97,23 @@ The development container will start with:
 # Navigate to Ansible directory
 cd src
 
-# Copy example inventory configuration
-cp inventory/group_vars/all.example.yml inventory/group_vars/all.yml
-
-# Edit inventory configuration
-nano inventory/group_vars/all.yml
+# Copy and customize the appropriate environment file
+cp inventory/group_vars/production/main.yml inventory/group_vars/production/main.yml.backup
+nano inventory/group_vars/production/main.yml
 ```
 
 #### Required Configuration Variables
 
 ```yaml
+# src/inventory/group_vars/production/main.yml
 # Server Configuration
-vps_server_ip: "your-server-ip-or-hostname"
+vps_server_ip: "your-production-server-ip-or-hostname"
 initial_deployment_user: "ubuntu"
-initial_deployment_ssh_key: "~/.ssh/your-ssh-key"
+initial_deployment_ssh_key: "~/.ssh/your-production-ssh-key"
 
 # Container Deployment User
 containers_deployment_user: "docker_deployment"
-containers_deployment_user_ssh_key: "~/.ssh/your-deployment-key"
+containers_deployment_user_ssh_key: "~/.ssh/your-production-deployment-key"
 containers_deployment_user_ssh_key_public: "/path/to/your/public/key.pub"
 
 # SSH Configuration
@@ -191,47 +190,47 @@ ansible all -m shell -a "docker network ls"
 
 ```bash
 # Update Ubuntu system
-ansible-playbook playbooks/update_ubuntu.yml
+ansible-playbook --tags "update_ubuntu" playbooks/full.yml
 ```
 
 #### Docker Installation
 
 ```bash
 # Install and configure Docker
-ansible-playbook playbooks/deploy_docker.yml
+ansible-playbook --tags "deploy_docker" playbooks/full.yml
 ```
 
 #### Security Configuration
 
 ```bash
 # Configure firewall
-ansible-playbook playbooks/configure_firewall.yml
+ansible-playbook --tags "configure_firewall" playbooks/full.yml
 
 # Configure fail2ban
-ansible-playbook playbooks/configure_fail2ban.yml
+ansible-playbook --tags "configure_fail2ban" playbooks/full.yml
 
 # Configure security updates
-ansible-playbook playbooks/configure_security_updates.yml
+ansible-playbook --tags "configure_security_updates" playbooks/full.yml
 ```
 
 #### Network Configuration
 
 ```bash
 # Configure Docker networks
-ansible-playbook playbooks/configure_docker_networks.yml
+ansible-playbook --tags "configure_docker_networks" playbooks/full.yml
 
 # Test network security
-ansible-playbook playbooks/test_network_security.yml
+ansible-playbook --tags "test_network_security" playbooks/full.yml
 ```
 
 #### Monitoring Setup
 
 ```bash
 # Configure monitoring
-ansible-playbook playbooks/configure_monitoring.yml
+ansible-playbook --tags "configure_monitoring" playbooks/full.yml
 
 # Configure log rotation
-ansible-playbook playbooks/configure_log_rotation.yml
+ansible-playbook --tags "configure_log_rotation" playbooks/full.yml
 ```
 
 ### 3. Environment-Specific Deployments
@@ -239,15 +238,15 @@ ansible-playbook playbooks/configure_log_rotation.yml
 #### Development Environment
 
 ```bash
-# Use development configuration (relaxed security)
-ansible-playbook --config-file ansible.dev.cfg playbooks/full.yml
+# Use development overrides (relaxed security)
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/full.yml
 ```
 
 #### Production Environment
 
 ```bash
-# Use production configuration (strict security)
-ansible-playbook --config-file ansible.prod.cfg playbooks/full.yml
+# Use default configuration (strict security)
+ansible-playbook playbooks/full.yml
 ```
 
 ## Post-Deployment Configuration
@@ -316,7 +315,7 @@ docker logs container-name
 
 ```bash
 # Set up email notifications
-ansible-playbook playbooks/configure_security_updates.yml
+ansible-playbook --tags "configure_security_updates" playbooks/full.yml
 
 # Configure monitoring thresholds
 # Edit monitoring configuration as needed
@@ -447,17 +446,17 @@ sudo systemctl restart ssh
 
 ```bash
 # Run system updates
-ansible-playbook playbooks/update_ubuntu.yml
+ansible-playbook --tags "update_ubuntu" playbooks/full.yml
 
 # Check for required reboots
-ansible-playbook playbooks/reboot_server.yml
+ansible-playbook --tags "reboot_server" playbooks/full.yml
 ```
 
 #### Security Updates
 
 ```bash
 # Configure automatic security updates
-ansible-playbook playbooks/configure_security_updates.yml
+ansible-playbook --tags "configure_security_updates" playbooks/full.yml
 
 # Check security update status
 sudo unattended-upgrade --dry-run
@@ -467,7 +466,7 @@ sudo unattended-upgrade --dry-run
 
 ```bash
 # Configure log rotation
-ansible-playbook playbooks/configure_log_rotation.yml
+ansible-playbook --tags "configure_log_rotation" playbooks/full.yml
 
 # Check log status
 sudo logrotate -d /etc/logrotate.conf
@@ -501,7 +500,7 @@ scp -r user@server:/opt/apps/ ./backup/
 
 ```bash
 # Run health check playbook
-ansible-playbook playbooks/test_network_security.yml
+ansible-playbook --tags "test_network_security" playbooks/full.yml
 
 # Check system resources
 ansible all -m shell -a "df -h && free -h && uptime"
@@ -511,7 +510,7 @@ ansible all -m shell -a "df -h && free -h && uptime"
 
 ```bash
 # Configure email alerts
-ansible-playbook playbooks/configure_security_updates.yml
+ansible-playbook --tags "configure_security_updates" playbooks/full.yml
 
 # Test alert system
 ansible all -m shell -a "sudo /opt/security-updates/security-update-notify.sh 'Test' 'Alert Test'"
@@ -524,7 +523,7 @@ ansible all -m shell -a "sudo /opt/security-updates/security-update-notify.sh 'T
 #### Modify Network Ranges
 
 ```yaml
-# Edit inventory/group_vars/all.yml
+# Edit inventory/group_vars/production/main.yml
 configure_docker_networks_default_networks:
   - name: "web-network"
     subnet: "172.20.0.0/16"

@@ -61,21 +61,20 @@ graph TB
 
 #### Playbooks (`src/playbooks/`)
 
-- **`full.yml`**: Complete system deployment orchestration
-- **`update_ubuntu.yml`**: System updates and security patches
-- **`deploy_docker.yml`**: Docker installation and configuration
-- **`configure_firewall.yml`**: UFW firewall with Docker network rules
-- **`configure_docker_networks.yml`**: Secure network segmentation
-- **`configure_fail2ban.yml`**: SSH brute force protection
-- **`configure_monitoring.yml`**: System health monitoring
-- **`configure_log_rotation.yml`**: Automated log management
-- **`configure_security_updates.yml`**: Automatic security updates
-- **`create_deployment_user.yml`**: Dedicated deployment user setup
-- **`disable_password_authentication.yml`**: SSH security hardening
-- **`test_network_security.yml`**: Security validation testing
+- **`full.yml`**: Complete system deployment orchestration (main playbook)
+- **`preflight_check.yml`**: System validation before deployment
+- **`download_logs_secure.yml`**: Secure log download and analysis
+- **`test_container_security.yml`**: Container security validation
+- **`test_handlers.yml`**: Service handler testing
+- **`cleanup_docker_images.yml`**: Docker image cleanup and maintenance
+- **`close_unnecessary_ports.yml`**: Port security management
+- **`test_network_security.yml`**: Network security validation
+- **`configure_security_updates.yml`**: Security update configuration
 - **`reboot_server.yml`**: Safe server reboot procedures
-- **`configure_container_security.yml`**: Container security hardening
-- **`configure_remote_logging.yml`**: Centralized logging setup
+- **`show_network_info.yml`**: Network configuration display
+- **`configure_monitoring.yml`**: Monitoring system setup
+
+**Note**: Individual role playbooks have been consolidated into the main `full.yml` playbook for better maintainability and consistency.
 
 #### Roles (`src/roles/`)
 
@@ -110,13 +109,16 @@ Each role implements a specific server function:
 
 - **`hosts.yml`**: Server definitions and group organization
 - **`known_hosts`**: SSH host key verification
-- **`group_vars/`**: Global and environment-specific variables
+- **`group_vars/`**: Environment-specific configuration structure:
+  - `all/vault.yml`: Encrypted sensitive variables
+  - `production/main.yml`: Production environment settings
+  - `staging/main.yml`: Staging environment settings
+  - `development/main.yml`: Development environment settings
 
 #### Configuration (`src/`)
 
 - **`ansible.cfg`**: Default secure configuration
-- **`ansible.dev.cfg`**: Development configuration (relaxed security)
-- **`ansible.prod.cfg`**: Production configuration (strict security)
+- **Environment overrides**: Use environment variables for development-specific settings
 
 ### 3. Security Architecture
 
@@ -225,7 +227,7 @@ sequenceDiagram
     Ansible->>Server: Security updates configuration
     Ansible->>Docker: Container security validation
     Ansible->>Server: Network security testing
-    Ansible->>Dev: Deployment completion notification
+    Dev->>Dev: Deployment completion notification
 ```
 
 ### 6. Environment Configurations
@@ -233,10 +235,10 @@ sequenceDiagram
 #### Development Environment
 
 - **Purpose**: Testing and development with relaxed security
-- **Configuration**: `ansible.dev.cfg`
+- **Configuration**: Use environment variables to override secure defaults
 - **Features**:
 
-  - Host key checking disabled
+  - Host key checking can be disabled via `ANSIBLE_HOST_KEY_CHECKING=False`
   - Verbose logging
   - Development-specific variables
   - Testing tools and utilities
@@ -244,7 +246,7 @@ sequenceDiagram
 #### Production Environment
 
 - **Purpose**: Secure production deployments
-- **Configuration**: `ansible.prod.cfg`
+- **Configuration**: Uses default secure `ansible.cfg` settings
 - **Features**:
 
   - Strict host key verification
