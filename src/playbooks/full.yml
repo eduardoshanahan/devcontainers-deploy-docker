@@ -1,24 +1,7 @@
 ---
-- name: Load centralized configuration
-  hosts: localhost
-  gather_facts: false
-  tasks:
-    - name: Load defaults.yml (non-confidential defaults)
-      ansible.builtin.include_vars: ../inventory/group_vars/defaults.yml
-
-    - name: Load all.yml (environment-specific values)
-      ansible.builtin.include_vars: ../inventory/group_vars/all.yml
-
-    - name: Load features.yml (behavior configuration)
-      ansible.builtin.include_vars: ../inventory/group_vars/features.yml
-
 - name: Deploy complete system
   hosts: all
   become: true
-  vars_files:
-    - ../inventory/group_vars/defaults.yml
-    - ../inventory/group_vars/all.yml
-    - ../inventory/group_vars/features.yml
   roles:
     - update_ubuntu
     - disable_password_authentication
@@ -32,14 +15,56 @@
     - configure_remote_logging
     - configure_log_download
     - configure_log_rotation
-    - test_network_security
-    - configure_docker_networks
     - configure_fail2ban
+  tasks:
+    - name: Flush handlers to ensure UFW is fully configured
+      ansible.builtin.meta: flush_handlers
+
+    - name: Test network security
+      ansible.builtin.include_role:
+        name: test_network_security
+      tags: test_network_security
 
 - name: Deployment completion notification
-  hosts: localhost
-  gather_facts: true
+  hosts: all
+  become: false
+  gather_facts: false
   tasks:
-    - name: Send deployment completion notification
+    - name: Check if email notifications are enabled
+      ansible.builtin.set_fact:
+        email_enabled: "{{ configure_reporting_gmail_enabled | default(false) }}"
+        email_recipient: "{{ configure_reporting_email | default('') }}"
+        email_user: "{{ configure_reporting_gmail_user | default('') }}"
+        email_password: "{{ configure_reporting_gmail_password | default('') }}"
+
+    - name: Send deployment completion notification email
+      ansible.builtin.shell: |
+        if [ "{{ email_enabled }}" = "true" ] && [ -n "{{ email_recipient }}" ]; then
+          MESSAGE="Deployment completed successfully at $(date -Iseconds)"
+          echo "$MESSAGE" > /tmp/deployment_message.txt
+          curl -s --mail-from "{{ email_user }}" \
+               --mail-rcpt "{{ email_recipient }}" \
+               --upload-file /tmp/deployment_message.txt \
+               --ssl-reqd \
+               --user "{{ email_user }}:{{ email_password }}" \
+               smtps://smtp.gmail.com:465
+          rm -f /tmp/deployment_message.txt
+          echo "Deployment completion email sent to {{ email_recipient }}"
+        else
+          echo "Email notifications disabled or not configured"
+        fi
+      delegate_to: localhost
+      changed_when: false
+      when: email_enabled | bool
+
+    - name: Display deployment completion status
       ansible.builtin.debug:
-        msg: "Deployment completed successfully at {{ ansible_date_time.iso8601 }}"
+        msg: |
+          DEPLOYMENT COMPLETED SUCCESSFULLY!
+
+          Environment: {{ inventory_hostname }}
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          Email Notification: {{ 'Sent' if email_enabled else 'Disabled' }}
+          Recipient: {{ email_recipient if email_enabled and email_recipient else 'Not configured' }}
+
+          Your system is now ready for production use!

@@ -124,15 +124,20 @@ Set up a testing environment:
 3. **Update inventory**:
 
    ```bash
-   cp src/inventory/group_vars/all.example.yml src/inventory/group_vars/all.yml
-   nano src/inventory/group_vars/all.yml
+   # Copy and customize the appropriate environment file
+   cp src/inventory/group_vars/production/main.yml src/inventory/group_vars/production/main.yml.backup
+   nano src/inventory/group_vars/production/main.yml
    ```
 
 4. **Test deployment**:
 
    ```bash
    cd src
-   ansible-playbook --config-file ansible.dev.cfg playbooks/full.yml
+   # For development with relaxed security
+   ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/full.yml
+   
+   # For production with strict security
+   ansible-playbook playbooks/full.yml
    ```
 
 ## Code Style and Standards
@@ -339,10 +344,10 @@ ansible-lint --rules-dir custom-rules/ src/playbooks/
 
 ```bash
 # Check playbook syntax
-ansible-playbook --syntax-check src/playbooks/full.yml
+ansible-playbook --syntax-check playbooks/full.yml
 
 # Check all playbooks
-for playbook in src/playbooks/*.yml; do
+for playbook in playbooks/*.yml; do
   ansible-playbook --syntax-check "$playbook"
 done
 ```
@@ -351,10 +356,10 @@ done
 
 ```bash
 # Test playbook without changes
-ansible-playbook --check src/playbooks/full.yml
+ansible-playbook --check playbooks/full.yml
 
 # Test with verbose output
-ansible-playbook --check -vvv src/playbooks/full.yml
+ansible-playbook --check -vvv playbooks/full.yml
 ```
 
 ### Manual Testing
@@ -362,29 +367,29 @@ ansible-playbook --check -vvv src/playbooks/full.yml
 #### Development Environment Testing
 
 ```bash
-# Test in development environment
-ansible-playbook --config-file ansible.dev.cfg src/playbooks/full.yml
+# Test in development environment with relaxed security
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/full.yml
 
-# Test individual components
-ansible-playbook --config-file ansible.dev.cfg src/playbooks/update_ubuntu.yml
-ansible-playbook --config-file ansible.dev.cfg src/playbooks/deploy_docker.yml
+# Test individual components using tags
+ansible-playbook --tags "update_ubuntu" playbooks/full.yml
+ansible-playbook --tags "deploy_docker" playbooks/full.yml
 ```
 
 #### Production Environment Testing
 
 ```bash
-# Test in production environment
-ansible-playbook --config-file ansible.prod.cfg src/playbooks/full.yml
+# Test in production environment with strict security
+ansible-playbook playbooks/full.yml
 
 # Test with specific inventory
-ansible-playbook -i test-inventory.yml src/playbooks/full.yml
+ansible-playbook -i test-inventory.yml playbooks/full.yml
 ```
 
 #### Security Testing
 
 ```bash
-# Test network security
-ansible-playbook src/playbooks/test_network_security.yml
+# Test network security using tags
+ansible-playbook --tags "test_network_security" playbooks/full.yml
 
 # Test firewall configuration
 ansible all -m shell -a "sudo ufw status verbose"

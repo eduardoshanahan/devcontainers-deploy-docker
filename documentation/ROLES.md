@@ -74,11 +74,11 @@ update_ubuntu_reboot_timeout: 300
 **Usage**:
 
 ```bash
-# Run system updates
-ansible-playbook playbooks/update_ubuntu.yml
+# Run system updates using tags
+ansible-playbook --tags "update_ubuntu" playbooks/full.yml
 
 # With custom variables
-ansible-playbook playbooks/update_ubuntu.yml -e "update_ubuntu_automatic_reboot=true"
+ansible-playbook --tags "update_ubuntu" playbooks/full.yml -e "update_ubuntu_automatic_reboot=true"
 ```
 
 **Dependencies**: None
@@ -113,8 +113,8 @@ configure_security_updates_gmail_smtp_port: "465"
 **Usage**:
 
 ```bash
-# Configure security updates
-ansible-playbook playbooks/configure_security_updates.yml
+# Configure security updates using tags
+ansible-playbook --tags "configure_security_updates" playbooks/full.yml
 ```
 
 **Dependencies**: update_ubuntu
@@ -147,8 +147,8 @@ containers_deployment_user_sudo_nopasswd: true
 **Usage**:
 
 ```bash
-# Create deployment user
-ansible-playbook playbooks/create_deployment_user.yml
+# Create deployment user using tags
+ansible-playbook --tags "create_deployment_user" playbooks/full.yml
 ```
 
 **Dependencies**: None
@@ -167,14 +167,13 @@ ansible-playbook playbooks/create_deployment_user.yml
 
 - Disable password authentication
 - Disable root login
-- Configure key-based authentication
-- Set SSH security parameters
-- Restart SSH service
+- Configure SSH security settings
+- Validate SSH configuration
 
 **Variables**:
 
 ```yaml
-disable_password_authentication_ssh_port: 22
+disable_password_authentication_ssh_port: "22"
 disable_password_authentication_permit_root_login: false
 disable_password_authentication_password_authentication: false
 disable_password_authentication_pubkey_authentication: true
@@ -183,130 +182,122 @@ disable_password_authentication_pubkey_authentication: true
 **Usage**:
 
 ```bash
-# Disable password authentication
-ansible-playbook playbooks/disable_password_authentication.yml
+# Configure SSH security using tags
+ansible-playbook --tags "disable_password_authentication" playbooks/full.yml
 ```
 
 **Dependencies**: create_deployment_user
 
-**Output**: SSH security hardening with key-based authentication only
+**Output**: Secure SSH configuration with key-based authentication only
 
 ---
 
 #### configure_firewall
 
-**Purpose**: Configures UFW firewall with secure Docker network rules.
+**Purpose**: Configures UFW firewall with secure rules and Docker network access.
 
 **Tasks**:
 
-- Install and enable UFW
-- Configure default policies
-- Allow SSH access
-- Configure Docker network rules
-- Block broad network ranges
-- Enable logging
+- Install and configure UFW
+- Set default policies (deny incoming, allow outgoing)
+- Allow SSH access (port 22)
+- Allow HTTP/HTTPS access (ports 80, 443)
+- Configure Docker network access
+- Enable firewall logging
 
 **Variables**:
 
 ```yaml
 configure_firewall_enabled: true
-configure_firewall_default_policy: "deny"
-configure_firewall_ssh_port: 22
-configure_firewall_web_ports: [80, 443]
+configure_firewall_ssh_port: "22"
+configure_firewall_http_port: "80"
+configure_firewall_https_port: "443"
 configure_firewall_docker_networks:
   - "172.20.0.0/16"
   - "172.21.0.0/16"
   - "172.22.0.0/16"
-configure_firewall_blocked_ranges:
-  - "172.16.0.0/12"
-  - "192.168.0.0/16"
-  - "10.0.0.0/8"
 ```
 
 **Usage**:
 
 ```bash
-# Configure firewall
-ansible-playbook playbooks/configure_firewall.yml
+# Configure firewall using tags
+ansible-playbook --tags "configure_firewall" playbooks/full.yml
 ```
 
-**Dependencies**: None
+**Dependencies**: update_ubuntu
 
-**Output**: Secure firewall configuration with Docker network support
+**Output**: Secure firewall configuration with Docker network access
 
 ---
 
 #### configure_fail2ban
 
-**Purpose**: Configures fail2ban for SSH brute force protection.
+**Purpose**: Configures Fail2ban for intrusion prevention and SSH protection.
 
 **Tasks**:
 
-- Install fail2ban package
-- Configure SSH protection
-- Set up ban rules and durations
-- Configure whitelist
-- Enable fail2ban service
+- Install Fail2ban package
+- Configure SSH protection rules
+- Set ban time and find time parameters
+- Configure email notifications
+- Enable and start service
 
 **Variables**:
 
 ```yaml
 configure_fail2ban_enabled: true
-configure_fail2ban_ssh_port: 22
+configure_fail2ban_ban_time: 3600
+configure_fail2ban_find_time: 600
 configure_fail2ban_max_retry: 3
-configure_fail2ban_bantime: 3600
-configure_fail2ban_findtime: 600
-configure_fail2ban_whitelist: []
+configure_fail2ban_email: "admin@example.com"
 ```
 
 **Usage**:
 
 ```bash
-# Configure fail2ban
-ansible-playbook playbooks/configure_fail2ban.yml
+# Configure Fail2ban using tags
+ansible-playbook --tags "configure_fail2ban" playbooks/full.yml
 ```
 
-**Dependencies**: None
+**Dependencies**: configure_firewall
 
-**Output**: SSH brute force protection with configurable rules
+**Output**: Active intrusion prevention with SSH protection
 
 ---
 
 #### configure_container_security
 
-**Purpose**: Implements Docker container security hardening.
+**Purpose**: Implements container security scanning and monitoring with Trivy.
 
 **Tasks**:
 
-- Configure Docker daemon security
-- Set up user namespace remapping
-- Configure container privileges
-- Set up security scanning
-- Configure resource limits
+- Install Trivy vulnerability scanner
+- Configure container security policies
+- Set up automated scanning
+- Configure security thresholds
+- Generate HTML vulnerability reports
 
 **Variables**:
 
 ```yaml
 configure_container_security_enabled: true
-configure_container_security_userns_remap: true
-configure_container_security_no_new_privileges: true
-configure_container_security_live_restore: true
-configure_container_security_log_driver: "json-file"
-configure_container_security_log_opts:
-  max_size: "10m"
-  max_file: "3"
+configure_container_security_trivy_enabled: true
+configure_container_security_scan_schedule: "0 2 * * *"
+configure_container_security_critical_threshold: 0
+configure_container_security_high_threshold: 5
 ```
 
 **Usage**:
 
 ```bash
-# Configure container security
-ansible-playbook playbooks/configure_container_security.yml
+# Configure container security using tags
+ansible-playbook --tags "configure_container_security" playbooks/full.yml
 ```
 
 **Dependencies**: deploy_docker
 
-**Output**: Hardened Docker container security configuration
+**Output**: Active container security scanning and monitoring
 
 ---
 
@@ -318,46 +309,46 @@ ansible-playbook playbooks/configure_container_security.yml
 
 **Tasks**:
 
-- Install Docker dependencies
-- Add Docker repository
-- Install Docker CE
+- Install Docker packages
 - Configure Docker daemon
-- Start Docker service
+- Start and enable Docker service
 - Add user to docker group
+- Configure Docker logging
 
 **Variables**:
 
 ```yaml
-deploy_docker_version: "latest"
-deploy_docker_install_method: "repository"
-deploy_docker_daemon_config: {}
-deploy_docker_user: "{{ containers_deployment_user }}"
+deploy_docker_enabled: true
+deploy_docker_clean_slate: false
+deploy_docker_remove_existing: false
+deploy_docker_log_max_size: "10m"
+deploy_docker_log_max_files: "3"
 ```
 
 **Usage**:
 
 ```bash
-# Deploy Docker
-ansible-playbook playbooks/deploy_docker.yml
+# Deploy Docker using tags
+ansible-playbook --tags "deploy_docker" playbooks/full.yml
 ```
 
-**Dependencies**: None
+**Dependencies**: update_ubuntu
 
-**Output**: Docker installation with daemon configuration
+**Output**: Fully functional Docker installation with secure configuration
 
 ---
 
 #### configure_docker_networks
 
-**Purpose**: Creates secure Docker networks with specific IP ranges.
+**Purpose**: Creates and configures secure Docker networks with network segmentation.
 
 **Tasks**:
 
-- Create default networks
-- Configure network subnets
-- Set up network policies
+- Create web application network (172.20.0.0/16)
+- Create database network (172.21.0.0/16)
+- Create monitoring network (172.22.0.0/16)
 - Configure network isolation
-- Test network connectivity
+- Set up network policies
 
 **Variables**:
 
@@ -373,52 +364,52 @@ configure_docker_networks_default_networks:
   - name: "monitoring-network"
     subnet: "172.22.0.0/16"
     driver: "bridge"
-configure_docker_networks_custom_networks: []
-configure_docker_networks_isolation_enabled: true
+configure_docker_networks_remove_all: false
 ```
 
 **Usage**:
 
 ```bash
-# Configure Docker networks
-ansible-playbook playbooks/configure_docker_networks.yml
+# Configure Docker networks using tags
+ansible-playbook --tags "configure_docker_networks" playbooks/full.yml
 ```
 
 **Dependencies**: deploy_docker
 
-**Output**: Secure Docker networks with network segmentation
+**Output**: Secure Docker networks with proper isolation
 
 ---
 
 #### test_network_security
 
-**Purpose**: Validates network security configuration and isolation.
+**Purpose**: Tests network security configuration and validates firewall rules.
 
 **Tasks**:
 
-- Test firewall configuration
-- Validate Docker networks
-- Test network isolation
-- Check container communication
+- Verify UFW firewall status
+- Test SSH access rules
+- Validate Docker network isolation
+- Check port accessibility
 - Generate security report
 
 **Variables**:
 
 ```yaml
 test_network_security_enabled: true
-test_network_security_test_containers: true
-test_network_security_verbose: false
-test_network_security_generate_report: true
+features:
+  containers:
+    networks:
+      test_mode: true
 ```
 
 **Usage**:
 
 ```bash
-# Test network security
-ansible-playbook playbooks/test_network_security.yml
+# Test network security using tags
+ansible-playbook --tags "test_network_security" playbooks/full.yml
 ```
 
-**Dependencies**: configure_docker_networks, configure_firewall
+**Dependencies**: configure_firewall, configure_docker_networks
 
 **Output**: Network security validation report
 
@@ -428,101 +419,98 @@ ansible-playbook playbooks/test_network_security.yml
 
 #### configure_monitoring
 
-**Purpose**: Sets up system monitoring and health checks.
+**Purpose**: Sets up lightweight system monitoring and health checks.
 
 **Tasks**:
 
 - Install monitoring tools
-- Configure system monitoring
-- Set up health checks
-- Configure alerting
+- Configure health check scripts
+- Set up resource monitoring
+- Configure alerting system
 - Start monitoring services
 
 **Variables**:
 
 ```yaml
 configure_monitoring_enabled: true
-configure_monitoring_alert_email: "admin@example.com"
-configure_monitoring_alert_webhook: ""
-configure_monitoring_check_interval: 300
-configure_monitoring_retention_days: 30
+configure_monitoring_health_check_interval: 360
+configure_monitoring_resource_check_interval: 120
+configure_monitoring_container_check_interval: 300
 ```
 
 **Usage**:
 
 ```bash
-# Configure monitoring
-ansible-playbook playbooks/configure_monitoring.yml
+# Configure monitoring using tags
+ansible-playbook --tags "configure_monitoring" playbooks/full.yml
 ```
 
-**Dependencies**: None
+**Dependencies**: deploy_docker
 
-**Output**: System monitoring with health checks and alerts
+**Output**: Active system monitoring with health checks
 
 ---
 
 #### configure_log_rotation
 
-**Purpose**: Configures automated log management and rotation.
+**Purpose**: Configures automated log rotation and management.
 
 **Tasks**:
 
-- Install logrotate
-- Configure log rotation
+- Configure logrotate for system logs
+- Set up Docker log rotation
+- Configure log retention policies
 - Set up log compression
-- Configure log retention
-- Test log rotation
+- Configure log monitoring
 
 **Variables**:
 
 ```yaml
 configure_log_rotation_enabled: true
-configure_log_rotation_max_size: "100M"
-configure_log_rotation_keep_days: 30
+configure_log_rotation_retention_days: 7
 configure_log_rotation_compress: true
-configure_log_rotation_missingok: true
+configure_log_rotation_missing_ok: true
 ```
 
 **Usage**:
 
 ```bash
-# Configure log rotation
-ansible-playbook playbooks/configure_log_rotation.yml
+# Configure log rotation using tags
+ansible-playbook --tags "configure_log_rotation" playbooks/full.yml
 ```
 
-**Dependencies**: None
+**Dependencies**: deploy_docker
 
-**Output**: Automated log management with rotation and compression
+**Output**: Automated log management with retention policies
 
 ---
 
 #### configure_remote_logging
 
-**Purpose**: Sets up centralized logging for multiple servers.
+**Purpose**: Sets up secure remote logging and log analysis.
 
 **Tasks**:
 
-- Configure remote logging
-- Set up log forwarding
-- Configure log aggregation
-- Set up log storage
-- Test remote logging
+- Configure rsyslog for remote logging
+- Set up log encryption
+- Configure log forwarding
+- Set up log analysis tools
+- Configure log retention
 
 **Variables**:
 
 ```yaml
-configure_remote_logging_enabled: false
-configure_remote_logging_server: ""
-configure_remote_logging_port: 514
-configure_remote_logging_protocol: "udp"
-configure_remote_logging_facility: "local0"
+configure_remote_logging_enabled: true
+configure_remote_logging_server: "log-server.example.com"
+configure_remote_logging_port: "514"
+configure_remote_logging_protocol: "tcp"
 ```
 
 **Usage**:
 
 ```bash
-# Configure remote logging
-ansible-playbook playbooks/configure_remote_logging.yml
+# Configure remote logging using tags
+ansible-playbook --tags "configure_remote_logging" playbooks/full.yml
 ```
 
 **Dependencies**: configure_log_rotation
@@ -535,42 +523,29 @@ ansible-playbook playbooks/configure_remote_logging.yml
 
 ### Recommended Execution Sequence
 
-1. **System Preparation**
+**Note**: Individual role execution is now handled through tags on the main playbook. The following shows the logical order of role execution:
 
-   ```bash
-   ansible-playbook playbooks/update_ubuntu.yml
-   ansible-playbook playbooks/create_deployment_user.yml
-   ```
+1. **System Preparation**
+   - `update_ubuntu` - System updates and security patches
+   - `create_deployment_user` - Create deployment user
 
 2. **Security Configuration**
-
-   ```bash
-   ansible-playbook playbooks/disable_password_authentication.yml
-   ansible-playbook playbooks/configure_firewall.yml
-   ansible-playbook playbooks/configure_fail2ban.yml
-   ```
+   - `disable_password_authentication` - SSH security hardening
+   - `configure_firewall` - UFW firewall configuration
+   - `configure_fail2ban` - Intrusion prevention
 
 3. **Docker Deployment**
-
-   ```bash
-   ansible-playbook playbooks/deploy_docker.yml
-   ansible-playbook playbooks/configure_docker_networks.yml
-   ansible-playbook playbooks/configure_container_security.yml
-   ```
+   - `deploy_docker` - Docker installation and configuration
+   - `configure_docker_networks` - Network segmentation
+   - `configure_container_security` - Security scanning
 
 4. **Monitoring & Maintenance**
-
-   ```bash
-   ansible-playbook playbooks/configure_monitoring.yml
-   ansible-playbook playbooks/configure_log_rotation.yml
-   ansible-playbook playbooks/configure_security_updates.yml
-   ```
+   - `configure_monitoring` - System monitoring setup
+   - `configure_log_rotation` - Log management
+   - `configure_remote_logging` - Centralized logging
 
 5. **Validation**
-
-   ```bash
-   ansible-playbook playbooks/test_network_security.yml
-   ```
+   - `test_network_security` - Security validation
 
 ### Complete Deployment
 
@@ -579,19 +554,34 @@ ansible-playbook playbooks/configure_remote_logging.yml
 ansible-playbook playbooks/full.yml
 ```
 
+### Individual Role Execution
+
+```bash
+# Execute specific roles using tags
+ansible-playbook --tags "update_ubuntu,configure_firewall" playbooks/full.yml
+
+# Skip specific roles
+ansible-playbook --skip-tags "configure_monitoring" playbooks/full.yml
+
+# Execute roles in sequence
+ansible-playbook --tags "update_ubuntu" playbooks/full.yml
+ansible-playbook --tags "configure_firewall" playbooks/full.yml
+ansible-playbook --tags "deploy_docker" playbooks/full.yml
+```
+
 ## Role Customization
 
 ### 1. Variable Override
 
 ```bash
-# Override role variables
-ansible-playbook playbooks/configure_firewall.yml -e "configure_firewall_ssh_port=2222"
+# Override role variables using tags
+ansible-playbook --tags "configure_firewall" playbooks/full.yml -e "configure_firewall_ssh_port=2222"
 ```
 
 ### 2. Custom Role Configuration
 
 ```yaml
-# In inventory/group_vars/all.yml
+# In inventory/group_vars/production/main.yml
 configure_docker_networks_custom_networks:
   - name: "api-network"
     subnet: "172.23.0.0/16"
@@ -623,62 +613,58 @@ ansible-playbook --syntax-check playbooks/full.yml
 ```bash
 # Test role execution without changes
 ansible-playbook --check playbooks/full.yml
+
+# Test specific roles
+ansible-playbook --check --tags "configure_firewall" playbooks/full.yml
 ```
 
 ### 3. Verbose Execution
 
 ```bash
-# Run with detailed output
+# Verbose output for debugging
 ansible-playbook -vvv playbooks/full.yml
+
+# Verbose output for specific roles
+ansible-playbook -vvv --tags "deploy_docker" playbooks/full.yml
 ```
 
-## Role Maintenance
-
-### 1. Role Updates
+### 4. Role-Specific Testing
 
 ```bash
-# Update role dependencies
-ansible-galaxy install -r requirements.yml --force
+# Test individual roles with dry run
+ansible-playbook --check --tags "update_ubuntu" playbooks/full.yml
+ansible-playbook --check --tags "configure_firewall" playbooks/full.yml
+ansible-playbook --check --tags "deploy_docker" playbooks/full.yml
 ```
 
-### 2. Role Validation
+## Role Development
+
+### 1. Creating New Roles
 
 ```bash
-# Validate role structure
-ansible-lint roles/
+# Create role structure
+mkdir -p src/roles/new_role/{tasks,handlers,defaults,vars,meta,templates}
+
+# Create main task file
+touch src/roles/new_role/tasks/main.yml
 ```
 
-### 3. Role Documentation
+### 2. Role Integration
+
+```yaml
+# Add to playbooks/full.yml
+roles:
+  - new_role
+```
+
+### 3. Role Testing
 
 ```bash
-# Generate role documentation
-ansible-doc-extractor roles/ > roles_documentation.md
+# Test new role
+ansible-playbook --check --tags "new_role" playbooks/full.yml
+
+# Test with full deployment
+ansible-playbook --tags "new_role" playbooks/full.yml
 ```
 
-## Best Practices
-
-### 1. Role Design
-
-- Keep roles focused on single responsibility
-- Use descriptive variable names
-- Include proper error handling
-- Document all variables and tasks
-- Test roles independently
-
-### 2. Role Organization
-
-- Group related tasks in roles
-- Use consistent naming conventions
-- Maintain role dependencies
-- Version control all role changes
-- Document role interactions
-
-### 3. Role Security
-
-- Validate all inputs
-- Use secure defaults
-- Implement proper error handling
-- Test security configurations
-- Monitor role execution
-
-This comprehensive role documentation provides detailed information about each role's purpose, configuration, and usage within the Ansible infrastructure automation project.
+This documentation now reflects the current project structure where all roles are executed through the main `playbooks/full.yml` playbook using tags, rather than through individual broken playbook files.

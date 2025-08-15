@@ -179,7 +179,9 @@ graph TB
 
 ### Ansible Security Configurations
 
-#### Production Configuration (`ansible.prod.cfg`)
+The project uses a single `ansible.cfg` file with secure defaults. For development environments, you can override specific settings using environment variables or command-line options.
+
+#### Default Secure Configuration
 
 ```ini
 [defaults]
@@ -196,21 +198,18 @@ ssh_args = -o ControlMaster=auto -o ControlPersist=60s -o UserKnownHostsFile=inv
 pipelining = true
 ```
 
-#### Development Configuration (`ansible.dev.cfg`)
+#### Development Overrides
 
-```ini
-[defaults]
-host_key_checking = false
-stdout_callback = yaml
-gathering = smart
-fact_caching = memory
-fact_caching_timeout = 7200
-retry_files_enabled = false
-interpreter_python = auto_silent
+For development environments where you need relaxed security (e.g., local testing), you can override specific settings:
 
-[ssh_connection]
-ssh_args = -o ControlMaster=auto -o ControlPersist=60s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no
-pipelining = true
+```bash
+# Override host key checking for development
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/full.yml
+
+# Or use environment variables
+export ANSIBLE_HOST_KEY_CHECKING=False
+export ANSIBLE_SSH_ARGS="-o StrictHostKeyChecking=no"
+ansible-playbook playbooks/full.yml
 ```
 
 ### Firewall Rules

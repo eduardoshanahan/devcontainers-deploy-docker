@@ -34,3 +34,10 @@ vendor/
 # OS files
 .DS_Store
 Thumbs.db 
+
+# Ansible files - explicitly include for Cursor
+!all.yml
+!development.yml
+!production.yml
+!staging.yml
+!hosts.yml

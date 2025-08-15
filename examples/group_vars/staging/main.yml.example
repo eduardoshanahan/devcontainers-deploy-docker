@@ -1,0 +1,162 @@
+# =============================================================================
+# STAGING ENVIRONMENT CONFIGURATION
+# =============================================================================
+# 
+# This file contains staging-specific settings for testing and validation.
+# 
+# TO SET UP:
+# 1. Copy this file to src/inventory/group_vars/staging/main.yml
+# 2. Customize the values for your staging environment
+# 3. Ensure sensitive data is in vault.yml (encrypted)
+# =============================================================================
+
+# =============================================================================
+# SERVER CONFIGURATION
+# =============================================================================
+
+# Server IP address or hostname
+vps_server_ip: "your-staging-server-ip-or-hostname"
+
+# Initial deployment user (usually 'ubuntu' for cloud providers)
+initial_deployment_user: "ubuntu"
+
+# SSH private key path for initial deployment
+initial_deployment_ssh_key: "~/.ssh/your-staging-ssh-key"
+
+# =============================================================================
+# CONTAINER DEPLOYMENT USER
+# =============================================================================
+
+# Dedicated user for Docker operations
+containers_deployment_user: "docker_deployment"
+
+# SSH key for the deployment user
+containers_deployment_user_ssh_key: "~/.ssh/your-staging-deployment-key"
+
+# Public key path for the deployment user
+containers_deployment_user_ssh_key_public: "/path/to/your/public/key.pub"
+
+# =============================================================================
+# SSH CONFIGURATION
+# =============================================================================
+
+# SSH common arguments for secure connections
+ansible_ssh_common_args: "-o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
+
+# Python interpreter path
+ansible_python_interpreter: "/usr/bin/python3.10"
+
+# =============================================================================
+# DOCKER NETWORK CONFIGURATION
+# =============================================================================
+
+# Default Docker networks with staging naming
+configure_docker_networks_default_networks:
+  - name: "staging-web-network"
+    subnet: "172.20.0.0/16"
+    driver: "bridge"
+    description: "Staging web applications network"
+  - name: "staging-db-network"
+    subnet: "172.21.0.0/16"
+    driver: "bridge"
+    description: "Staging database network"
+  - name: "staging-monitoring-network"
+    subnet: "172.22.0.0/16"
+    driver: "bridge"
+    description: "Staging monitoring network"
+
+# Disable network removal for staging (preserve existing resources)
+configure_docker_networks_remove_all: false
+
+# =============================================================================
+# DOCKER DEPLOYMENT CONFIGURATION
+# =============================================================================
+
+# No clean slate deployment (preserve existing Docker resources)
+deploy_docker_clean_slate: false
+
+# =============================================================================
+# FIREWALL CONFIGURATION
+# =============================================================================
+
+# Enable firewall configuration
+configure_firewall_enabled: true
+
+# Docker network ranges for firewall rules
+configure_firewall_docker_networks:
+  - "172.20.0.0/16"
+  - "172.21.0.0/16"
+  - "172.22.0.0/16"
+
+# =============================================================================
+# FEATURE FLAGS
+# =============================================================================
+
+# Container network test mode (enabled for staging testing)
+features:
+  containers:
+    networks:
+      test_mode: true
+
+# =============================================================================
+# MONITORING CONFIGURATION
+# =============================================================================
+
+# Enable system monitoring
+configure_monitoring_enabled: true
+
+# Health check intervals (in seconds) - more frequent for staging
+configure_monitoring_health_check_interval: 300      # 5 minutes
+configure_monitoring_resource_check_interval: 60     # 1 minute
+configure_monitoring_container_check_interval: 180   # 3 minutes
+
+# =============================================================================
+# LOG MANAGEMENT
+# =============================================================================
+
+# Enable log rotation
+configure_log_rotation_enabled: true
+
+# Log retention settings (shorter for staging)
+configure_log_rotation_retention_days: 7
+configure_log_rotation_max_size: "50M"
+configure_log_rotation_compress: true
+
+# =============================================================================
+# SECURITY UPDATES
+# =============================================================================
+
+# Enable automatic security updates
+configure_security_updates_enabled: true
+
+# Security update configuration (sensitive data in vault.yml)
+configure_security_updates_gmail_enabled: true
+configure_security_updates_gmail_smtp_server: "smtp.gmail.com"
+configure_security_updates_gmail_smtp_port: "465"
+
+# =============================================================================
+# CONTAINER SECURITY
+# =============================================================================
+
+# Enable container security scanning
+configure_container_security_enabled: true
+
+# Trivy vulnerability scanner settings
+configure_container_security_trivy_enabled: true
+configure_container_security_scan_schedule: "0 1 * * *"  # Daily at 1 AM
+configure_container_security_critical_threshold: 0
+configure_container_security_high_threshold: 10
+
+# =============================================================================
+# FAIL2BAN CONFIGURATION
+# =============================================================================
+
+# Enable intrusion prevention
+configure_fail2ban_enabled: true
+
+# SSH protection settings (more lenient for staging)
+configure_fail2ban_ban_time: 1800      # 30 minutes
+configure_fail2ban_find_time: 300      # 5 minutes
+configure_fail2ban_max_retry: 5        # 5 attempts
+
+

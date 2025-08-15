@@ -1,1 +1,0 @@
-../../.devcontainer/scripts/README.md
