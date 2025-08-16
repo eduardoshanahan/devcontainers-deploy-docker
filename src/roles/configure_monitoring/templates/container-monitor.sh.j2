@@ -1,16 +1,86 @@
 #!/bin/bash
 
-# Container Monitor Script
+# Enhanced Container Monitor Script with Alert Deduplication
 # Monitors Docker containers for health and performance
 
 LOG_FILE="/var/log/container-monitor.log"
+ALERT_STATE_FILE="/var/log/container-alerts.state"
 DATE=$(date +%Y-%m-%d_%H:%M:%S)
+
+# Thresholds
+CPU_THRESHOLD=80
+MEMORY_THRESHOLD=80
+ALERT_COOLDOWN=600  # 10 minutes between repeated container alerts
 
 log_message() {
     echo "$DATE - $1" >> "$LOG_FILE"
 }
 
-log_message "Starting container monitoring"
+# Function to check if container alert has already been sent recently
+is_container_alert_recent() {
+    local container="$1"
+    local alert_type="$2"
+    local current_time=$(date +%s)
+    
+    if [ -f "$ALERT_STATE_FILE" ]; then
+        while IFS='|' read -r cont type timestamp; do
+            if [ "$cont" = "$container" ] && [ "$type" = "$alert_type" ]; then
+                local time_diff=$((current_time - timestamp))
+                if [ $time_diff -lt $ALERT_COOLDOWN ]; then
+                    return 0  # Alert was sent recently
+                fi
+            fi
+        done < "$ALERT_STATE_FILE"
+    fi
+    
+    return 1  # Alert was not sent recently
+}
+
+# Function to mark container alert as sent
+mark_container_alert_sent() {
+    local container="$1"
+    local alert_type="$2"
+    echo "$container|$alert_type|$(date +%s)" >> "$ALERT_STATE_FILE"
+}
+
+# Function to send deduplicated container alert
+send_container_alert() {
+    local container="$1"
+    local alert_type="$2"
+    local message="$3"
+    
+    if ! is_container_alert_recent "$container" "$alert_type"; then
+        log_message "WARNING: $message"
+        mark_container_alert_sent "$container" "$alert_type"
+    else
+        log_message "DEBUG: Container $container $alert_type alert suppressed (cooldown active)"
+    fi
+}
+
+# Clean up old container alerts (older than 2 hours)
+cleanup_old_container_alerts() {
+    if [ -f "$ALERT_STATE_FILE" ]; then
+        local temp_file=$(mktemp)
+        local current_time=$(date +%s)
+        local max_age=7200  # 2 hours
+        
+        while IFS='|' read -r container type timestamp; do
+            if [ -n "$timestamp" ] && [ -n "$container" ]; then
+                local time_diff=$((current_time - timestamp))
+                if [ $time_diff -lt $max_age ]; then
+                    echo "$container|$type|$timestamp" >> "$temp_file"
+                fi
+            fi
+        done < "$ALERT_STATE_FILE"
+        
+        mv "$temp_file" "$ALERT_STATE_FILE"
+    fi
+}
+
+log_message "Starting enhanced container monitoring with deduplication"
+
+# Clean up old alerts at the start
+cleanup_old_container_alerts
 
 # Check if Docker is running
 if ! systemctl is-active --quiet docker; then
@@ -28,7 +98,7 @@ fi
 
 # Monitor each container
 for container in $RUNNING_CONTAINERS; do
-    log_message "Monitoring container: $container"
+    log_message "INFO: Monitoring container: $container"
     
     # Get container stats
     STATS=$(docker stats --no-stream --format "{{ '{{' }}.CPUPerc{{ '}}' }},{{ '{{' }}.MemPerc{{ '}}' }},{{ '{{' }}.NetIO{{ '}}' }}" "$container" 2>/dev/null)
@@ -37,21 +107,21 @@ for container in $RUNNING_CONTAINERS; do
         CPU_USAGE=$(echo "$STATS" | cut -d',' -f1 | sed 's/%//')
         MEMORY_USAGE=$(echo "$STATS" | cut -d',' -f2 | sed 's/%//')
         
-        # Check thresholds
-        if [ "$CPU_USAGE" -gt 80 ]; then
-            log_message "WARNING: Container $container has high CPU usage: ${CPU_USAGE}%"
+        # Check thresholds with deduplication
+        if [ "$CPU_USAGE" -gt $CPU_THRESHOLD ]; then
+            send_container_alert "$container" "high_cpu" "Container $container has high CPU usage: ${CPU_USAGE}%"
         fi
         
-        if [ "$MEMORY_USAGE" -gt 80 ]; then
-            log_message "WARNING: Container $container has high memory usage: ${MEMORY_USAGE}%"
+        if [ "$MEMORY_USAGE" -gt $MEMORY_THRESHOLD ]; then
+            send_container_alert "$container" "high_memory" "Container $container has high memory usage: ${MEMORY_USAGE}%"
         fi
     fi
     
-    # Check container health
+    # Check container health (always alert for health issues, no deduplication)
     HEALTH=$(docker inspect --format='{{ '{{' }}.State.Health.Status{{ '}}' }}' "$container" 2>/dev/null)
     if [ "$HEALTH" = "unhealthy" ]; then
         log_message "ERROR: Container $container is unhealthy"
     fi
 done
 
-log_message "Container monitoring completed" 
+log_message "Enhanced container monitoring completed" 

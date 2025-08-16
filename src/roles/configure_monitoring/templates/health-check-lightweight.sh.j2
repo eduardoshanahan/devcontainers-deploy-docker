@@ -1,75 +1,125 @@
 #!/bin/bash
 
-# Lightweight Health Check Script
+# Enhanced Health Check Script with Proper Alert Classification
 # Optimized for 2GB RAM VPS
 
 LOG_FILE="/var/log/health-monitor.log"
 ALERT_FILE="/opt/monitoring/alerts/health_alerts_$(date +%Y%m%d).log"
 DATE=$(date +%Y-%m-%d_%H:%M:%S)
 
-# Resource thresholds
-DISK_THRESHOLD={{ configure_monitoring_disk_threshold | default(85) }}
-MEMORY_THRESHOLD={{ configure_monitoring_memory_threshold | default(90) }}
-CPU_THRESHOLD={{ configure_monitoring_cpu_threshold | default(80) }}
+# Resource thresholds with severity levels
+DISK_THRESHOLD_WARN={{ configure_monitoring_disk_threshold | default(85) }}
+DISK_THRESHOLD_CRITICAL=95
+MEMORY_THRESHOLD_WARN={{ configure_monitoring_memory_threshold | default(90) }}
+MEMORY_THRESHOLD_CRITICAL=95
+CPU_THRESHOLD_WARN={{ configure_monitoring_cpu_threshold | default(80) }}
+CPU_THRESHOLD_CRITICAL=95
 
-# Function to log messages
+# Function to log messages with severity
 log_message() {
-    echo "$DATE - $1" | tee -a "$LOG_FILE"
+    local severity="$1"
+    local message="$2"
+    echo "$DATE - [$severity] $message" | tee -a "$LOG_FILE"
 }
 
-# Function to send alerts
+# Function to send alerts with proper classification
 send_alert() {
     local message="$1"
     local severity="$2"
     
-    log_message "ALERT [$severity]: $message"
-    echo "$DATE - [$severity] $message" >> "$ALERT_FILE"
+    # Always log to health monitor log
+    log_message "$severity" "$message"
     
-    # Send email alert if configured
-    if [ -n "{{ configure_monitoring_alerts_email | default('') }}" ]; then
-        echo "$message" | mail -s "VPS Health Alert [$severity]" "{{ configure_monitoring_alerts_email }}"
+    # Only send email for HIGH and CRITICAL alerts
+    if [[ "$severity" == "HIGH" || "$severity" == "CRITICAL" ]]; then
+        echo "$DATE - [$severity] $message" >> "$ALERT_FILE"
+        
+        # Send email alert if configured
+        if [ -n "{{ configure_monitoring_alerts_email | default('') }}" ]; then
+            echo "$message" | mail -s "VPS Health Alert [$severity]" "{{ configure_monitoring_alerts_email }}"
+        fi
     fi
 }
 
-log_message "Starting lightweight health check"
+log_message "INFO" "Starting enhanced health check with alert classification"
 
-# Check disk usage
+# Check disk usage with severity levels
 DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
-if [ "$DISK_USAGE" -gt "$DISK_THRESHOLD" ]; then
-    send_alert "Disk usage is ${DISK_USAGE}% (threshold: ${DISK_THRESHOLD}%)" "HIGH"
+if [ "$DISK_USAGE" -gt "$DISK_THRESHOLD_CRITICAL" ]; then
+    send_alert "CRITICAL: Disk usage is ${DISK_USAGE}% (threshold: ${DISK_THRESHOLD_CRITICAL}%)" "CRITICAL"
+elif [ "$DISK_USAGE" -gt "$DISK_THRESHOLD_WARN" ]; then
+    send_alert "Disk usage is ${DISK_USAGE}% (threshold: ${DISK_THRESHOLD_WARN}%)" "HIGH"
+else
+    log_message "INFO" "Disk usage is ${DISK_USAGE}% (normal)"
 fi
 
-# Check memory usage
+# Check memory usage with severity levels
 MEMORY_USAGE=$(free | awk 'NR==2{printf "%.0f", $3*100/$2}')
-if [ "$MEMORY_USAGE" -gt "$MEMORY_THRESHOLD" ]; then
-    send_alert "Memory usage is ${MEMORY_USAGE}% (threshold: ${MEMORY_THRESHOLD}%)" "HIGH"
+if [ "$MEMORY_USAGE" -gt "$MEMORY_THRESHOLD_CRITICAL" ]; then
+    send_alert "CRITICAL: Memory usage is ${MEMORY_USAGE}% (threshold: ${MEMORY_THRESHOLD_CRITICAL}%)" "CRITICAL"
+elif [ "$MEMORY_USAGE" -gt "$MEMORY_THRESHOLD_WARN" ]; then
+    send_alert "Memory usage is ${MEMORY_USAGE}% (threshold: ${MEMORY_THRESHOLD_WARN}%)" "HIGH"
+else
+    log_message "INFO" "Memory usage is ${MEMORY_USAGE}% (normal)"
 fi
 
-# Check CPU usage (lightweight check)
+# Check CPU usage with severity levels
 CPU_USAGE=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | sed 's/%us,//')
-if [ "$CPU_USAGE" -gt "$CPU_THRESHOLD" ]; then
-    send_alert "CPU usage is ${CPU_USAGE}% (threshold: ${CPU_THRESHOLD}%)" "MEDIUM"
+if [ "$CPU_USAGE" -gt "$CPU_THRESHOLD_CRITICAL" ]; then
+    send_alert "CRITICAL: CPU usage is ${CPU_USAGE}% (threshold: ${CPU_THRESHOLD_CRITICAL}%)" "CRITICAL"
+elif [ "$CPU_USAGE" -gt "$CPU_THRESHOLD_WARN" ]; then
+    send_alert "CPU usage is ${CPU_USAGE}% (threshold: ${CPU_THRESHOLD_WARN}%)" "MEDIUM"
+else
+    log_message "INFO" "CPU usage is ${CPU_USAGE}% (normal)"
 fi
 
-# Check Docker service
+# Check Docker service (CRITICAL - always alert)
 if ! systemctl is-active --quiet docker; then
     send_alert "Docker service is not running" "CRITICAL"
+else
+    log_message "INFO" "Docker service is running normally"
 fi
 
-# Check critical services
+# Check critical services with severity classification
 SERVICES=("ssh" "ufw" "fail2ban")
 for service in "${SERVICES[@]}"; do
     if ! systemctl is-active --quiet "$service"; then
-        send_alert "Service $service is not running" "HIGH"
+        if [ "$service" = "ssh" ]; then
+            send_alert "Service $service is not running" "CRITICAL"
+        else
+            send_alert "Service $service is not running" "HIGH"
+        fi
+    else
+        log_message "INFO" "Service $service is running normally"
     fi
 done
 
-# Check container health (lightweight)
+# Check container health with severity levels
 RUNNING_CONTAINERS=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" 2>/dev/null | wc -l)
 if [ "$RUNNING_CONTAINERS" -eq 0 ]; then
-    log_message "No containers running"
+    send_alert "No containers running" "MEDIUM"
 else
-    log_message "$RUNNING_CONTAINERS containers running"
+    log_message "INFO" "$RUNNING_CONTAINERS containers running normally"
+    
+    # Check for unhealthy containers
+    UNHEALTHY_CONTAINERS=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }},{{ '{{' }}.Status{{ '}}' }}" | grep -c "unhealthy" || echo "0")
+    if [ "$UNHEALTHY_CONTAINERS" -gt 0 ]; then
+        send_alert "Found $UNHEALTHY_CONTAINERS unhealthy containers" "HIGH"
+    fi
 fi
 
-log_message "Lightweight health check completed" 
+# System load check with severity levels
+LOAD_AVERAGE=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+CPU_CORES=$(nproc)
+LOAD_THRESHOLD_CRITICAL=$(echo "$CPU_CORES * 2" | bc)
+LOAD_THRESHOLD_WARN=$(echo "$CPU_CORES * 1.5" | bc)
+
+if (( $(echo "$LOAD_AVERAGE > $LOAD_THRESHOLD_CRITICAL" | bc -l) )); then
+    send_alert "CRITICAL: System load is extremely high: $LOAD_AVERAGE (threshold: $LOAD_THRESHOLD_CRITICAL)" "CRITICAL"
+elif (( $(echo "$LOAD_AVERAGE > $LOAD_THRESHOLD_WARN" | bc -l) )); then
+    send_alert "System load is high: $LOAD_AVERAGE (threshold: $LOAD_THRESHOLD_WARN)" "MEDIUM"
+else
+    log_message "INFO" "System load is normal: $LOAD_AVERAGE"
+fi
+
+log_message "INFO" "Enhanced health check completed" 

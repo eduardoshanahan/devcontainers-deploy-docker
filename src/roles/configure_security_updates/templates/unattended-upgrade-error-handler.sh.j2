@@ -23,7 +23,45 @@ is_error_already_reported() {
 # Function to mark error as reported
 mark_error_as_reported() {
     local error_hash="$1"
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $error_hash" >> "$ERROR_STATE_FILE"
+    local error_timestamp="$2"
+    echo "$error_hash|$error_timestamp" >> "$ERROR_STATE_FILE"
+}
+
+# Enhanced function to check if error is recent enough to report
+is_error_recent() {
+    local error_timestamp="$1"
+    local current_time=$(date +%s)
+    local error_time=$(date -d "$error_timestamp" +%s 2>/dev/null || echo "0")
+    local time_diff=$((current_time - error_time))
+    
+    # Only report errors from the last 7 days (604800 seconds)
+    if [ $time_diff -lt 604800 ]; then
+        return 0  # Recent enough to report
+    fi
+    return 1  # Too old to report
+}
+
+# Function to clean old error entries from state file
+cleanup_old_errors() {
+    if [ -f "$ERROR_STATE_FILE" ]; then
+        local temp_file=$(mktemp)
+        local current_time=$(date +%s)
+        
+        while IFS='|' read -r hash timestamp; do
+            if [ -n "$hash" ] && [ -n "$timestamp" ]; then
+                local error_time=$(date -d "$timestamp" +%s 2>/dev/null || echo "0")
+                local time_diff=$((current_time - error_time))
+                
+                # Keep errors from the last 30 days (2592000 seconds)
+                if [ $time_diff -lt 2592000 ]; then
+                    echo "$hash|$timestamp" >> "$temp_file"
+                fi
+            fi
+        done < "$ERROR_STATE_FILE"
+        
+        mv "$temp_file" "$ERROR_STATE_FILE"
+        log "Cleaned up old error entries from state file"
+    fi
 }
 
 notify_error() {
@@ -39,6 +77,9 @@ notify_success() {
     local message="$1"
     log "SUCCESS: $message"
 }
+
+# Clean up old error entries at the start
+cleanup_old_errors
 
 # Check if apt is locked
 if fuser /var/lib/dpkg/lock >/dev/null 2>&1; then
@@ -109,31 +150,54 @@ for package in "${PROBLEMATIC_PACKAGES[@]}"; do
     fi
 done
 
-# Check for specific 404 errors in unattended upgrades logs
+# Enhanced 404 error detection with better deduplication
 if [ -f "/var/log/unattended-upgrades/unattended-upgrades.log" ]; then
-    RECENT_404_ERRORS=$(tail -n 100 "/var/log/unattended-upgrades/unattended-upgrades.log" | grep -i "404\|not found" | wc -l)
+    log "Checking for 404 errors in unattended upgrades log"
     
-    if [ "$RECENT_404_ERRORS" -gt 0 ]; then
-        log "Found $RECENT_404_ERRORS 404 errors in unattended upgrades log"
+    # Extract 404 errors with timestamps from the last 7 days
+    local seven_days_ago=$(date -d '7 days ago' '+%Y-%m-%d')
+    
+    # Use awk to extract errors with timestamps and create unique identifiers
+    awk -v cutoff="$seven_days_ago" '
+        $0 >= cutoff && /404|not found/i {
+            # Extract timestamp and create a more specific error identifier
+            timestamp = $1 " " $2
+            # Create a hash that includes package name and error type for better deduplication
+            if (match($0, /linux-virtual|linux-image/)) {
+                error_type = "kernel_404"
+            } else if (match($0, /404/)) {
+                error_type = "general_404"
+            } else {
+                error_type = "not_found"
+            }
+            
+            # Create a unique identifier: timestamp + error_type + first few words
+            identifier = timestamp "|" error_type "|" substr($0, 1, 50)
+            print identifier
+        }
+    ' "/var/log/unattended-upgrades/unattended-upgrades.log" | while IFS='|' read -r timestamp error_type error_summary; do
         
-        # Extract specific 404 errors and attempt to fix them
-        tail -n 100 "/var/log/unattended-upgrades/unattended-upgrades.log" | grep -i "404\|not found" | while read -r line; do
-            log "404 Error found: $line"
-            
+        if [ -n "$timestamp" ] && [ -n "$error_type" ]; then
             # Generate hash for this specific error
-            ERROR_HASH=$(echo "$line" | md5sum | cut -d' ' -f1)
+            ERROR_HASH=$(echo "${timestamp}|${error_type}|${error_summary}" | md5sum | cut -d' ' -f1)
             
-            # Only notify if this error hasn't been reported before
-            if ! is_error_already_reported "$ERROR_HASH"; then
-                notify_error "Found new 404 error: $line"
-                mark_error_as_reported "$ERROR_HASH"
-                log "Marked error as reported with hash: $ERROR_HASH"
+            log "Found error: Type=$error_type, Summary=${error_summary:0:50}..."
+            
+            # Only notify if this error hasn't been reported before AND is recent
+            if ! is_error_already_reported "$ERROR_HASH" && is_error_recent "$timestamp"; then
+                notify_error "New unattended-upgrade error detected: $error_type - ${error_summary:0:100}..."
+                mark_error_as_reported "$ERROR_HASH" "$timestamp"
+                log "Marked new error as reported with hash: $ERROR_HASH"
             else
-                log "404 error already reported, skipping: $line"
+                if is_error_already_reported "$ERROR_HASH"; then
+                    log "Error already reported, skipping: $ERROR_HASH"
+                else
+                    log "Error too old to report: $timestamp"
+                fi
             fi
             
-            # Extract package name from 404 error and attempt fixes (regardless of reporting status)
-            if echo "$line" | grep -q "linux-virtual\|linux-image"; then
+            # Attempt fixes for kernel package errors (regardless of reporting status)
+            if [ "$error_type" = "kernel_404" ]; then
                 log "Attempting to fix kernel package 404 error"
                 
                 # Force update of package lists with cache clearing
@@ -143,8 +207,8 @@ if [ -f "/var/log/unattended-upgrades/unattended-upgrades.log" ]; then
                 # Try to install the latest available kernel packages
                 apt install --only-upgrade linux-virtual linux-image-virtual linux-image-generic -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" >> "$LOG_FILE" 2>&1 || true
             fi
-        done
-    fi
+        fi
+    done
 fi
 
 # Check for any held packages and try to resolve them

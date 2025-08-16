@@ -1,14 +1,153 @@
 #!/bin/bash
 
-# Lightweight Resource Monitor
+# Enhanced Resource Monitor with Alert Classification and Deduplication
 # Optimized for 2GB RAM VPS
 
 LOG_FILE="/var/log/resource-monitor.log"
+ALERT_STATE_FILE="/var/log/resource-alerts.state"
 DATE=$(date +%Y-%m-%d_%H:%M:%S)
 
+# Resource thresholds with severity levels
+CPU_THRESHOLD_WARN={{ configure_monitoring_cpu_threshold | default(80) }}
+CPU_THRESHOLD_CRITICAL=95
+MEMORY_THRESHOLD_WARN={{ configure_monitoring_memory_threshold | default(85) }}
+MEMORY_THRESHOLD_CRITICAL=95
+DISK_THRESHOLD_WARN={{ configure_monitoring_disk_threshold | default(85) }}
+DISK_THRESHOLD_CRITICAL=95
+DOCKER_CPU_THRESHOLD_WARN=80
+DOCKER_CPU_THRESHOLD_CRITICAL=95
+DOCKER_MEMORY_THRESHOLD_WARN=80
+DOCKER_MEMORY_THRESHOLD_CRITICAL=95
+
+# Alert deduplication settings
+ALERT_COOLDOWN_WARN=300    # 5 minutes between repeated warnings
+ALERT_COOLDOWN_CRITICAL=60 # 1 minute between repeated critical alerts
+ALERT_RESOLUTION_THRESHOLD=60  # Alert resolved when resource usage drops below this percentage
+
 log_message() {
-    echo "$DATE - $1" >> "$LOG_FILE"
+    local severity="$1"
+    local message="$2"
+    echo "$DATE - [$severity] $message" >> "$LOG_FILE"
 }
+
+# Function to check if alert has already been sent recently
+is_alert_recent() {
+    local alert_type="$1"
+    local severity="$2"
+    local current_time=$(date +%s)
+    
+    # Critical alerts have shorter cooldown
+    local cooldown=$ALERT_COOLDOWN_WARN
+    if [ "$severity" = "CRITICAL" ]; then
+        cooldown=$ALERT_COOLDOWN_CRITICAL
+    fi
+    
+    if [ -f "$ALERT_STATE_FILE" ]; then
+        while IFS='|' read -r type sev timestamp value; do
+            if [ "$type" = "$alert_type" ] && [ "$sev" = "$severity" ]; then
+                local time_diff=$((current_time - timestamp))
+                if [ $time_diff -lt $cooldown ]; then
+                    return 0  # Alert was sent recently
+                fi
+            fi
+        done < "$ALERT_STATE_FILE"
+    fi
+    
+    return 1  # Alert was not sent recently
+}
+
+# Function to mark alert as sent
+mark_alert_sent() {
+    local alert_type="$1"
+    local severity="$2"
+    local value="$3"
+    echo "$alert_type|$severity|$(date +%s)|$value" >> "$ALERT_STATE_FILE"
+}
+
+# Function to check if alert should be resolved
+check_alert_resolution() {
+    local alert_type="$1"
+    local current_value="$2"
+    
+    if [ -f "$ALERT_STATE_FILE" ]; then
+        local temp_file=$(mktemp)
+        local alert_resolved=false
+        
+        while IFS='|' read -r type sev timestamp value; do
+            if [ "$type" = "$alert_type" ]; then
+                # Check if resource usage has dropped below resolution threshold
+                if [ "$current_value" -lt $ALERT_RESOLUTION_THRESHOLD ]; then
+                    log_message "INFO" "$alert_type alert resolved - usage dropped to ${current_value}%"
+                    alert_resolved=true
+                else
+                    # Keep the alert active
+                    echo "$type|$sev|$timestamp|$value" >> "$temp_file"
+                fi
+            else
+                # Keep other alerts
+                echo "$type|$sev|$timestamp|$value" >> "$temp_file"
+            fi
+        done < "$ALERT_STATE_FILE"
+        
+        if [ "$alert_resolved" = true ]; then
+            mv "$temp_file" "$ALERT_STATE_FILE"
+        else
+            rm "$temp_file"
+        fi
+    fi
+}
+
+# Function to send classified alert
+send_classified_alert() {
+    local alert_type="$1"
+    local severity="$2"
+    local message="$3"
+    local current_value="$4"
+    
+    # Always log critical alerts
+    if [ "$severity" = "CRITICAL" ]; then
+        log_message "CRITICAL" "$message"
+        mark_alert_sent "$alert_type" "$severity" "$current_value"
+        return
+    fi
+    
+    # Check deduplication for warnings and medium alerts
+    if ! is_alert_recent "$alert_type" "$severity"; then
+        log_message "$severity" "$message"
+        mark_alert_sent "$alert_type" "$severity" "$current_value"
+    else
+        log_message "DEBUG" "$alert_type $severity alert suppressed (cooldown active)"
+    fi
+    
+    # Always check for resolution
+    check_alert_resolution "$alert_type" "$current_value"
+}
+
+# Clean up old alert entries (older than 1 hour)
+cleanup_old_alerts() {
+    if [ -f "$ALERT_STATE_FILE" ]; then
+        local temp_file=$(mktemp)
+        local current_time=$(date +%s)
+        local max_age=3600  # 1 hour
+        
+        while IFS='|' read -r type sev timestamp value; do
+            if [ -n "$timestamp" ] && [ -n "$type" ]; then
+                local time_diff=$((current_time - timestamp))
+                if [ $time_diff -lt $max_age ]; then
+                    echo "$type|$sev|$timestamp|$value" >> "$temp_file"
+                fi
+            fi
+        done < "$ALERT_STATE_FILE"
+        
+        mv "$temp_file" "$ALERT_STATE_FILE"
+    fi
+}
+
+# Initialize log message
+log_message "INFO" "Starting enhanced resource monitoring with classification and deduplication"
+
+# Clean up old alerts at the start
+cleanup_old_alerts
 
 # Get system resources (lightweight)
 CPU_USAGE=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | sed 's/%us,//')
@@ -16,32 +155,44 @@ MEMORY_USAGE=$(free | awk 'NR==2{printf "%.0f", $3*100/$2}')
 DISK_USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
 LOAD_AVERAGE=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
 
-# Log resource usage
-log_message "CPU: ${CPU_USAGE}%, Memory: ${MEMORY_USAGE}%, Disk: ${DISK_USAGE}%, Load: ${LOAD_AVERAGE}"
+# Log resource usage (always log, no deduplication for info)
+log_message "INFO" "Resource Status - CPU: ${CPU_USAGE}%, Memory: ${MEMORY_USAGE}%, Disk: ${DISK_USAGE}%, Load: ${LOAD_AVERAGE}"
 
-# Check for high resource usage
-if [ "$CPU_USAGE" -gt 80 ]; then
-    log_message "WARNING: High CPU usage detected"
+# Check for high resource usage with severity classification
+if [ "$CPU_USAGE" -gt $CPU_THRESHOLD_CRITICAL ]; then
+    send_classified_alert "high_cpu" "CRITICAL" "Extremely high CPU usage: ${CPU_USAGE}%" "$CPU_USAGE"
+elif [ "$CPU_USAGE" -gt $CPU_THRESHOLD_WARN ]; then
+    send_classified_alert "high_cpu" "MEDIUM" "High CPU usage: ${CPU_USAGE}% (threshold: ${CPU_THRESHOLD_WARN}%)" "$CPU_USAGE"
 fi
 
-if [ "$MEMORY_USAGE" -gt 85 ]; then
-    log_message "WARNING: High memory usage detected"
+if [ "$MEMORY_USAGE" -gt $MEMORY_THRESHOLD_CRITICAL ]; then
+    send_classified_alert "high_memory" "CRITICAL" "Extremely high memory usage: ${MEMORY_USAGE}%" "$MEMORY_USAGE"
+elif [ "$MEMORY_USAGE" -gt $MEMORY_THRESHOLD_WARN ]; then
+    send_classified_alert "high_memory" "HIGH" "High memory usage: ${MEMORY_USAGE}% (threshold: ${MEMORY_THRESHOLD_WARN}%)" "$MEMORY_USAGE"
 fi
 
-if [ "$DISK_USAGE" -gt 85 ]; then
-    log_message "WARNING: High disk usage detected"
+if [ "$DISK_USAGE" -gt $DISK_THRESHOLD_CRITICAL ]; then
+    send_classified_alert "high_disk" "CRITICAL" "Extremely high disk usage: ${DISK_USAGE}%" "$DISK_USAGE"
+elif [ "$DISK_USAGE" -gt $DISK_THRESHOLD_WARN ]; then
+    send_classified_alert "high_disk" "HIGH" "High disk usage: ${DISK_USAGE}% (threshold: ${DISK_THRESHOLD_WARN}%)" "$DISK_USAGE"
 fi
 
-# Docker resource usage (lightweight)
+# Docker resource usage monitoring with classification
 if command -v docker >/dev/null 2>&1; then
     DOCKER_CPU=$(docker stats --no-stream --format "{{ '{{' }}.CPUPerc{{ '}}' }}" 2>/dev/null | head -n1 | sed 's/%//')
     DOCKER_MEMORY=$(docker stats --no-stream --format "{{ '{{' }}.MemPerc{{ '}}' }}" 2>/dev/null | head -n1 | sed 's/%//')
     
-    if [ -n "$DOCKER_CPU" ] && [ "$DOCKER_CPU" -gt 80 ]; then
-        log_message "WARNING: High Docker CPU usage: ${DOCKER_CPU}%"
+    if [ -n "$DOCKER_CPU" ] && [ "$DOCKER_CPU" -gt $DOCKER_CPU_THRESHOLD_CRITICAL ]; then
+        send_classified_alert "high_docker_cpu" "CRITICAL" "Extremely high Docker CPU usage: ${DOCKER_CPU}%" "$DOCKER_CPU"
+    elif [ -n "$DOCKER_CPU" ] && [ "$DOCKER_CPU" -gt $DOCKER_CPU_THRESHOLD_WARN ]; then
+        send_classified_alert "high_docker_cpu" "MEDIUM" "High Docker CPU usage: ${DOCKER_CPU}% (threshold: ${DOCKER_CPU_THRESHOLD_WARN}%)" "$DOCKER_CPU"
     fi
     
-    if [ -n "$DOCKER_MEMORY" ] && [ "$DOCKER_MEMORY" -gt 80 ]; then
-        log_message "WARNING: High Docker memory usage: ${DOCKER_MEMORY}%"
+    if [ -n "$DOCKER_MEMORY" ] && [ "$DOCKER_MEMORY" -gt $DOCKER_MEMORY_THRESHOLD_CRITICAL ]; then
+        send_classified_alert "high_docker_memory" "CRITICAL" "Extremely high Docker memory usage: ${DOCKER_MEMORY}%" "$DOCKER_MEMORY"
+    elif [ -n "$DOCKER_MEMORY" ] && [ "$DOCKER_MEMORY" -gt $DOCKER_MEMORY_THRESHOLD_WARN ]; then
+        send_classified_alert "high_docker_memory" "HIGH" "High Docker memory usage: ${DOCKER_MEMORY}% (threshold: ${DOCKER_MEMORY_THRESHOLD_WARN}%)" "$DOCKER_MEMORY"
     fi
-fi 
+fi
+
+log_message "INFO" "Enhanced resource monitoring completed" 
