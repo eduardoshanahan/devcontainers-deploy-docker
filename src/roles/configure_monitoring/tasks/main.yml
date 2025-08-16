@@ -228,3 +228,22 @@
     group: root
     mode: "0644"
   become: true
+
+# Create alert state files for deduplication
+- name: Create resource alerts state file
+  ansible.builtin.file:
+    path: /var/log/resource-alerts.state
+    state: touch
+    mode: "0644"
+    owner: root
+    group: root
+  become: true
+
+- name: Create container alerts state file
+  ansible.builtin.file:
+    path: /var/log/container-alerts.state
+    state: touch
+    mode: "0644"
+    owner: root
+    group: root
+  become: true

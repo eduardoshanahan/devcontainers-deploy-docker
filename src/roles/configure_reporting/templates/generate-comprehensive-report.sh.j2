@@ -71,18 +71,42 @@ get_docker_info() {
 EOF
 }
 
-# Function to get security information
+# Function to get security information with proper classification
 get_security_info() {
     local failed_logins=$(grep "Failed password" /var/log/auth.log 2>/dev/null | wc -l)
     local banned_ips=$(grep "Ban" /var/log/fail2ban.log 2>/dev/null | wc -l)
-    local security_alerts=$(grep -c "ALERT\|WARNING\|ERROR" /var/log/health-monitor.log 2>/dev/null || echo "0")
+    
+    # Enhanced alert categorization by severity
+    local critical_alerts=$(grep -c "CRITICAL" /var/log/health-monitor.log 2>/dev/null || echo "0")
+    local high_alerts=$(grep -c "HIGH" /var/log/health-monitor.log 2>/dev/null || echo "0")
+    local medium_alerts=$(grep -c "MEDIUM" /var/log/health-monitor.log 2>/dev/null || echo "0")
+    local info_messages=$(grep -c "INFO" /var/log/health-monitor.log 2>/dev/null || echo "0")
+    
+    # Recent alerts (last 24 hours) by severity
+    local recent_critical=$(grep "$(date -d '24 hours ago' '+%Y-%m-%d')" /var/log/health-monitor.log 2>/dev/null | grep -c "CRITICAL" || echo "0")
+    local recent_high=$(grep "$(date -d '24 hours ago' '+%Y-%m-%d')" /var/log/health-monitor.log 2>/dev/null | grep -c "HIGH" || echo "0")
+    local recent_medium=$(grep "$(date -d '24 hours ago' '+%Y-%m-%d')" /var/log/health-monitor.log 2>/dev/null | grep -c "MEDIUM" || echo "0")
     
     cat << EOF
     <h2>Security Status</h2>
     <table class="info-table">
         <tr><td>Failed Login Attempts:</td><td>$failed_logins</td></tr>
         <tr><td>Banned IP Addresses:</td><td>$banned_ips</td></tr>
-        <tr><td>Security Alerts:</td><td>$security_alerts</td></tr>
+    </table>
+    
+    <h2>Alert Classification</h2>
+    <table class="info-table">
+        <tr><td><strong>CRITICAL Alerts (Immediate Action):</strong></td><td>$critical_alerts</td></tr>
+        <tr><td><strong>HIGH Alerts (Action Soon):</strong></td><td>$high_alerts</td></tr>
+        <tr><td><strong>MEDIUM Alerts (Monitor):</strong></td><td>$medium_alerts</td></tr>
+        <tr><td><strong>INFO Messages:</strong></td><td>$info_messages</td></tr>
+    </table>
+    
+    <h2>Recent Alerts (Last 24 Hours)</h2>
+    <table class="info-table">
+        <tr><td>Critical Issues:</td><td>$recent_critical</td></tr>
+        <tr><td>High Priority:</td><td>$recent_high</td></tr>
+        <tr><td>Medium Priority:</td><td>$recent_medium</td></tr>
     </table>
 EOF
 }

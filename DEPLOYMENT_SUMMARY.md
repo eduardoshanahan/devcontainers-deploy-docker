@@ -243,6 +243,7 @@ This Ansible project has been successfully implemented with all major security a
 ## **Recommendations for Better Development Experience**
 
 ### **Current Setup Analysis**
+
 - **4GB RAM** - Good for development
 - **2 CPUs** - Adequate for most tasks
 - **2GB shared memory** - Good for Docker operations
@@ -262,6 +263,7 @@ This Ansible project has been successfully implemented with all major security a
 ```
 
 **Benefits of More Resources:**
+
 - **Faster Ansible playbook execution** - More CPU cores
 - **Better Git operations** - More memory for large repos
 - **Smoother terminal experience** - More responsive
@@ -284,16 +286,18 @@ CONTAINER_SHM_SIZE=4g
 **Cursor itself won't be faster**, but you'll notice:
 
 ### **What Improves:**
-- ✅ **Ansible playbook execution speed**
-- ✅ **Git operations (clone, pull, push)**
-- ✅ **Terminal responsiveness**
-- ✅ **File system operations**
-- ✅ **Docker operations (if testing locally)**
+
+- **Ansible playbook execution speed**
+- **Git operations (clone, pull, push)**
+- **Terminal responsiveness**
+- **File system operations**
+- **Docker operations (if testing locally)**
 
 ### **What Stays the Same:**
-- ⚠️ **Cursor AI suggestions** - Still uses host resources
-- ⚠️ **Code analysis** - Still processed by host
-- ⚠️ **File indexing** - Still uses host resources
+
+- **Cursor AI suggestions** - Still uses host resources
+- **Code analysis** - Still processed by host
+- **File indexing** - Still uses host resources
 
 ## **Recommendation**
 
@@ -304,6 +308,7 @@ CONTAINER_SHM_SIZE=4g
 ```
 
 This will give you:
+
 - **50% more memory** (4GB → 6GB)
 - **100% more CPU cores** (2 → 4)
 - **100% more shared memory** (2GB → 4GB)

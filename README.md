@@ -82,6 +82,7 @@ This project provides a **comprehensive, secure, and efficient** server deployme
 The project uses an environment-based inventory structure. Configure your server details in the appropriate environment file:
 
 **For Production:**
+
 ```yaml
 # src/inventory/group_vars/production/main.yml
 vps_server_ip: "your-production-vps-ip"
@@ -90,6 +91,7 @@ initial_deployment_ssh_key: "~/.ssh/your-production-key"
 ```
 
 **For Staging:**
+
 ```yaml
 # src/inventory/group_vars/staging/main.yml
 vps_server_ip: "your-staging-vps-ip"
@@ -98,6 +100,7 @@ initial_deployment_ssh_key: "~/.ssh/your-staging-key"
 ```
 
 **For Development:**
+
 ```yaml
 # src/inventory/group_vars/development/main.yml
 vps_server_ip: "your-development-vps-ip"
