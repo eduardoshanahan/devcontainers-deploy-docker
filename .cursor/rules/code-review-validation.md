@@ -31,6 +31,7 @@
 **For all template files (.j2):**
 
 1. **Size Comparison**
+
    ```bash
    # Check file sizes
    wc -l src/roles/*/templates/*.j2
@@ -121,6 +122,7 @@
 ## Validation Commands
 
 ### File Size Analysis
+
 ```bash
 # Check file sizes in a directory
 find src/roles/configure_reporting/templates/ -name "*.j2" -exec wc -l {} \;
@@ -130,6 +132,7 @@ find src/roles/configure_monitoring/templates/ -name "*.j2" -exec wc -l {} \;
 ```
 
 ### Content Validation
+
 ```bash
 # Check for undefined variables
 grep -r "{{.*}}" src/roles/configure_reporting/templates/ | grep -v "default("
@@ -142,6 +145,7 @@ grep -r "hosts:" src/roles/configure_reporting/templates/
 ```
 
 ### Template Syntax Check
+
 ```bash
 # Validate Jinja2 syntax
 python3 -c "from jinja2 import Template; Template(open('template.j2').read())"

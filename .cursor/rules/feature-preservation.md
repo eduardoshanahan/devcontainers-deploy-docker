@@ -9,6 +9,7 @@ When debugging or fixing issues, **NEVER remove existing features** that were in
 ### **Debugging Process Rules**
 
 #### **1. Temporary Changes Only**
+
 ```yaml
 # ✅ CORRECT - Temporary debugging
 - name: Debug Docker installation
@@ -41,6 +42,7 @@ When debugging or fixing issues, **NEVER remove existing features** that were in
 #### **3. Debugging Workflow**
 
 **Step 1: Identify the Issue**
+
 ```bash
 # Don't remove features, add debugging
 - name: Debug the specific issue
@@ -50,6 +52,7 @@ When debugging or fixing issues, **NEVER remove existing features** that were in
 ```
 
 **Step 2: Add Temporary Debugging**
+
 ```yaml
 # ✅ Add debugging without removing features
 - name: Debug Docker GPG key
@@ -63,6 +66,7 @@ When debugging or fixing issues, **NEVER remove existing features** that were in
 ```
 
 **Step 3: Fix the Issue**
+
 ```yaml
 # ✅ Fix the issue while preserving all features
 - name: Fix GPG key issue
@@ -74,6 +78,7 @@ When debugging or fixing issues, **NEVER remove existing features** that were in
 ```
 
 **Step 4: Verify All Features Still Work**
+
 ```yaml
 # ✅ Test that all features are preserved
 - name: Verify Docker security config

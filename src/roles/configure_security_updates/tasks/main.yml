@@ -95,3 +95,39 @@
     owner: root
     group: root
   become: true
+
+- name: Configure security alert script
+  ansible.builtin.template:
+    src: security-alert.sh.j2
+    dest: "{{ configure_security_updates_script_dir }}/security-alert.sh"
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Create security alert state file
+  ansible.builtin.file:
+    path: /var/log/security-alert-state.state
+    state: touch
+    mode: "0644"
+    owner: root
+    group: root
+  become: true
+
+- name: Create security alert cron job
+  ansible.builtin.cron:
+    name: "Security Alert Check"
+    hour: "*/2"
+    minute: "0"
+    job: "{{ configure_security_updates_script_dir }}/security-alert.sh"
+    user: root
+  become: true
+
+- name: Configure log rotation for security alerts
+  ansible.builtin.template:
+    src: security-alerts.j2
+    dest: /etc/logrotate.d/security-alerts
+    owner: root
+    group: root
+    mode: "0644"
+  become: true

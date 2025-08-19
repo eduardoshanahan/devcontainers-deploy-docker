@@ -40,3 +40,7 @@ configure_security_updates_notification_script_permissions: "0755"
 # configure_security_updates_gmail_smtp_port: "587"
 # configure_security_updates_slack_webhook: ""
 # configure_security_updates_discord_webhook: ""
+
+configure_security_updates_security_alerts_enabled: true
+configure_security_updates_security_alert_script: "{{ configure_security_updates_script_dir }}/security-alert.sh"
+configure_security_updates_security_alert_cron_enabled: true

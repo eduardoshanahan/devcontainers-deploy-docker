@@ -1,0 +1,29 @@
+---
+# =============================================================================
+# HOST-SPECIFIC CONFIGURATION FOR VPS
+# =============================================================================
+# This file contains configuration specific to the vps host
+# It takes precedence over group_vars and follows Ansible best practices
+# =============================================================================
+
+# Environment identification
+deployment_environment: production
+
+# Feature flags for this specific host
+features:
+  containers:
+    networks:
+      test_mode: false  # Production setting - disable Docker network tests
+      default_networks: []  # No default networks in production
+      custom_networks: []   # No custom networks in production
+      remove_all: true      # Clean slate approach for production
+
+# Docker deployment configuration for this host
+deploy_docker_clean_slate: true
+deploy_docker_network_policies: {}
+
+# Security settings for this host
+configure_firewall_default_policy: "DROP"
+configure_fail2ban_max_retry: 3
+configure_fail2ban_bantime: 3600
+configure_fail2ban_findtime: 600

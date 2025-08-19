@@ -1,0 +1,236 @@
+#!/bin/bash
+
+# Enhanced Security Alert Script
+# Sends immediate alerts for security events and system maintenance issues
+
+EMAIL="{{ configure_security_updates_email }}"
+LOG_FILE="/var/log/security-alerts.log"
+ALERT_STATE_FILE="/var/log/security-alert-state.state"
+
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+}
+
+send_security_alert() {
+    local subject="$1"
+    local message="$2"
+    local alert_type="$3"
+    
+    # Check if we've already sent this type of alert recently (deduplication)
+    if [ -n "$alert_type" ] && [ -f "$ALERT_STATE_FILE" ]; then
+        if grep -q "$alert_type|$(date +%Y-%m-%d)" "$ALERT_STATE_FILE"; then
+            log_message "Alert type $alert_type already sent today, skipping"
+            return
+        fi
+    fi
+    
+    if [ -n "$EMAIL" ]; then
+        echo "$message" | mail -s "SECURITY ALERT: $subject" "$EMAIL"
+        log_message "Security alert sent: $subject"
+        
+        # Mark this alert type as sent today
+        if [ -n "$alert_type" ]; then
+            echo "$alert_type|$(date +%Y-%m-%d)" >> "$ALERT_STATE_FILE"
+        fi
+    else
+        log_message "No email configured, cannot send security alert"
+    fi
+}
+
+# Check fail2ban status
+check_fail2ban_status() {
+    local current_bans=$(sudo fail2ban-client status sshd 2>/dev/null | grep "Currently banned" | awk '{print $4}' || echo "0")
+    local failed_attempts=$(sudo fail2ban-client status sshd 2>/dev/null | grep "Total failed" | awk '{print $4}' || echo "0")
+    local total_bans=$(sudo fail2ban-client status sshd 2>/dev/null | grep "Total banned" | awk '{print $4}' || echo "0")
+    
+    log_message "Fail2ban Status - Current: $current_bans, Failed: $failed_attempts, Total: $total_bans"
+    
+    # Alert if high number of failed attempts
+    if [ "$failed_attempts" -gt 20 ]; then
+        send_security_alert "High SSH Attack Volume" "Failed login attempts: $failed_attempts, Currently banned: $current_bans, Total banned: $total_bans" "high_ssh_volume"
+    fi
+    
+    # Alert if new bans detected
+    if [ "$current_bans" -gt 5 ]; then
+        send_security_alert "Multiple IPs Banned" "Currently banned IPs: $current_bans, Failed attempts: $failed_attempts, Total banned: $total_bans" "multiple_bans"
+    fi
+    
+    # Alert if fail2ban service is down
+    if ! systemctl is-active --quiet fail2ban; then
+        send_security_alert "Fail2ban Service Down" "Fail2ban service is not running! SSH protection is disabled." "service_down"
+    fi
+}
+
+# Check for suspicious SSH activity
+check_ssh_security() {
+    local recent_failures=$(grep "$(date -d '1 hour ago' '+%Y-%m-%d %H:')" /var/log/auth.log 2>/dev/null | grep -c "Failed password" || echo "0")
+    local unique_ips=$(grep "$(date -d '1 hour ago' '+%Y-%m-%d %H:')" /var/log/auth.log 2>/dev/null | grep "Failed password" | awk '{print $11}' | sort | uniq | wc -l || echo "0")
+    
+    log_message "SSH Security - Recent failures: $recent_failures, Unique IPs: $unique_ips"
+    
+    # Alert if high failure rate from multiple IPs
+    if [ "$recent_failures" -gt 10 ] && [ "$unique_ips" -gt 3 ]; then
+        send_security_alert "Coordinated SSH Attack" "High failure rate: $recent_failures attempts from $unique_ips different IPs in the last hour" "coordinated_attack"
+    fi
+}
+
+# Check for unusual network activity
+check_network_security() {
+    local ufw_blocks=$(grep "$(date +%Y-%m-%d)" /var/log/ufw.log 2>/dev/null | grep -c "BLOCK" || echo "0")
+    local docker_connections=$(grep "$(date +%Y-%m-%d)" /var/log/docker.log 2>/dev/null | grep -c "connection.*denied" || echo "0")
+    
+    log_message "Network Security - UFW blocks: $ufw_blocks, Docker denials: $docker_connections"
+    
+    # Alert if high number of firewall blocks
+    if [ "$ufw_blocks" -gt 50 ]; then
+        send_security_alert "High Firewall Activity" "UFW blocked $ufw_blocks connection attempts today" "high_firewall_activity"
+    fi
+}
+
+# Check for critical system alerts
+check_system_alerts() {
+    local critical_alerts=$(grep "$(date +%Y-%m-%d)" /var/log/health-monitor.log 2>/dev/null | grep -c "CRITICAL" || echo "0")
+    local high_alerts=$(grep "$(date +%Y-%m-%d)" /var/log/health-monitor.log 2>/dev/null | grep -c "HIGH" || echo "0")
+    
+    log_message "System Alerts - Critical: $critical_alerts, High: $high_alerts"
+    
+    # Alert if critical system issues
+    if [ "$critical_alerts" -gt 0 ]; then
+        send_security_alert "Critical System Issues" "Found $critical_alerts critical alerts today. Check system health immediately." "critical_system"
+    fi
+    
+    # Alert if multiple high priority issues
+    if [ "$high_alerts" -gt 5 ]; then
+        send_security_alert "Multiple High Priority Issues" "Found $high_alerts high priority alerts today. System may be under stress." "multiple_high_priority"
+    fi
+}
+
+# NEW: Check log rotation status
+check_log_rotation() {
+    log_message "Checking log rotation status"
+    
+    # Check if logrotate cron job exists and is executable
+    if [ ! -x /etc/cron.daily/logrotate ]; then
+        send_security_alert "Log Rotation Cron Missing" "Daily logrotate cron job is missing or not executable" "logrotate_missing"
+    fi
+    
+    # Check if log files are growing too large (indicating rotation failure)
+    local security_log_size=$(stat -c%s /var/log/security-alerts.log 2>/dev/null || echo "0")
+    local health_log_size=$(stat -c%s /var/log/health-monitor.log 2>/dev/null || echo "0")
+    local fail2ban_log_size=$(stat -c%s /var/log/fail2ban.log 2>/dev/null || echo "0")
+    local max_size=52428800  # 50MB
+    
+    if [ "$security_log_size" -gt "$max_size" ]; then
+        send_security_alert "Security Log Too Large" "security-alerts.log is ${security_log_size} bytes, log rotation may have failed" "log_rotation_failure"
+    fi
+    
+    if [ "$health_log_size" -gt "$max_size" ]; then
+        send_security_alert "Health Log Too Large" "health-monitor.log is ${health_log_size} bytes, log rotation may have failed" "log_rotation_failure"
+    fi
+    
+    if [ "$fail2ban_log_size" -gt "$max_size" ]; then
+        send_security_alert "Fail2ban Log Too Large" "fail2ban.log is ${fail2ban_log_size} bytes, log rotation may have failed" "log_rotation_failure"
+    fi
+    
+    # Check for recent logrotate execution
+    local last_logrotate=$(grep "logrotate" /var/log/syslog 2>/dev/null | tail -1 | grep "$(date +%Y-%m-%d)" | wc -l)
+    if [ "$last_logrotate" -eq 0 ]; then
+        send_security_alert "Log Rotation Not Executed" "No logrotate activity detected today, rotation may have failed" "logrotate_not_executed"
+    fi
+}
+
+# NEW: Check cron job status
+check_cron_jobs() {
+    log_message "Checking cron job status"
+    
+    # Check if critical cron jobs are present and executable
+    local cron_jobs=(
+        "/etc/cron.daily/logrotate"
+        "/etc/cron.d/security-alert"
+        "/etc/cron.d/repository-health"
+    )
+    
+    for job in "${cron_jobs[@]}"; do
+        if [ ! -f "$job" ] && [ ! -f "${job}.d" ]; then
+            send_security_alert "Critical Cron Job Missing" "Cron job $job is missing, system maintenance may be affected" "cron_job_missing"
+        elif [ -f "$job" ] && [ ! -x "$job" ]; then
+            send_security_alert "Cron Job Not Executable" "Cron job $job exists but is not executable" "cron_job_not_executable"
+        fi
+    done
+    
+    # Check cron service status
+    if ! systemctl is-active --quiet cron; then
+        send_security_alert "Cron Service Down" "Cron service is not running! Scheduled tasks are not executing." "cron_service_down"
+    fi
+}
+
+# NEW: Check system maintenance tasks
+check_system_maintenance() {
+    log_message "Checking system maintenance status"
+    
+    # Check if unattended upgrades are working
+    local unattended_status=$(systemctl is-active --quiet unattended-upgrades && echo "active" || echo "inactive")
+    if [ "$unattended_status" = "inactive" ]; then
+        send_security_alert "Unattended Upgrades Inactive" "Automatic security updates are not running" "unattended_upgrades_inactive"
+    fi
+    
+    # Check if monitoring cron jobs are executing
+    local health_check_log=$(grep "$(date +%Y-%m-%d)" /var/log/health-monitor.log 2>/dev/null | wc -l)
+    if [ "$health_check_log" -eq 0 ]; then
+        send_security_alert "Health Monitoring Not Working" "No health check activity detected today, monitoring may have failed" "health_monitoring_failed"
+    fi
+    
+    # Check if security alert script is running (self-monitoring)
+    local script_log=$(grep "$(date +%Y-%m-%d)" /var/log/security-alerts.log 2>/dev/null | wc -l)
+    if [ "$script_log" -eq 0 ]; then
+        send_security_alert "Security Alert Script Not Working" "No security alert activity detected today, script may have failed" "security_script_failed"
+    fi
+    
+    # Check disk space for log files
+    local disk_usage=$(df /var/log | awk 'NR==2 {print $5}' | sed 's/%//')
+    if [ "$disk_usage" -gt 80 ]; then
+        send_security_alert "High Log Disk Usage" "Log directory is ${disk_usage}% full, may affect log rotation and system performance" "high_log_disk_usage"
+    fi
+}
+
+# Clean up old alert state entries (older than 7 days)
+cleanup_old_alerts() {
+    if [ -f "$ALERT_STATE_FILE" ]; then
+        local temp_file=$(mktemp)
+        local current_date=$(date +%Y-%m-%d)
+        local cutoff_date=$(date -d '7 days ago' +%Y-%m-%d)
+        
+        while IFS='|' read -r alert_type date; do
+            if [ "$date" \> "$cutoff_date" ]; then
+                echo "$alert_type|$date" >> "$temp_file"
+            fi
+        done < "$ALERT_STATE_FILE"
+        
+        mv "$temp_file" "$ALERT_STATE_FILE"
+        log_message "Cleaned up old alert state entries"
+    fi
+}
+
+# Main execution
+main() {
+    log_message "Starting enhanced security and maintenance alert check"
+    
+    # Clean up old alert states
+    cleanup_old_alerts
+    
+    # Run all security checks
+    check_fail2ban_status
+    check_ssh_security
+    check_network_security
+    check_system_alerts
+    
+    # NEW: Run all maintenance checks
+    check_log_rotation
+    check_cron_jobs
+    check_system_maintenance
+    
+    log_message "Enhanced security and maintenance alert check completed"
+}
+
+# Run main function
+main

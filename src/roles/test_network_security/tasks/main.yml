@@ -1,8 +1,8 @@
 ---
 - name: Simple test task
-  debug:
+  ansible.builtin.debug:
     msg: "Role is working!"
 
 - name: Show test mode value
-  debug:
+  ansible.builtin.debug:
     msg: "Test mode is: {{ features.containers.networks.test_mode | default('undefined') }}"

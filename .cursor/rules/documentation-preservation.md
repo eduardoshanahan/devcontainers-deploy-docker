@@ -9,6 +9,7 @@ When updating or creating documentation, **NEVER overwrite existing files** with
 ### **Documentation Update Process**
 
 #### **1. ALWAYS Read Existing Documentation First**
+
 ```bash
 # ✅ CORRECT - Read existing file first
 read_file target_file="path/to/existing/file.md" should_read_entire_file=true
@@ -18,9 +19,11 @@ read_file target_file="path/to/existing/file.md" should_read_entire_file=true
 ```
 
 #### **2. Merge Strategy: Preserve + Enhance**
+
 **When updating documentation:**
 
 **✅ DO:**
+
 - Read the entire existing file first
 - Identify valuable information to preserve
 - Add new content while maintaining existing structure
@@ -29,6 +32,7 @@ read_file target_file="path/to/existing/file.md" should_read_entire_file=true
 - Mark new features clearly (e.g., "**NEW**: Feature description")
 
 **❌ DON'T:**
+
 - Overwrite existing files without reading them
 - Assume new content is better than existing content
 - Remove valuable troubleshooting information
@@ -53,6 +57,7 @@ read_file target_file="path/to/existing/file.md" should_read_entire_file=true
 **ALWAYS preserve these types of content:**
 
 **Technical Details:**
+
 - Configuration examples
 - Variable explanations
 - Troubleshooting steps
@@ -60,6 +65,7 @@ read_file target_file="path/to/existing/file.md" should_read_entire_file=true
 - Best practices
 
 **User Experience:**
+
 - Usage examples
 - Command-line examples
 - Step-by-step instructions
@@ -67,6 +73,7 @@ read_file target_file="path/to/existing/file.md" should_read_entire_file=true
 - Error resolution
 
 **Reference Information:**
+
 - Version compatibility
 - Dependencies
 - Requirements
@@ -117,6 +124,7 @@ read_file target_file="path/to/file.md" should_read_entire_file=true
 ### **Examples of Good Documentation Updates**
 
 #### **Before (Existing Content)**
+
 ```markdown
 ## Configuration
 - Feature A configuration
@@ -125,6 +133,7 @@ read_file target_file="path/to/file.md" should_read_entire_file=true
 ```
 
 #### **After (Preserved + Enhanced)**
+
 ```markdown
 ## Configuration
 - Feature A configuration

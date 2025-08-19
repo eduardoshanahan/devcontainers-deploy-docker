@@ -1,0 +1,24 @@
+/var/log/security-alerts.log {
+    rotate 7
+    daily
+    missingok
+    notifempty
+    compress
+    delaycompress
+    create 644 root root
+    postrotate
+        systemctl reload fail2ban >/dev/null 2>&1 || true
+    endscript
+}
+
+/var/log/security-alert-state.state {
+    rotate 4
+    weekly
+    missingok
+    notifempty
+    compress
+    delaycompress
+    create 644 root root
+}
+
+

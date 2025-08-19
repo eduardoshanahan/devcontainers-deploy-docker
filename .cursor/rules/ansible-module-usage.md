@@ -5,6 +5,7 @@
 ### **NEVER Use Shell Commands for Package Management**
 
 **❌ WRONG - Don't do this:**
+
 ```yaml
 - name: Update apt cache
   ansible.builtin.command: apt-get update
@@ -20,6 +21,7 @@
 ```
 
 **✅ CORRECT - Do this instead:**
+
 ```yaml
 - name: Update apt cache
   ansible.builtin.apt:
@@ -88,12 +90,14 @@
 ### **When Shell Commands Are Acceptable**
 
 **✅ Use shell commands ONLY for:**
+
 - Complex one-liners that don't have Ansible modules
 - Commands that need specific shell features
 - Third-party tools without Ansible modules
 - Testing and debugging commands
 
 **Example of acceptable shell command:**
+
 ```yaml
 - name: Test Docker is working
   ansible.builtin.command: docker info
@@ -114,6 +118,7 @@ Before committing any Ansible code, verify:
 ### **Common Patterns to Replace**
 
 **Replace this:**
+
 ```yaml
 - name: Install packages
   ansible.builtin.command: apt-get install -y package1 package2
@@ -121,6 +126,7 @@ Before committing any Ansible code, verify:
 ```
 
 **With this:**
+
 ```yaml
 - name: Install packages
   ansible.builtin.apt:
