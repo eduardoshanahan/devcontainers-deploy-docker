@@ -80,6 +80,11 @@ src/inventory/host_vars/*.yml
 # CRITICAL: Protect the vault file containing encrypted sensitive data
 src/inventory/group_vars/all/vault.yml
 
+# Environment-specific main.yml files - NEVER COMMIT THESE
+src/inventory/group_vars/production/main.yml
+src/inventory/group_vars/staging/main.yml
+src/inventory/group_vars/development/main.yml
+
 # SSH keys and known hosts
 src/inventory/known_hosts
 src/inventory/known_hosts.template
