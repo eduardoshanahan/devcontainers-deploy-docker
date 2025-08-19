@@ -18,7 +18,12 @@ error() { echo -e "${RED} $1${NC}" >&2; }
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Configuration with defaults (support both old and new variable names)
+# Load environment variables if .env file exists
+if [ -f "$PROJECT_DIR/.devcontainer/config/.env" ]; then
+    source "$PROJECT_DIR/.devcontainer/config/.env"
+fi
+
+# Configuration with defaults
 BRANCH="${BRANCH:-main}"
 FORCE_PULL="${FORCE_PULL:-false}"
 GIT_REMOTE_URL="${GIT_REMOTE_URL:-}"
@@ -35,6 +40,20 @@ backup_local_changes() {
         fi
     done
     success "Backup created in $backup_dir"
+}
+
+# Function to configure Git user if not already set
+configure_git_user() {
+    if [ -n "${GIT_USER_NAME:-}" ] && [ -n "${GIT_USER_EMAIL:-}" ]; then
+        if [ "$(git config --global user.name 2>/dev/null)" != "$GIT_USER_NAME" ]; then
+            git config --global user.name "$GIT_USER_NAME"
+            info "Git user name set to: $GIT_USER_NAME"
+        fi
+        if [ "$(git config --global user.email 2>/dev/null)" != "$GIT_USER_EMAIL" ]; then
+            git config --global user.email "$GIT_USER_EMAIL"
+            info "Git user email set to: $GIT_USER_EMAIL"
+        fi
+    fi
 }
 
 # Main script
@@ -55,25 +74,42 @@ main() {
         # Initialize git repository
         git init
 
+        # Configure Git user
+        configure_git_user
+
         # Add remote
         git remote add origin "$GIT_REMOTE_URL"
         
-        # If files exist (Synology sync), add them to git
+        # If files exist, add them to git
         if [ -n "$(ls -A .)" ]; then
             info "Existing files detected. Adding them to git..."
             git add .
             git commit -m "Initial commit of existing files"
         fi
 
-        # Fetch and checkout the branch
-        info "Fetching from remote and checking out $BRANCH..."
+        # Handle remote branch logic properly
+        info "Fetching from remote and setting up branch $BRANCH..."
         git fetch origin
+        
         if git ls-remote --heads origin "$BRANCH" | grep -q "$BRANCH"; then
-            # Branch exists on remote
-            git checkout -b "$BRANCH" "origin/$BRANCH"
+            # Remote branch exists - pull it and merge with local changes
+            info "Remote branch $BRANCH exists. Pulling and merging..."
+            if [ -n "$(git log --oneline 2>/dev/null)" ]; then
+                # We have local commits, need to merge with remote
+                git pull origin "$BRANCH" --allow-unrelated-histories
+            else
+                # No local commits, just checkout the remote branch
+                git checkout -b "$BRANCH" "origin/$BRANCH"
+            fi
         else
-            # Branch doesn't exist on remote, create it
-            git checkout -b "$BRANCH"
+            # Remote branch doesn't exist, create it
+            info "Remote branch $BRANCH doesn't exist. Creating it..."
+            # Check if we're already on the main branch
+            if git branch --show-current 2>/dev/null | grep -q "^$BRANCH$"; then
+                info "Already on $BRANCH branch, pushing to remote..."
+            else
+                git checkout -b "$BRANCH"
+            fi
             git push -u origin "$BRANCH"
         fi
         
@@ -96,6 +132,9 @@ main() {
     fi
 
     success "Git repository found with remote: $REMOTE_URL"
+
+    # Configure Git user
+    configure_git_user
 
     # Check if we're in detached HEAD state
     if ! git symbolic-ref HEAD &>/dev/null; then
