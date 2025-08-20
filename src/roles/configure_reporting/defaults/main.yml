@@ -1,53 +1,21 @@
 ---
-# Reporting Configuration - Uses centralized variables from features.yml
-# All configuration is now managed through the centralized system
+# Simplified reporting configuration - remove complex variable references
+configure_reporting_enabled: true
+configure_reporting_daily_enabled: true
+configure_reporting_weekly_enabled: true
+configure_reporting_monthly_enabled: true
 
-# Master feature toggle
-configure_reporting_enabled: "{{ features.reporting | default(true) }}"
+# Use simple defaults instead of complex variable references
+configure_reporting_daily_hour: "6"
+configure_reporting_daily_minute: "0"
+configure_reporting_weekly_day: "0"
+configure_reporting_weekly_hour: "7"
+configure_reporting_weekly_minute: "0"
+configure_reporting_monthly_day: "1"
+configure_reporting_monthly_hour: "8"
+configure_reporting_monthly_minute: "0"
 
-# Core reporting settings
-configure_reporting_daily_enabled: "{{ reporting.core.daily_enabled | default(true) }}"
-configure_reporting_weekly_enabled: "{{ reporting.core.weekly_enabled | default(true) }}"
-configure_reporting_monthly_enabled: "{{ reporting.core.monthly_enabled | default(true) }}"
-
-# Scheduling
-configure_reporting_daily_hour: "{{ reporting.schedule.daily.hour | default('6') }}"
-configure_reporting_daily_minute: "{{ reporting.schedule.daily.minute | default('0') }}"
-configure_reporting_daily_retention_days: "{{ reporting.schedule.daily.retention_days | default(7) }}"
-
-configure_reporting_weekly_day: "{{ reporting.schedule.weekly.day | default('0') }}"
-configure_reporting_weekly_hour: "{{ reporting.schedule.weekly.hour | default('7') }}"
-configure_reporting_weekly_minute: "{{ reporting.schedule.weekly.minute | default('0') }}"
-configure_reporting_weekly_retention_days: "{{ reporting.schedule.weekly.retention_days | default(30) }}"
-
-configure_reporting_monthly_day: "{{ reporting.schedule.monthly.day | default('1') }}"
-configure_reporting_monthly_hour: "{{ reporting.schedule.monthly.hour | default('8') }}"
-configure_reporting_monthly_minute: "{{ reporting.schedule.monthly.minute | default('0') }}"
-configure_reporting_monthly_retention_days: "{{ reporting.schedule.monthly.retention_days | default(90) }}"
-
-# Content configuration
-configure_reporting_include_system_health: "{{ reporting.content.include_system_health | default(true) }}"
-configure_reporting_include_security_events: "{{ reporting.content.include_security_events | default(true) }}"
-configure_reporting_include_container_status: "{{ reporting.content.include_container_status | default(true) }}"
-configure_reporting_include_resource_usage: "{{ reporting.content.include_resource_usage | default(true) }}"
-configure_reporting_include_network_security: "{{ reporting.content.include_network_security | default(true) }}"
-configure_reporting_include_docker_logs: "{{ reporting.content.include_docker_logs | default(true) }}"
-configure_reporting_include_failed_logins: "{{ reporting.content.include_failed_logins | default(true) }}"
-
-# Format configuration
-configure_reporting_format: "{{ reporting.format.html_enabled | default('html') }}"
-configure_reporting_include_charts: "{{ reporting.format.html_enabled | default(false) }}"
-configure_reporting_include_attachments: "{{ reporting.format.html_enabled | default(false) }}"
-
-# Email configuration (inherits from centralized notifications)
-configure_reporting_email: "{{ notifications.email.recipients[0] | default('') }}"
-configure_reporting_gmail_enabled: "{{ notifications.email.gmail_enabled | default(false) }}"
-configure_reporting_gmail_user: "{{ notifications.email.gmail_user | default('') }}"
-configure_reporting_gmail_password: "{{ notifications.email.gmail_password | default('') }}"
-configure_reporting_gmail_smtp_server: "{{ notifications.email.gmail_smtp_server | default('smtp.gmail.com') }}"
-configure_reporting_gmail_smtp_port: "{{ notifications.email.gmail_smtp_port | default('465') }}"
-
-# Storage and performance
+# Storage and performance (keep these)
 configure_reporting_storage_dir: "/opt/reports"
 configure_reporting_archive_dir: "/opt/reports/archive"
 configure_reporting_critical_threshold: 3

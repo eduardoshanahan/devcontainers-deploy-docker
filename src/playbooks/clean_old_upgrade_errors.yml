@@ -1,0 +1,29 @@
+---
+- name: Clean Old Unattended Upgrade Errors
+  hosts: all
+  become: true
+  tasks:
+    - name: Check if unattended-upgrades log exists
+      ansible.builtin.stat:
+        path: /var/log/unattended-upgrades/unattended-upgrades.log
+      register: upgrade_log
+
+    - name: Backup current log
+      ansible.builtin.copy:
+        src: /var/log/unattended-upgrades/unattended-upgrades.log
+        dest: /var/log/unattended-upgrades/unattended-upgrades.log.backup
+        remote_src: true
+      when: upgrade_log.stat.exists
+
+    - name: Remove old errors from log (keep only last 30 days)
+      ansible.builtin.shell: |
+        cutoff_date=$(date -d '30 days ago' '+%Y-%m-%d')
+        awk -v cutoff="$cutoff_date" '$0 >= cutoff' /var/log/unattended-upgrades/unattended-upgrades.log > /tmp/cleaned_log
+        mv /tmp/cleaned_log /var/log/unattended-upgrades/unattended-upgrades.log
+        chown root:root /var/log/unattended-upgrades/unattended-upgrades.log
+        chmod 644 /var/log/unattended-upgrades/unattended-upgrades.log
+      when: upgrade_log.stat.exists
+
+    - name: Display log cleanup status
+      ansible.builtin.debug:
+        msg: "Cleaned unattended-upgrades log - removed entries older than 30 days"

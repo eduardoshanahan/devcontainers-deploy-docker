@@ -74,7 +74,10 @@ EOF
 # Function to get security information with proper classification
 get_security_info() {
     local failed_logins=$(grep "Failed password" /var/log/auth.log 2>/dev/null | wc -l)
-    local banned_ips=$(grep "Ban" /var/log/fail2ban.log 2>/dev/null | wc -l)
+    
+    # FIXED: Get currently banned IPs instead of historical count
+    local currently_banned=$(sudo fail2ban-client status sshd 2>/dev/null | grep "Currently banned" | awk '{print $4}' || echo "0")
+    local total_banned_lifetime=$(sudo fail2ban-client status sshd 2>/dev/null | grep "Total banned" | awk '{print $4}' || echo "0")
     
     # Enhanced alert categorization by severity
     local critical_alerts=$(grep -c "CRITICAL" /var/log/health-monitor.log 2>/dev/null || echo "0")
@@ -91,7 +94,8 @@ get_security_info() {
     <h2>Security Status</h2>
     <table class="info-table">
         <tr><td>Failed Login Attempts:</td><td>$failed_logins</td></tr>
-        <tr><td>Banned IP Addresses:</td><td>$banned_ips</td></tr>
+        <tr><td>Currently Banned IP Addresses:</td><td>$currently_banned</td></tr>
+        <tr><td>Total Banned (Lifetime):</td><td>$total_banned_lifetime</td></tr>
     </table>
     
     <h2>Alert Classification</h2>

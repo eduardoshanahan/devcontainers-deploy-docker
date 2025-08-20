@@ -1,37 +1,19 @@
- // Unattended-Upgrade::DevRelease "false";
-// Unattended-Upgrade::AutoFixInterruptedDpkg "true";
-// Unattended-Upgrade::MinimalSteps "true";
-// Unattended-Upgrade::OnReboot "true";
-// Unattended-Upgrade::Automatic-Reboot "{{ configure_security_updates_auto_reboot | lower }}";
-// Unattended-Upgrade::Automatic-Reboot-Time "{{ configure_security_updates_auto_reboot_time }}";
-// Unattended-Upgrade::SyslogEnable "false";
-// Unattended-Upgrade::Package-Blacklist {
-// };
+// Basic upgrade behavior
 Unattended-Upgrade::DevRelease "false";
 Unattended-Upgrade::AutoFixInterruptedDpkg "true";
 Unattended-Upgrade::MinimalSteps "true";
 Unattended-Upgrade::OnReboot "true";
 Unattended-Upgrade::Automatic-Reboot "{{ configure_security_updates_auto_reboot | lower }}";
 Unattended-Upgrade::Automatic-Reboot-Time "{{ configure_security_updates_auto_reboot_time }}";
-Unattended-Upgrade::SyslogEnable "false";
-Unattended-Upgrade::Mail "{{ configure_security_updates_email }}";
-Unattended-Upgrade::MailReport "on-change";
-Unattended-Upgrade::MailOnlyOnError "{{ configure_security_updates_mail_on_error | lower }}";
-Unattended-Upgrade::Remove-Unused-Dependencies "true";
 Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
 
-// Enhanced error handling settings
-Unattended-Upgrade::Package-Blacklist {
-    "vim";
-    "nano";
-    "emacs";
-};
+// DISABLE built-in email notifications (we have better custom ones)
+Unattended-Upgrade::Mail "";
+Unattended-Upgrade::MailReport "never";
+Unattended-Upgrade::MailOnlyOnError "false";
 
-// Add retry mechanism for failed downloads
-Unattended-Upgrade::RetryCount "5";
-Unattended-Upgrade::RetryDelay "600";
-
-// Enhanced logging
+// Enhanced logging for our custom error handler
 Unattended-Upgrade::SyslogEnable "true";
 Unattended-Upgrade::LogDir "/var/log/unattended-upgrades";
 
@@ -41,7 +23,7 @@ Unattended-Upgrade::Origins-Pattern {
     "origin=Ubuntu,archive=${distro_codename}-updates";
 };
 
-// Prevent problematic package updates with enhanced handling
+// Prevent problematic package updates
 Unattended-Upgrade::Package-Blacklist {
     "linux-image-generic";
     "linux-virtual";
@@ -51,9 +33,12 @@ Unattended-Upgrade::Package-Blacklist {
     "emacs";
 };
 
-// Enhanced download settings
+// Enhanced download and retry settings
 Unattended-Upgrade::Download-Upgradeable-Packages "true";
 Unattended-Upgrade::Download-Upgradeable-Packages-Debdelta "true";
-
-// Force package list updates before upgrades
 Unattended-Upgrade::Update-Package-Lists "true";
+Unattended-Upgrade::CleanupDownloads "true";
+
+// Retry mechanism for failed downloads
+Unattended-Upgrade::RetryCount "3";
+Unattended-Upgrade::RetryDelay "300";
