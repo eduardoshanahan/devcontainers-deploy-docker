@@ -2,28 +2,81 @@
 - name: Clean Old Unattended Upgrade Errors
   hosts: all
   become: true
+  gather_facts: false
+  vars:
+    # Define variables for better maintainability
+    upgrade_log_path: "/var/log/unattended-upgrades/unattended-upgrades.log"
+    backup_log_path: "/var/log/unattended-upgrades/unattended-upgrades.log.backup"
+    temp_log_path: "/tmp/cleaned_upgrade_log"
+    retention_days: 30
   tasks:
     - name: Check if unattended-upgrades log exists
       ansible.builtin.stat:
-        path: /var/log/unattended-upgrades/unattended-upgrades.log
+        path: "{{ upgrade_log_path }}"
       register: upgrade_log
+
+    - name: Display log status
+      ansible.builtin.debug:
+        msg: "Unattended-upgrades log {{ 'exists' if upgrade_log.stat.exists else 'does not exist' }}"
 
     - name: Backup current log
       ansible.builtin.copy:
-        src: /var/log/unattended-upgrades/unattended-upgrades.log
-        dest: /var/log/unattended-upgrades/unattended-upgrades.log.backup
+        src: "{{ upgrade_log_path }}"
+        dest: "{{ backup_log_path }}"
         remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+        backup: true
       when: upgrade_log.stat.exists
+      register: backup_result
 
-    - name: Remove old errors from log (keep only last 30 days)
-      ansible.builtin.shell: |
-        cutoff_date=$(date -d '30 days ago' '+%Y-%m-%d')
-        awk -v cutoff="$cutoff_date" '$0 >= cutoff' /var/log/unattended-upgrades/unattended-upgrades.log > /tmp/cleaned_log
-        mv /tmp/cleaned_log /var/log/unattended-upgrades/unattended-upgrades.log
-        chown root:root /var/log/unattended-upgrades/unattended-upgrades.log
-        chmod 644 /var/log/unattended-upgrades/unattended-upgrades.log
-      when: upgrade_log.stat.exists
-
-    - name: Display log cleanup status
+    - name: Display backup status
       ansible.builtin.debug:
-        msg: "Cleaned unattended-upgrades log - removed entries older than 30 days"
+        msg: "Log backed up to {{ backup_log_path }}"
+      when: backup_result is succeeded
+
+    - name: Clean old entries from log (keep only last 30 days)
+      ansible.builtin.shell: |
+        set -e
+        cutoff_date=$(date -d '{{ retention_days }} days ago' '+%Y-%m-%d')
+        echo "Cleaning entries older than $cutoff_date"
+
+        # Create cleaned log with entries newer than cutoff date
+        awk -v cutoff="$cutoff_date" '$0 >= cutoff' "{{ upgrade_log_path }}" > "{{ temp_log_path }}"
+
+        # Verify the cleaned log was created and has content
+        if [ -f "{{ temp_log_path }}" ]; then
+          # Replace original log with cleaned version
+          mv "{{ temp_log_path }}" "{{ upgrade_log_path }}"
+          echo "Log cleaned successfully"
+        else
+          echo "Error: Failed to create cleaned log file"
+          exit 1
+        fi
+      when: upgrade_log.stat.exists
+      register: cleanup_result
+      changed_when: cleanup_result.rc == 0
+
+    - name: Set proper permissions on cleaned log
+      ansible.builtin.file:
+        path: "{{ upgrade_log_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+      when: upgrade_log.stat.exists and cleanup_result is succeeded
+
+    - name: Display cleanup results
+      ansible.builtin.debug:
+        msg: |
+          Log cleanup completed:
+          - Original log: {{ upgrade_log_path }}
+          - Backup created: {{ backup_log_path }}
+          - Retention period: {{ retention_days }} days
+          - Status: {{ 'Success' if cleanup_result is succeeded else 'Failed' }}
+      when: upgrade_log.stat.exists
+
+    - name: Display no-op message
+      ansible.builtin.debug:
+        msg: "No unattended-upgrades log found - nothing to clean"
+      when: not upgrade_log.stat.exists

@@ -72,15 +72,18 @@ security_api_key: "your-security-api-key"
 
 ### Troubleshooting Vault Issues
 
-**Error: "Attempting to decrypt but no vault secrets found"**
+#### **Error: "Attempting to decrypt but no vault secrets found"**
+
 - Solution: Add `--ask-vault-pass` flag to your ansible-playbook command
 - This happens when playbooks try to access vault variables without authentication
 
-**Error: "Decryption failed"**
+#### **Error: "Decryption failed"**
+
 - Solution: Verify you're using the correct vault password
 - Check that vault file isn't corrupted
 
-**Error: "Vault format error"**
+#### **Error: "Vault format error"**
+
 - Solution: Re-encrypt the file with `ansible-vault encrypt`
 - Ensure file wasn't accidentally saved in plaintext
 
@@ -121,6 +124,7 @@ When creating new playbooks or modifying existing ones:
 ### Integration with CI/CD
 
 For automated deployments:
+
 - Store vault password as encrypted secret in CI system
 - Use `--vault-password-file` with secure file path
 - Never log vault passwords in CI output

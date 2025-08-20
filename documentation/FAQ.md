@@ -100,6 +100,7 @@ Yes, this project is designed for production use with:
 Edit the appropriate environment file in `src/inventory/group_vars/`:
 
 **For Production:**
+
 ```yaml
 # src/inventory/group_vars/production/main.yml
 # Server configuration
@@ -113,6 +114,7 @@ containers_deployment_user_ssh_key: "~/.ssh/your-production-deployment-key"
 ```
 
 **For Staging:**
+
 ```yaml
 # src/inventory/group_vars/staging/main.yml
 # Server configuration
@@ -122,6 +124,7 @@ initial_deployment_ssh_key: "~/.ssh/your-staging-ssh-key"
 ```
 
 **For Development:**
+
 ```yaml
 # src/inventory/group_vars/development/main.yml
 # Server configuration
@@ -207,6 +210,7 @@ configure_security_updates_gmail_enabled: true
 Edit the appropriate environment file:
 
 **For Production:**
+
 ```yaml
 # src/inventory/group_vars/production/main.yml
 configure_docker_networks_custom_networks:

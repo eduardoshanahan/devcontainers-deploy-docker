@@ -75,9 +75,17 @@ EOF
 get_security_info() {
     local failed_logins=$(grep "Failed password" /var/log/auth.log 2>/dev/null | wc -l)
     
-    # FIXED: Get currently banned IPs instead of historical count
-    local currently_banned=$(sudo fail2ban-client status sshd 2>/dev/null | grep "Currently banned" | awk '{print $4}' || echo "0")
-    local total_banned_lifetime=$(sudo fail2ban-client status sshd 2>/dev/null | grep "Total banned" | awk '{print $4}' || echo "0")
+    # FIXED: More robust fail2ban status parsing
+    local currently_banned="0"
+    local total_banned_lifetime="0"
+    
+    if command -v fail2ban-client >/dev/null 2>&1; then
+        local fail2ban_status=$(sudo fail2ban-client status sshd 2>/dev/null || echo "")
+        if [ -n "$fail2ban_status" ]; then
+            currently_banned=$(echo "$fail2ban_status" | grep -i "currently banned" | sed 's/.*: *//' | awk '{print $1}' || echo "0")
+            total_banned_lifetime=$(echo "$fail2ban_status" | grep -i "total banned" | sed 's/.*: *//' | awk '{print $1}' || echo "0")
+        fi
+    fi
     
     # Enhanced alert categorization by severity
     local critical_alerts=$(grep -c "CRITICAL" /var/log/health-monitor.log 2>/dev/null || echo "0")

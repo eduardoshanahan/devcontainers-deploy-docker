@@ -2,6 +2,14 @@
 - name: Diagnose Fail2ban Status and Configuration
   hosts: all
   become: true
+  gather_facts: false
+  vars:
+    # Define variables for better maintainability
+    fail2ban_log_path: "/var/log/fail2ban.log"
+    fail2ban_config_files:
+      - /etc/fail2ban/jail.local
+      - /etc/fail2ban/jail.d/sshd.local
+      - /etc/fail2ban/fail2ban.local
   tasks:
     - name: Check fail2ban service status
       ansible.builtin.service_facts:
@@ -9,17 +17,28 @@
 
     - name: Display fail2ban service state
       ansible.builtin.debug:
-        msg: "Fail2ban service status: {{ ansible_facts.services['fail2ban.service'].state if 'fail2ban.service' in ansible_facts.services else 'Service not found' }}"
+        msg: >-
+          Fail2ban service status: {{
+            ansible_facts.services['fail2ban.service'].state
+            if 'fail2ban.service' in ansible_facts.services
+            else 'Service not found'
+          }}
 
-    - name: Check fail2ban active status
-      ansible.builtin.command: systemctl is-active fail2ban
-      register: fail2ban_active
-      changed_when: false
+    - name: Check fail2ban service active status
+      ansible.builtin.service:
+        name: fail2ban
+        state: started
+      check_mode: true
+      register: fail2ban_service_check
       failed_when: false
 
     - name: Display fail2ban active status
       ansible.builtin.debug:
-        msg: "Fail2ban active status: {{ fail2ban_active.stdout }}"
+        msg: >-
+          Fail2ban service is {{
+            'active' if fail2ban_service_check is not failed
+            else 'inactive'
+          }}
 
     - name: Get fail2ban client status
       ansible.builtin.command: fail2ban-client status
@@ -29,7 +48,11 @@
 
     - name: Display fail2ban client status
       ansible.builtin.debug:
-        msg: "{{ fail2ban_status.stdout_lines if fail2ban_status.rc == 0 else 'Fail2ban client not responding: ' + fail2ban_status.stderr }}"
+        msg: >-
+          {{
+            fail2ban_status.stdout_lines if fail2ban_status.rc == 0
+            else 'Fail2ban client not responding: ' + fail2ban_status.stderr
+          }}
 
     - name: Get SSH jail status
       ansible.builtin.command: fail2ban-client status sshd
@@ -39,93 +62,146 @@
 
     - name: Display SSH jail detailed status
       ansible.builtin.debug:
-        msg: "{{ sshd_jail_status.stdout_lines if sshd_jail_status.rc == 0 else 'SSH jail not responding: ' + sshd_jail_status.stderr }}"
+        msg: >-
+          {{
+            sshd_jail_status.stdout_lines if sshd_jail_status.rc == 0
+            else 'SSH jail not responding: ' + sshd_jail_status.stderr
+          }}
 
-    - name: Parse current banned IPs count
+    - name: Parse fail2ban statistics
       ansible.builtin.shell: |
-        fail2ban-client status sshd 2>/dev/null | grep "Currently banned" | awk '{print $4}' || echo "0"
-      register: current_banned
+        set -eo pipefail
+        if fail2ban-client status sshd >/dev/null 2>&1; then
+          current_banned=$(fail2ban-client status sshd 2>/dev/null | \
+            grep "Currently banned" | awk '{print $4}' || echo "0")
+          total_banned=$(fail2ban-client status sshd 2>/dev/null | \
+            grep "Total banned" | awk '{print $4}' || echo "0")
+          failed_attempts=$(fail2ban-client status sshd 2>/dev/null | \
+            grep "Total failed" | awk '{print $4}' || echo "0")
+          echo "current_banned=${current_banned}"
+          echo "total_banned=${total_banned}"
+          echo "failed_attempts=${failed_attempts}"
+        else
+          echo "current_banned=0"
+          echo "total_banned=0"
+          echo "failed_attempts=0"
+        fi
+      register: fail2ban_stats
       changed_when: false
       failed_when: false
 
-    - name: Parse total banned IPs count
-      ansible.builtin.shell: |
-        fail2ban-client status sshd 2>/dev/null | grep "Total banned" | awk '{print $4}' || echo "0"
-      register: total_banned
-      changed_when: false
-      failed_when: false
-
-    - name: Parse failed attempts count
-      ansible.builtin.shell: |
-        fail2ban-client status sshd 2>/dev/null | grep "Total failed" | awk '{print $4}' || echo "0"
-      register: failed_attempts
-      changed_when: false
-      failed_when: false
+    - name: Set fail2ban statistics facts
+      ansible.builtin.set_fact:
+        current_banned: >-
+          {{
+            (fail2ban_stats.stdout_lines |
+             select('match', '^current_banned=.*') |
+             first | default('current_banned=0')).split('=')[1]
+          }}
+        total_banned: >-
+          {{
+            (fail2ban_stats.stdout_lines |
+             select('match', '^total_banned=.*') |
+             first | default('total_banned=0')).split('=')[1]
+          }}
+        failed_attempts: >-
+          {{
+            (fail2ban_stats.stdout_lines |
+             select('match', '^failed_attempts=.*') |
+             first | default('failed_attempts=0')).split('=')[1]
+          }}
 
     - name: Display parsed statistics
       ansible.builtin.debug:
         msg: |
           Current Status Summary:
-          - Currently banned IPs: {{ current_banned.stdout }}
-          - Total banned IPs (lifetime): {{ total_banned.stdout }}
-          - Total failed attempts: {{ failed_attempts.stdout }}
+          - Currently banned IPs: {{ current_banned }}
+          - Total banned IPs (lifetime): {{ total_banned }}
+          - Total failed attempts: {{ failed_attempts }}
 
     - name: Check fail2ban log file exists
       ansible.builtin.stat:
-        path: /var/log/fail2ban.log
+        path: "{{ fail2ban_log_path }}"
       register: fail2ban_log
 
     - name: Display log file status
       ansible.builtin.debug:
-        msg: "Fail2ban log exists: {{ fail2ban_log.stat.exists }}, Size: {{ fail2ban_log.stat.size if fail2ban_log.stat.exists else 'N/A' }} bytes"
+        msg: >-
+          Fail2ban log exists: {{ fail2ban_log.stat.exists }},
+          Size: {{ fail2ban_log.stat.size if fail2ban_log.stat.exists else 'N/A' }} bytes
 
-    - name: Count historical bans in log (what your report shows)
+    - name: Count historical and recent bans in log
       ansible.builtin.shell: |
-        grep "Ban" /var/log/fail2ban.log 2>/dev/null | wc -l || echo "0"
-      register: historical_bans
+        set -eo pipefail
+        if [ -f "{{ fail2ban_log_path }}" ]; then
+          historical_bans=$(grep "Ban" "{{ fail2ban_log_path }}" 2>/dev/null | \
+            wc -l || echo "0")
+          recent_date=$(date -d '24 hours ago' '+%Y-%m-%d')
+          recent_bans=$(grep "${recent_date}" "{{ fail2ban_log_path }}" 2>/dev/null | \
+            grep "Ban" | wc -l || echo "0")
+          echo "historical_bans=${historical_bans}"
+          echo "recent_bans=${recent_bans}"
+        else
+          echo "historical_bans=0"
+          echo "recent_bans=0"
+        fi
+      register: ban_counts
       changed_when: false
       failed_when: false
 
-    - name: Count recent bans (last 24 hours)
-      ansible.builtin.shell: |
-        grep "$(date -d '24 hours ago' '+%Y-%m-%d')" /var/log/fail2ban.log 2>/dev/null | grep "Ban" | wc -l || echo "0"
-      register: recent_bans
-      changed_when: false
-      failed_when: false
+    - name: Set ban count facts
+      ansible.builtin.set_fact:
+        historical_bans: >-
+          {{
+            (ban_counts.stdout_lines |
+             select('match', '^historical_bans=.*') |
+             first | default('historical_bans=0')).split('=')[1]
+          }}
+        recent_bans: >-
+          {{
+            (ban_counts.stdout_lines |
+             select('match', '^recent_bans=.*') |
+             first | default('recent_bans=0')).split('=')[1]
+          }}
 
     - name: Display ban analysis
       ansible.builtin.debug:
         msg: |
           Ban Analysis:
-          - Historical bans in log (your email shows): {{ historical_bans.stdout }}
-          - Recent bans (last 24h): {{ recent_bans.stdout }}
-          - Currently active bans: {{ current_banned.stdout }}
+          - Historical bans in log (your email shows): {{ historical_bans }}
+          - Recent bans (last 24h): {{ recent_bans }}
+          - Currently active bans: {{ current_banned }}
 
     - name: Check fail2ban configuration files
       ansible.builtin.stat:
         path: "{{ item }}"
       register: config_files
-      loop:
-        - /etc/fail2ban/jail.local
-        - /etc/fail2ban/jail.d/sshd.local
-        - /etc/fail2ban/fail2ban.local
+      loop: "{{ fail2ban_config_files }}"
 
     - name: Display configuration files status
       ansible.builtin.debug:
-        msg: "Config file {{ item.item }}: {{ 'EXISTS' if item.stat.exists else 'MISSING' }}"
+        msg: >-
+          Config file {{ item.item }}:
+          {{ 'EXISTS' if item.stat.exists else 'MISSING' }}
       loop: "{{ config_files.results }}"
 
     - name: Get recent fail2ban log entries
-      ansible.builtin.command: tail -20 /var/log/fail2ban.log
+      ansible.builtin.shell: |
+        set -eo pipefail
+        if [ -f "{{ fail2ban_log_path }}" ]; then
+          tail -20 "{{ fail2ban_log_path }}"
+        else
+          echo "Log file does not exist"
+        fi
       register: recent_log_entries
       changed_when: false
       failed_when: false
 
     - name: Display recent log entries
       ansible.builtin.debug:
-        msg: "{{ recent_log_entries.stdout_lines if recent_log_entries.rc == 0 else 'Could not read log file' }}"
+        msg: "{{ recent_log_entries.stdout_lines }}"
 
-    - name: Check if log rotation is working
+    - name: Check log rotation status
       ansible.builtin.find:
         paths: /var/log
         patterns: "fail2ban.log*"
@@ -133,59 +209,86 @@
 
     - name: Display log rotation status
       ansible.builtin.debug:
-        msg: "Found {{ log_files.files | length }} fail2ban log files (indicates log rotation status)"
+        msg: >-
+          Found {{ log_files.files | length }} fail2ban log files
+          (indicates log rotation status)
 
-    - name: Get current banned IPs list (if any)
-      ansible.builtin.shell: |
-        fail2ban-client get sshd banip 2>/dev/null || echo "No IPs currently banned"
+    - name: Get current banned IPs list
+      ansible.builtin.command: fail2ban-client get sshd banip
       register: banned_ip_list
       changed_when: false
       failed_when: false
 
     - name: Display currently banned IPs
       ansible.builtin.debug:
-        msg: "Currently banned IPs: {{ banned_ip_list.stdout_lines }}"
+        msg: >-
+          Currently banned IPs: {{
+            banned_ip_list.stdout_lines if banned_ip_list.rc == 0
+            else ['No IPs currently banned']
+          }}
 
-    - name: Check fail2ban jail configuration
-      ansible.builtin.command: fail2ban-client get sshd bantime
-      register: ban_time_config
+    - name: Get fail2ban jail configuration
+      ansible.builtin.shell: |
+        set -eo pipefail
+        if fail2ban-client status sshd >/dev/null 2>&1; then
+          ban_time=$(fail2ban-client get sshd bantime 2>/dev/null || echo "Unknown")
+          find_time=$(fail2ban-client get sshd findtime 2>/dev/null || echo "Unknown")
+          max_retry=$(fail2ban-client get sshd maxretry 2>/dev/null || echo "Unknown")
+          echo "ban_time=${ban_time}"
+          echo "find_time=${find_time}"
+          echo "max_retry=${max_retry}"
+        else
+          echo "ban_time=Unknown"
+          echo "find_time=Unknown"
+          echo "max_retry=Unknown"
+        fi
+      register: jail_config
       changed_when: false
       failed_when: false
 
-    - name: Check fail2ban findtime configuration
-      ansible.builtin.command: fail2ban-client get sshd findtime
-      register: find_time_config
-      changed_when: false
-      failed_when: false
-
-    - name: Check fail2ban maxretry configuration
-      ansible.builtin.command: fail2ban-client get sshd maxretry
-      register: max_retry_config
-      changed_when: false
-      failed_when: false
+    - name: Set jail configuration facts
+      ansible.builtin.set_fact:
+        ban_time: >-
+          {{
+            (jail_config.stdout_lines |
+             select('match', '^ban_time=.*') |
+             first | default('ban_time=Unknown')).split('=')[1]
+          }}
+        find_time: >-
+          {{
+            (jail_config.stdout_lines |
+             select('match', '^find_time=.*') |
+             first | default('find_time=Unknown')).split('=')[1]
+          }}
+        max_retry: >-
+          {{
+            (jail_config.stdout_lines |
+             select('match', '^max_retry=.*') |
+             first | default('max_retry=Unknown')).split('=')[1]
+          }}
 
     - name: Display jail configuration
       ansible.builtin.debug:
         msg: |
           Jail Configuration:
-          - Ban time: {{ ban_time_config.stdout if ban_time_config.rc == 0 else 'Unknown' }} seconds
-          - Find time: {{ find_time_config.stdout if find_time_config.rc == 0 else 'Unknown' }} seconds  
-          - Max retry: {{ max_retry_config.stdout if max_retry_config.rc == 0 else 'Unknown' }} attempts
+          - Ban time: {{ ban_time }} seconds
+          - Find time: {{ find_time }} seconds
+          - Max retry: {{ max_retry }} attempts
 
-    - name: Recommendations summary
+    - name: Display comprehensive diagnosis summary
       ansible.builtin.debug:
         msg: |
           DIAGNOSIS SUMMARY:
           ==================
-          1. Service Status: {{ fail2ban_active.stdout }}
-          2. Currently Banned: {{ current_banned.stdout }} IPs
-          3. Historical Bans: {{ historical_bans.stdout }} (this is what your email shows)
-          4. Recent Activity: {{ recent_bans.stdout }} bans in last 24h
+          1. Service Status: {{ 'Active' if fail2ban_service_check is not failed else 'Inactive' }}
+          2. Currently Banned: {{ current_banned }} IPs
+          3. Historical Bans: {{ historical_bans }} (this is what your email shows)
+          4. Recent Activity: {{ recent_bans }} bans in last 24h
           5. Log File Size: {{ fail2ban_log.stat.size if fail2ban_log.stat.exists else 'N/A' }} bytes
 
           ISSUE IDENTIFIED:
-          Your daily email counts ALL historical ban events ({{ historical_bans.stdout }})
-          instead of currently active bans ({{ current_banned.stdout }}).
+          Your daily email counts ALL historical ban events ({{ historical_bans }})
+          instead of currently active bans ({{ current_banned }}).
 
           RECOMMENDATIONS:
           - If currently banned = 0 and service is active, fail2ban is working correctly
@@ -194,5 +297,5 @@
 
           NEXT STEPS:
           1. If fail2ban is working (service active, current bans = 0), fix the reporting script
-          2. If service is down, restart it with: sudo systemctl restart fail2ban
-          3. If many IPs are currently banned, they will auto-unban after {{ ban_time_config.stdout if ban_time_config.rc == 0 else '3600' }} seconds
+          2. If service is down, restart it with Ansible service module
+          3. If many IPs are currently banned, they will auto-unban after {{ ban_time }} seconds
