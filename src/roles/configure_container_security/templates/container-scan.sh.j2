@@ -2,6 +2,7 @@
 
 # Container Security Scanning Script
 # This script scans Docker images for vulnerabilities
+set -eo pipefail
 
 LOG_FILE="/var/log/container-security.log"
 SCAN_DIR="/opt/security/scans"
@@ -18,7 +19,8 @@ log_message() {
 log_message "Starting container security scan"
 
 # Get list of ALL images (not just running containers)
-ALL_IMAGES=$(docker images --format "{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}" | grep -v "<none>")
+ALL_IMAGES=$(docker images --format "{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}" | \
+             grep -v "<none>" || echo "")
 
 if [ -z "$ALL_IMAGES" ]; then
     log_message "No Docker images found"
@@ -30,19 +32,21 @@ for IMAGE in $ALL_IMAGES; do
     log_message "Scanning image: $IMAGE"
     
     # Use Trivy to scan for vulnerabilities
-    trivy image --format json --output "$SCAN_DIR/scan_${IMAGE//\//_}_${DATE}.json" "$IMAGE" 2>/dev/null
-    
-    if [ $? -eq 0 ]; then
+    if trivy image --format json \
+         --output "$SCAN_DIR/scan_${IMAGE//\//_}_${DATE}.json" \
+         "$IMAGE" 2>/dev/null; then
+        
         log_message "Scan completed for $IMAGE"
         
         # Check for high/critical vulnerabilities
-        VULN_COUNT=$(trivy image --severity HIGH,CRITICAL "$IMAGE" 2>/dev/null | grep -c "HIGH\|CRITICAL" || echo "0")
+        VULN_COUNT=$(trivy image --severity HIGH,CRITICAL "$IMAGE" 2>/dev/null | \
+                     grep -c "HIGH\|CRITICAL" || echo "0")
         
         if [ "$VULN_COUNT" -gt 0 ]; then
             log_message "WARNING: Found $VULN_COUNT high/critical vulnerabilities in $IMAGE"
             
             # Send alert if configured
-            if [ -n "$CONTAINER_SECURITY_ALERT_EMAIL" ]; then
+            if [ -n "${CONTAINER_SECURITY_ALERT_EMAIL:-}" ]; then
                 echo "High/Critical vulnerabilities found in container image: $IMAGE" | \
                 mail -s "Container Security Alert" "$CONTAINER_SECURITY_ALERT_EMAIL"
             fi

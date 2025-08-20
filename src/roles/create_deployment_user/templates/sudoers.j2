@@ -11,18 +11,9 @@
     /usr/bin/apt install --only-upgrade docker-ce, \
     /usr/bin/apt install --only-upgrade docker-ce-cli, \
     /usr/bin/apt install --only-upgrade containerd.io, \
-    /usr/bin/ufw allow from 172.20.0.0/16, \
-    /usr/bin/ufw allow from 172.21.0.0/16, \
-    /usr/bin/ufw allow from 172.22.0.0/16, \
-    /usr/bin/ufw allow from 172.23.0.0/16, \
-    /usr/bin/ufw allow from 172.24.0.0/16, \
-    /usr/bin/ufw allow from 172.25.0.0/16, \
-    /usr/bin/ufw allow from 172.26.0.0/16, \
-    /usr/bin/ufw allow from 172.27.0.0/16, \
-    /usr/bin/ufw allow from 172.28.0.0/16, \
-    /usr/bin/ufw allow from 172.29.0.0/16, \
-    /usr/bin/ufw allow from 172.30.0.0/16, \
-    /usr/bin/ufw allow from 172.31.0.0/16, \
+    {% for network in configure_firewall_docker_networks | default(['172.20.0.0/16', '172.21.0.0/16', '172.22.0.0/16']) %}
+    /usr/bin/ufw allow from {{ network }}, \
+    {% endfor %}
     /usr/bin/ufw status, \
     /usr/bin/ufw status verbose, \
     /usr/bin/journalctl -u docker, \

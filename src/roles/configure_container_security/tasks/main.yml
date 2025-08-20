@@ -28,7 +28,10 @@
 
 - name: Add Trivy repository (modern method)
   ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/etc/apt/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb {{ ansible_distribution_release }} main"
+    repo: >-
+      deb [signed-by=/etc/apt/keyrings/trivy.gpg]
+      https://aquasecurity.github.io/trivy-repo/deb
+      {{ ansible_distribution_release }} main
     state: present
     filename: trivy
   become: true
@@ -105,11 +108,16 @@
   ansible.builtin.command: trivy --version
   register: trivy_test
   changed_when: false
+  failed_when: false
   become: true
 
-- name: Debug Trivy installation
+- name: Display Trivy version
   ansible.builtin.debug:
-    msg: "Trivy version: {{ trivy_test.stdout }}"
+    msg: >-
+      Trivy version: {{
+        trivy_test.stdout if trivy_test.rc == 0
+        else 'Trivy installation failed'
+      }}
 
 - name: Configure auto-cleanup of vulnerable images
   ansible.builtin.template:

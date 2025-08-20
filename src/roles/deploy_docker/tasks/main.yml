@@ -14,9 +14,8 @@
 
 # Clean slate option - remove all existing Docker images and containers
 - name: Check if Docker is running (for clean slate)
-  ansible.builtin.service:
+  ansible.builtin.systemd:
     name: docker
-    state: started
   register: docker_service_status
   failed_when: false
   become: true
@@ -25,7 +24,7 @@
   ansible.builtin.command: docker stop $(docker ps -q)
   when:
     - deploy_docker_clean_slate | bool
-    - docker_service_status.state == "started"
+    - docker_service_status.status.ActiveState == "active"
   failed_when: false
   changed_when: false
   become: true

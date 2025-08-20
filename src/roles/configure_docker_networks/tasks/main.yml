@@ -4,6 +4,7 @@
   register: docker_info
   changed_when: false
   failed_when: false
+  become: true
 
 - name: Fail if Docker is not running
   ansible.builtin.fail:
@@ -12,7 +13,8 @@
 
 # Get list of all networks (for removal operations)
 - name: Get existing Docker networks
-  ansible.builtin.command: docker network ls --format "{{ '{{' }}.Name{{ '}}' }}"
+  ansible.builtin.command: >-
+    docker network ls --format "{{ '{{' }}.Name{{ '}}' }}"
   register: existing_networks
   changed_when: false
   become: true
@@ -36,14 +38,24 @@
   community.docker.docker_network:
     name: "{{ item }}"
     state: absent
-  loop: "{{ existing_networks.stdout_lines | select('match', '^(?!bridge|host|none).*$') | list }}"
+  loop: >-
+    {{
+      existing_networks.stdout_lines |
+      select('match', '^(?!bridge|host|none).*$') |
+      list
+    }}
   become: true
   failed_when: false
   when: features.containers.networks.remove_all | default(false)
 
 - name: Debug network removal
   ansible.builtin.debug:
-    msg: "Removed {{ existing_networks.stdout_lines | select('match', '^(?!bridge|host|none).*$') | list | length }} custom networks"
+    msg: >-
+      Removed {{
+        existing_networks.stdout_lines |
+        select('match', '^(?!bridge|host|none).*$') |
+        list | length
+      }} custom networks
   when: features.containers.networks.remove_all | default(false)
 
 # Prune unused networks
@@ -56,7 +68,11 @@
 - name: Create default Docker networks for testing
   community.docker.docker_network:
     name: "{{ item.name }}"
-    driver: "{{ item.driver | default(configure_docker_networks_default_driver) }}"
+    driver: >-
+      {{
+        item.driver |
+        default(configure_docker_networks_default_driver)
+      }}
     ipam_config:
       - subnet: "{{ item.subnet }}"
     state: present
@@ -72,7 +88,11 @@
 - name: Create custom Docker networks for testing
   community.docker.docker_network:
     name: "{{ item.name }}"
-    driver: "{{ item.driver | default(configure_docker_networks_default_driver) }}"
+    driver: >-
+      {{
+        item.driver |
+        default(configure_docker_networks_default_driver)
+      }}
     ipam_config:
       - subnet: "{{ item.subnet }}"
     state: present
@@ -82,11 +102,15 @@
       managed_by: "{{ configure_docker_networks_labels.managed_by }}"
   loop: "{{ features.containers.networks.custom_networks }}"
   become: true
-  when: features.containers.networks.test_mode | default(false) and features.containers.networks.custom_networks | length > 0
+  when: >-
+    features.containers.networks.test_mode | default(false) and
+    features.containers.networks.custom_networks | length > 0
 
 # Display network information (only in test mode)
 - name: List Docker networks
-  ansible.builtin.command: docker network ls --format "table {{ '{{' }}.Name{{ '}}' }}\t{{ '{{' }}.Driver{{ '}}' }}\t{{ '{{' }}.Scope{{ '}}' }}"
+  ansible.builtin.command: >-
+    docker network ls --format
+    "table {{ '{{' }}.Name{{ '}}' }}\t{{ '{{' }}.Driver{{ '}}' }}\t{{ '{{' }}.Scope{{ '}}' }}"
   register: docker_networks
   changed_when: false
   become: true
@@ -99,7 +123,9 @@
 
 # Verify network connectivity (only in test mode)
 - name: Test network connectivity
-  ansible.builtin.command: docker run --rm --network test-to-delete-web-network alpine ping -c 1 8.8.8.8
+  ansible.builtin.command: >-
+    docker run --rm --network test-to-delete-web-network
+    alpine ping -c 1 8.8.8.8
   register: network_test
   changed_when: false
   failed_when: false
@@ -108,7 +134,10 @@
 
 - name: Debug network connectivity test
   ansible.builtin.debug:
-    msg: "Network connectivity test: {{ 'PASSED' if network_test.rc == 0 else 'FAILED' }}"
+    msg: >-
+      Network connectivity test: {{
+        'PASSED' if network_test.rc == 0 else 'FAILED'
+      }}
   when: features.containers.networks.test_mode | default(false)
 
 # Cleanup: Remove all created networks after testing
@@ -116,7 +145,11 @@
   community.docker.docker_network:
     name: "{{ item.name }}"
     state: absent
-  loop: "{{ features.containers.networks.default_networks + features.containers.networks.custom_networks }}"
+  loop: >-
+    {{
+      features.containers.networks.default_networks +
+      features.containers.networks.custom_networks
+    }}
   become: true
   failed_when: false
   when: features.containers.networks.test_mode | default(false)

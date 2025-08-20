@@ -9,8 +9,8 @@
   "ip-forward": true,
   "default-address-pools": [
     {
-      "base": "172.20.0.0/16",
-      "size": 24
+      "base": "{{ configure_docker_networks_default_base | default('172.20.0.0/16') }}",
+      "size": {{ configure_docker_networks_default_size | default(24) }}
     }
   ],
   "live-restore": true,

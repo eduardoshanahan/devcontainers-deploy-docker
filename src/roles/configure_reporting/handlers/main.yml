@@ -1,0 +1,23 @@
+---
+- name: Restart cron
+  ansible.builtin.service:
+    name: cron
+    state: restarted
+  become: true
+
+- name: Reload cron
+  ansible.builtin.service:
+    name: cron
+    state: reloaded
+  become: true
+
+- name: Restart rsyslog
+  ansible.builtin.service:
+    name: rsyslog
+    state: restarted
+  become: true
+
+- name: Reload logrotate
+  ansible.builtin.command: logrotate -f /etc/logrotate.conf
+  become: true
+  changed_when: false

@@ -1,0 +1,6 @@
+---
+# Default Docker network configuration
+configure_docker_networks_default_base: "172.20.0.0/16"
+configure_docker_networks_default_size: 24
+configure_docker_networks_labels:
+  managed_by: "ansible"

@@ -98,15 +98,18 @@ deploy_docker_network_policies:
 ## Clean Slate Deployment
 
 ### Overview
+
 The clean slate option allows you to start with a completely clean Docker environment by removing all existing Docker resources.
 
-### Configuration
+### Configuration for clean slate
+
 ```yaml
 # In your inventory variables
 deploy_docker_clean_slate: true
 ```
 
 ### What Gets Removed
+
 - All running and stopped containers
 - All Docker images
 - All Docker volumes
@@ -114,22 +117,26 @@ deploy_docker_clean_slate: true
 - All unused Docker resources (via `docker system prune -af`)
 
 ### ⚠️ Warning
+
 This will **permanently delete** all existing Docker images, containers, and volumes!
 
 ### Usage Examples
 
-**Option 1: Set in inventory**
+#### **Option 1: Set in inventory**
+
 ```yaml
 # In src/inventory/group_vars/all.yml
 deploy_docker_clean_slate: true
 ```
 
-**Option 2: Command line override**
+#### **Option 2: Command line override**
+
 ```bash
 ansible-playbook playbooks/full.yml -e "deploy_docker_clean_slate=true"
 ```
 
-**Option 3: Individual role**
+#### **Option 3: Individual role**
+
 ```bash
 ansible-playbook playbooks/deploy_docker.yml -e "deploy_docker_clean_slate=true"
 ```
@@ -157,7 +164,7 @@ ansible-playbook playbooks/deploy_docker.yml -e "deploy_docker_clean_slate=true"
 ansible-playbook playbooks/deploy_docker.yml
 ```
 
-### Clean Slate Deployment
+### Clean Slate Deployment usage
 
 ```bash
 # Deploy Docker with clean slate (removes all existing resources)
