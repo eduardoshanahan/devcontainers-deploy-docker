@@ -18,6 +18,7 @@ This is also an experiment on working with an LLM as a full time tool. I am curr
 - Leverage Devcontainers: Use Visual Studio Code Devcontainers for a consistent development and automation environment.
 - Secure deployments: Implement host key verification and secure SSH configurations for production deployments.
 - Network security: Configure secure Docker networks with specific IP ranges and network segmentation.
+- Comprehensive monitoring: Automated system reporting and security monitoring with email notifications.
 
 ## **PROJECT STATUS: PRODUCTION READY**
 
@@ -49,6 +50,14 @@ This project provides a **comprehensive, secure, and efficient** server deployme
 - **Container monitoring** every 5 minutes
 - **Security event monitoring** with automated alerts
 
+### **Automated Reporting System**
+
+- **Daily system reports** with email delivery
+- **Weekly trend analysis** with statistics
+- **Monthly comprehensive reports** with long-term trends
+- **Security vulnerability reports** with HTML formatting
+- **Gmail SMTP integration** for secure email delivery
+
 ### **Secure Log Management**
 
 - **Encrypted log archives** with AES-256-CBC
@@ -71,64 +80,126 @@ This project provides a **comprehensive, secure, and efficient** server deployme
 | **Prometheus Node Exporter** | ~50MB | ~0.1 cores | Running |
 | **Container Security (Trivy)** | ~100MB | ~0.2 cores | Active |
 | **Monitoring Scripts** | ~50MB | ~0.1 cores | Active |
+| **Reporting System** | ~50MB | ~0.1 cores | Active |
 | **Security Tools** | ~100MB | ~0.1 cores | Active |
-| **Total Monitoring** | ~300MB | ~0.5 cores | Optimized |
-| **Available for Applications** | ~1.7GB | ~1.5 cores | Ready |
+| **Total Monitoring** | ~350MB | ~0.6 cores | Optimized |
+| **Available for Applications** | ~1.65GB | ~1.4 cores | Ready |
 
 ## **Quick Start**
 
 ### **1. Configure Your Server**
 
-The project uses an environment-based inventory structure. Configure your server details in the appropriate environment file:
+The project uses a **unified environment configuration** with Ansible Vault for secure secrets management:
 
-**For Production:**
+#### **Set Up Secrets**
 
-```yaml
-# src/inventory/group_vars/production/main.yml
-vps_server_ip: "your-production-vps-ip"
-initial_deployment_user: "your-username"
-initial_deployment_ssh_key: "~/.ssh/your-production-key"
+```bash
+# Navigate to secrets directory
+cd secrets
+
+# Copy the example vault file
+cp vault.example.yml vault.yml
+
+# Edit the vault file with your server details
+nano vault.yml
 ```
 
-**For Staging:**
+#### **Required Vault Configuration**
 
 ```yaml
-# src/inventory/group_vars/staging/main.yml
-vps_server_ip: "your-staging-vps-ip"
-initial_deployment_user: "your-username"
-initial_deployment_ssh_key: "~/.ssh/your-staging-key"
+# secrets/vault.yml
+# Server Configuration
+vault_vps_server_ip: "your-vps-server-ip-or-hostname.com"
+vault_initial_deployment_user: "ubuntu"
+vault_initial_deployment_ssh_key: "~/.ssh/your-initial-deployment-key"
+
+# Container deployment user (created during deployment)
+vault_containers_deployment_user: "docker_deployment"
+vault_containers_deployment_user_ssh_key: "~/.ssh/your-container-deployment-key"
+vault_containers_deployment_user_ssh_key_public: "/path/to/your/public/key.pub"
+
+# Email Configuration
+vault_configure_security_updates_email: "admin@yourdomain.com"
+vault_configure_security_updates_gmail_user: "your-email@gmail.com"
+vault_configure_security_updates_gmail_password: "your-gmail-app-password"
+
+# Monitoring and reporting email configuration
+vault_configure_monitoring_alert_email: "alerts@yourdomain.com"
+vault_configure_reporting_email: "reports@yourdomain.com"
+vault_configure_reporting_gmail_user: "your-email@gmail.com"
+vault_configure_reporting_gmail_password: "your-gmail-app-password"
+
+# Container security alerts
+vault_configure_container_security_alert_email: "security@yourdomain.com"
+
+# SMTP Configuration
+vault_configure_security_updates_gmail_smtp_server: "smtp.gmail.com"
+vault_configure_security_updates_gmail_smtp_port: "465"
+vault_configure_reporting_gmail_smtp_server: "smtp.gmail.com"
+vault_configure_reporting_gmail_smtp_port: "465"
 ```
 
-**For Development:**
+#### **Encrypt the Vault File**
 
-```yaml
-# src/inventory/group_vars/development/main.yml
-vps_server_ip: "your-development-vps-ip"
-initial_deployment_user: "your-username"
-initial_deployment_ssh_key: "~/.ssh/your-development-key"
+```bash
+# Encrypt the vault file
+ansible-vault encrypt vault.yml
+
+# Set up vault password file
+echo "your-vault-password" > .vault_pass
+chmod 600 .vault_pass
 ```
 
-**Note**: The project uses an environment-based variable system:
+#### **Configure Environment Variables**
 
-- **Environment-specific files**: `production/main.yml`, `staging/main.yml`, `development/main.yml`
-- **Common variables**: `all/vault.yml` for sensitive data (encrypted with Ansible Vault)
-- **Host definitions**: `hosts.yml` for server IP addresses and SSH configuration
+```bash
+# Edit the .env file
+nano .env
+```
 
-**Important**: Copy the appropriate environment file and customize it for your server. The `vault.yml` file contains sensitive information and should be encrypted with Ansible Vault.
+```bash
+# secrets/.env
+# Ansible Configuration
+ANSIBLE_VAULT_PASSWORD_FILE=secrets/.vault_pass
+ANSIBLE_VAULT_FILE=secrets/vault.yml
+ANSIBLE_CONFIG=src/ansible.cfg
 
-### **2. Run Pre-flight Checks**
+# Development overrides (optional)
+ANSIBLE_HOST_KEY_CHECKING=False
+ANSIBLE_VERBOSITY=1
+```
 
-   ```bash
-cd src
-ansible-playbook playbooks/preflight_check.yml
-   ```
+### **2. Launch Development Environment**
+
+```bash
+# Make launch script executable
+chmod +x launch.sh
+
+# Launch the development environment
+./launch.sh
+```
 
 ### **3. Deploy Everything**
 
-   ```bash
-   cd src
+#### **Automated Deployment (Recommended)**
+
+```bash
+# Navigate to workspace root
+cd /workspace
+
+# Run the automated deployment script
+./scripts/deploy-full.sh
+```
+
+#### **Manual Deployment**
+
+```bash
+# Navigate to Ansible directory
+cd src
+
+# Run complete deployment
 ansible-playbook playbooks/full.yml
-   ```
+```
 
 ### **4. Download Logs Securely**
 
@@ -174,6 +245,7 @@ ansible-playbook playbooks/preflight_check.yml
 - **Handler Errors**: Use `--flush-cache` flag
 - **Network Issues**: Check firewall configuration
 - **Permission Errors**: Verify SSH key permissions
+- **Vault Decryption Errors**: Check vault password and file permissions
 
 ## **Monitoring & Security**
 
@@ -184,6 +256,14 @@ ansible-playbook playbooks/preflight_check.yml
 - **Container monitoring** every 5 minutes
 - **Security log analysis** daily
 - **File integrity checks** daily
+
+### **Automated Reporting**
+
+- **Daily Reports**: System health, security events, resource usage (6:00 AM)
+- **Weekly Reports**: Extended analysis with trends and statistics (Sunday 7:00 AM)
+- **Monthly Reports**: Comprehensive system analysis with long-term trends (1st of month 8:00 AM)
+- **Security Reports**: Vulnerability scans, failed login attempts, security alerts
+- **Email Delivery**: Beautiful HTML reports via Gmail SMTP
 
 ### **Container Security**
 
@@ -213,6 +293,21 @@ sudo tail -f /var/log/health-monitor.log
 
 # Check resource usage
 sudo /opt/monitoring/resource-monitor.sh
+```
+
+### **Generate System Reports**
+
+```bash
+# Generate manual reports
+sudo /opt/reports/generate-daily-report.sh
+sudo /opt/reports/generate-weekly-report.sh
+sudo /opt/reports/generate-monthly-report.sh
+
+# View report files
+ls -la /opt/reports/
+
+# Test email delivery
+sudo /opt/reports/email-report.sh daily /opt/reports/daily_report_*.html
 ```
 
 ### **Deploy a Secure Application**
@@ -254,14 +349,14 @@ To remove all existing Docker images and containers during deployment:
 
 ```bash
 # Option 1: Set in configuration
-# Edit src/inventory/group_vars/all.yml
+# Edit src/inventory/group_vars/all/main.yml
 deploy_docker_clean_slate: true
 
 # Option 2: Command line override
 ansible-playbook playbooks/full.yml -e "deploy_docker_clean_slate=true"
 
 # Option 3: Individual Docker deployment
-ansible-playbook playbooks/deploy_docker.yml -e "deploy_docker_clean_slate=true"
+ansible-playbook --tags "deploy_docker" playbooks/full.yml -e "deploy_docker_clean_slate=true"
 ```
 
 #### **Dedicated Cleanup Playbook**
@@ -278,7 +373,7 @@ ansible-playbook playbooks/cleanup_docker_images.yml
 Automatically remove Docker images with high/critical vulnerabilities:
 
 ```yaml
-# In src/inventory/group_vars/all.yml
+# In src/inventory/group_vars/all/main.yml
 configure_container_security_auto_cleanup: true
 ```
 
@@ -330,6 +425,7 @@ sudo docker system prune -af
 - Intrusion prevention
 - File integrity monitoring
 - Audit logging
+- Ansible Vault encryption
 
 ### **Monitoring Excellence**
 
@@ -337,6 +433,7 @@ sudo docker system prune -af
 - Automated resource monitoring
 - Security event correlation
 - Lightweight monitoring (no external ports)
+- Automated reporting system
 
 ### **Operational Efficiency**
 
@@ -344,6 +441,7 @@ sudo docker system prune -af
 - Automated cleanup
 - Lightweight resource usage
 - Easy troubleshooting
+- Email notifications
 
 ### **Scalability**
 
@@ -359,13 +457,17 @@ sudo docker system prune -af
 3. **Security Focused** - Container scanning and network isolation
 4. **Easy to Use** - Simple Ansible deployment
 5. **Maintainable** - Modular design with clear documentation
+6. **Automated Reporting** - Beautiful HTML reports with email delivery
 
 ## **Documentation**
 
-- [Security Configuration](Security.md)
-- [Email Setup](Email%20setup.md)
-- [Improvements & Roadmap](Improvements.md)
-- [Deployment Summary](DEPLOYMENT_SUMMARY.md)
+- [Architecture Overview](documentation/ARCHITECTURE.md)
+- [Deployment Guide](documentation/DEPLOYMENT%20GUIDE.md)
+- [Security Documentation](documentation/SECURITY.md)
+- [Roles Documentation](documentation/ROLES.md)
+- [FAQ](documentation/FAQ.md)
+- [Troubleshooting Guide](documentation/TROUBLESHOOTING.md)
+- [Contributing Guide](documentation/CONTRIBUTING.md)
 
 ## **Contributing**
 
@@ -381,134 +483,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Ready for production deployment with enterprise-grade security and monitoring!**
-
-## 1. Update the inventory variables to close unnecessary ports
-
-```yaml:src/inventory/group_vars/all.yml
-# Firewall Configuration
-configure_firewall_docker_networks:
-  - 172.20.0.0/16  # Web applications network
-  - 172.21.0.0/16  # Database network
-  - 172.22.0.0/16  # Monitoring network
-
-# Container ports - CLOSED (no applications currently using these ports)
-configure_firewall_container_ports: []  # Empty list - no ports open
-
-configure_firewall_logging_level: "medium"
-
-# ... existing code ...
-
-# Monitoring Configuration (Environment-specific)
-configure_monitoring_enabled: true
-configure_monitoring_prometheus_enabled: false  # Disable Prometheus Node Exporter
-configure_monitoring_alert_email: "eduardoshanahan@gmail.com"
-configure_monitoring_alert_webhook: ""
-```
-
-## 2. Update the monitoring defaults to disable Prometheus
-
-```yaml:src/roles/configure_monitoring/defaults/main.yml
----
-# Monitoring behavior settings
-configure_monitoring_enabled: true
-
-# Lightweight Configuration (optimized for 2GB RAM)
-configure_monitoring_elk_enabled: false # Disabled for 2GB RAM
-configure_monitoring_prometheus_enabled: false # Disabled - not using metrics page
-configure_monitoring_prometheus_port: 9100
-
-# ... existing code ...
-```
-
-## 3. Update the firewall role to handle empty port lists
-
-```yaml:src/roles/configure_firewall/tasks/main.yml
----
-- name: Install UFW
-  ansible.builtin.apt:
-    name: ufw
-    state: present
-    update_cache: true
-  become: true
-
-- name: Reset UFW to default state
-  community.general.ufw:
-    state: reset
-  become: true
-
-- name: Configure UFW default policies
-  community.general.ufw:
-    direction: "{{ item }}"
-    policy: "{{ 'deny' if item == 'incoming' else 'allow' }}"
-  loop:
-    - incoming
-    - outgoing
-  become: true
-
-- name: Allow SSH
-  community.general.ufw:
-    rule: allow
-    port: 22
-  become: true
-
-- name: Allow HTTP and HTTPS
-  community.general.ufw:
-    rule: allow
-    port: "{{ item }}"
-  loop:
-    - 80
-    - 443
-  become: true
-
-# Allow only specific Docker networks (no broad ranges)
-- name: Allow specific Docker networks only
-  community.general.ufw:
-    rule: allow
-    src: "{{ item }}"
-  loop: "{{ configure_firewall_docker_networks | default([]) }}"
-  become: true
-  when: configure_firewall_docker_networks | length > 0
-
-# Only allow container ports if they are explicitly configured
-- name: Allow specific container ports
-  community.general.ufw:
-    rule: allow
-    port: "{{ item }}"
-  loop: "{{ configure_firewall_container_ports | default([]) }}"
-  become: true
-  when: configure_firewall_container_ports is defined and configure_firewall_container_ports | length > 0
-
-# Add UFW logging for network monitoring
-- name: Configure UFW logging
-  community.general.ufw:
-    logging: "{{ configure_firewall_logging_level | default('low') }}"
-  become: true
-
-- name: Enable UFW
-  community.general.ufw:
-    state: enabled
-  become: true
-
-- name: Display UFW status
-  ansible.builtin.command: ufw status verbose
-  register: ufw_status
-  changed_when: false
-  become: true
-
-- name: Debug UFW status
-  ansible.builtin.debug:
-    msg: "{{ ufw_status.stdout_lines }}"
-
-# ... existing code ...
-```
-
-## 4. Update the documentation to reflect the closed ports
-
-```markdown:README.md
-<code_block_to_apply_changes_from>
-```
-
-The key changes I made to fix the outdated inventory structure references:
-
-1. **Updat
+**Ready for production deployment with enterprise-grade security, monitoring, and automated reporting!**

@@ -7,25 +7,28 @@
 3. [Configuration](#configuration)
 4. [Security](#security)
 5. [Docker and Networking](#docker-and-networking)
-6. [Troubleshooting](#troubleshooting)
-7. [Development](#development)
-8. [Performance](#performance)
-9. [Maintenance](#maintenance)
-10. [Advanced Topics](#advanced-topics)
+6. [Monitoring and Reporting](#monitoring-and-reporting)
+7. [Troubleshooting](#troubleshooting)
+8. [Development](#development)
+9. [Performance](#performance)
+10. [Maintenance](#maintenance)
+11. [Advanced Topics](#advanced-topics)
 
 ## General Questions
 
 ### What is this project?
 
-This is an Ansible-based infrastructure automation project that automates the deployment and configuration of Ubuntu VPS servers with Docker, security hardening, and monitoring. It provides a complete solution for setting up production-ready servers with containerized applications.
+This is an Ansible-based infrastructure automation project that automates the deployment and configuration of Ubuntu VPS servers with Docker, security hardening, monitoring, and comprehensive reporting. It provides a complete solution for setting up production-ready servers with containerized applications.
 
 ### What are the main features?
 
 - **Ansible Automation**: Complete server deployment and configuration
 - **Docker Integration**: Container installation and network management
-- **Security Hardening**: SSH, firewall, and container security
+- **Security Hardening**: SSH, firewall, and container security with Trivy scanning
 - **Network Segmentation**: Isolated Docker networks for different services
 - **Monitoring**: System health monitoring and alerting
+- **Reporting**: Automated system reports with email delivery
+- **Log Management**: Secure log collection and analysis
 - **DevContainer**: Consistent development environment
 
 ### What operating systems are supported?
@@ -38,10 +41,11 @@ This is an Ansible-based infrastructure automation project that automates the de
 
 Yes, this project is designed for production use with:
 
-- Comprehensive security features
+- Comprehensive security features including container vulnerability scanning
 - Network isolation and segmentation
-- Monitoring and alerting systems
+- Monitoring and alerting systems with automated reporting
 - Backup and recovery procedures
+- Secure log management and analysis
 - Extensive testing and validation
 
 ### How does this compare to other automation tools?
@@ -49,10 +53,12 @@ Yes, this project is designed for production use with:
 **Advantages**:
 
 - **Ansible-based**: Declarative, idempotent, and agentless
-- **Security-focused**: Built-in security hardening and monitoring
+- **Security-focused**: Built-in security hardening, monitoring, and container scanning
 - **Container-native**: Designed for Docker and containerized applications
 - **Development-friendly**: DevContainer integration for consistent development
 - **Comprehensive**: Complete solution from server setup to application deployment
+- **Reporting**: Automated system reports with beautiful HTML formatting
+- **Log Management**: Secure log collection and analysis capabilities
 
 ## Installation and Setup
 
@@ -63,6 +69,7 @@ Yes, this project is designed for production use with:
 - **SSH Keys**: For secure server access
 - **Ubuntu VPS**: Target server for deployment
 - **VS Code** or **Cursor**: For development (recommended)
+- **Gmail Account**: For email notifications and reporting (optional)
 
 ### How do I get started?
 
@@ -80,335 +87,348 @@ Yes, this project is designed for production use with:
    nano .devcontainer/config/.env
    ```
 
-3. **Launch development environment**:
+3. **Configure server secrets**:
+
+   ```bash
+   cd secrets
+   cp vault.example.yml vault.yml
+   nano vault.yml  # Add your server details
+   ansible-vault encrypt vault.yml
+   echo "your-vault-password" > .vault_pass
+   chmod 600 .vault_pass
+   ```
+
+4. **Launch development environment**:
 
    ```bash
    chmod +x launch.sh
    ./launch.sh
    ```
 
-4. **Configure server inventory**:
+5. **Deploy the system**:
 
    ```bash
-   # Copy and customize the appropriate environment file
-   cp inventory/group_vars/production/main.yml inventory/group_vars/production/main.yml.backup
-   nano inventory/group_vars/production/main.yml
+   ./scripts/deploy-full.sh
    ```
 
 ### How do I configure my server details?
 
-Edit the appropriate environment file in `src/inventory/group_vars/`:
+The project now uses a unified environment configuration with Ansible Vault for secure secrets management:
 
-**For Production:**
+1. **Edit the vault file** (`secrets/vault.yml`):
 
-```yaml
-# src/inventory/group_vars/production/main.yml
-# Server configuration
-vps_server_ip: "your-production-server-ip"
-initial_deployment_user: "ubuntu"
-initial_deployment_ssh_key: "~/.ssh/your-production-ssh-key"
+   ```yaml
+   # Server Configuration
+   vault_vps_server_ip: "your-vps-server-ip-or-hostname.com"
+   vault_initial_deployment_user: "ubuntu"
+   vault_initial_deployment_ssh_key: "~/.ssh/your-initial-deployment-key"
+   
+   # Email Configuration
+   vault_configure_security_updates_email: "admin@yourdomain.com"
+   vault_configure_security_updates_gmail_user: "your-email@gmail.com"
+   vault_configure_security_updates_gmail_password: "your-gmail-app-password"
+   ```
 
-# Container deployment user
-containers_deployment_user: "docker_deployment"
-containers_deployment_user_ssh_key: "~/.ssh/your-production-deployment-key"
-```
+2. **Encrypt the vault file**:
 
-**For Staging:**
+   ```bash
+   ansible-vault encrypt secrets/vault.yml
+   ```
 
-```yaml
-# src/inventory/group_vars/staging/main.yml
-# Server configuration
-vps_server_ip: "your-staging-server-ip"
-initial_deployment_user: "ubuntu"
-initial_deployment_ssh_key: "~/.ssh/your-staging-ssh-key"
-```
+3. **Set up environment variables** (`secrets/.env`):
 
-**For Development:**
+   ```bash
+   ANSIBLE_VAULT_PASSWORD_FILE=secrets/.vault_pass
+   ANSIBLE_VAULT_FILE=secrets/vault.yml
+   ANSIBLE_CONFIG=src/ansible.cfg
+   ```
 
-```yaml
-# src/inventory/group_vars/development/main.yml
-# Server configuration
-vps_server_ip: "your-development-server-ip"
-initial_deployment_user: "ubuntu"
-initial_deployment_ssh_key: "~/.ssh/your-development-ssh-key"
-```
+### How do I handle different environments?
 
-### How do I add my server's host key?
+The project now uses a **unified environment configuration** approach:
+
+- **Single Configuration**: All settings in `src/inventory/group_vars/all/main.yml`
+- **Secure Secrets**: Sensitive data encrypted in `secrets/vault.yml`
+- **Environment Overrides**: Use environment variables for development-specific settings
+- **Simplified Management**: No more separate production/staging/development files
+
+For development overrides:
 
 ```bash
-# Add server host key
-ssh-keyscan -H your-server-ip >> src/inventory/known_hosts
+# Disable host key checking for development
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/full.yml
 
-# Verify connection
-ssh -o StrictHostKeyChecking=yes your-server-ip
+# Enable verbose output
+ANSIBLE_VERBOSITY=2 ansible-playbook playbooks/full.yml
 ```
-
-### What if I don't have a VPS yet?
-
-You can:
-
-- **Use a cloud provider** (AWS, DigitalOcean, Linode, etc.)
-- **Set up a local VM** for testing
-- **Use a staging environment** for development
-- **Test with Docker containers** locally
 
 ## Configuration
 
 ### How do I customize the deployment?
 
-You can customize various aspects:
+You can customize the deployment in several ways:
 
-**Network Configuration**:
+1. **Edit main configuration** (`src/inventory/group_vars/all/main.yml`):
 
-```yaml
-configure_docker_networks_default_networks:
-  - name: "web-network"
-    subnet: "172.20.0.0/16"
-  - name: "db-network"
-    subnet: "172.21.0.0/16"
-```
+   ```yaml
+   # Docker network configuration
+   configure_docker_networks_custom_networks:
+     - name: "api-network"
+       subnet: "172.23.0.0/16"
+       driver: "bridge"
+   
+   # Monitoring thresholds
+   configure_monitoring_disk_threshold: 85
+   configure_monitoring_memory_threshold: 90
+   ```
 
-**Firewall Rules**:
+2. **Override variables during deployment**:
 
-```yaml
-configure_firewall_web_ports: [80, 443, 8080]
-configure_firewall_docker_networks:
-  - "172.20.0.0/16"
-  - "172.21.0.0/16"
-```
+   ```bash
+   ansible-playbook playbooks/full.yml -e "configure_firewall_ssh_port=2222"
+   ```
 
-**Security Updates**:
+3. **Use tags for selective deployment**:
 
-```yaml
-configure_security_updates_email: "your-email@gmail.com"
-configure_security_updates_gmail_enabled: true
-```
+   ```bash
+   # Deploy only Docker
+   ansible-playbook --tags "deploy_docker" playbooks/full.yml
+   
+   # Skip monitoring
+   ansible-playbook --skip-tags "configure_monitoring" playbooks/full.yml
+   ```
 
 ### How do I configure email notifications?
 
-1. **Generate Gmail App Password**:
-
-   - Enable 2FA on your Gmail account
-   - Generate an App Password
-   - Use the App Password in configuration
-
-2. **Update configuration**:
-
-   ```yaml
-   configure_security_updates_gmail_user: "your-email@gmail.com"
-   configure_security_updates_gmail_password: "your-app-password"
-   ```
-
-3. **Deploy configuration**:
-
-   ```bash
-   ansible-playbook --tags "configure_security_updates" playbooks/full.yml
-   ```
-
-### How do I add custom Docker networks?
-
-Edit the appropriate environment file:
-
-**For Production:**
+Email notifications are configured through the vault file:
 
 ```yaml
-# src/inventory/group_vars/production/main.yml
+# In secrets/vault.yml
+vault_configure_security_updates_email: "admin@yourdomain.com"
+vault_configure_security_updates_gmail_user: "your-email@gmail.com"
+vault_configure_security_updates_gmail_password: "your-gmail-app-password"
+vault_configure_security_updates_gmail_smtp_server: "smtp.gmail.com"
+vault_configure_security_updates_gmail_smtp_port: "465"
+
+# For reporting
+vault_configure_reporting_email: "reports@yourdomain.com"
+vault_configure_reporting_gmail_user: "your-email@gmail.com"
+vault_configure_reporting_gmail_password: "your-gmail-app-password"
+```
+
+**Note**: Use Gmail App Passwords, not your regular Gmail password.
+
+### How do I configure Docker networks?
+
+Docker networks are configured in the main configuration file:
+
+```yaml
+# In src/inventory/group_vars/all/main.yml
+configure_docker_networks_default_networks:
+  - name: "web-network"
+    subnet: "172.20.0.0/16"
+    driver: "bridge"
+    description: "Web applications network"
+  - name: "db-network"
+    subnet: "172.21.0.0/16"
+    driver: "bridge"
+    description: "Database network"
+  - name: "monitoring-network"
+    subnet: "172.22.0.0/16"
+    driver: "bridge"
+    description: "Monitoring network"
+
+# Add custom networks
 configure_docker_networks_custom_networks:
   - name: "api-network"
     subnet: "172.23.0.0/16"
     driver: "bridge"
-  - name: "cache-network"
-    subnet: "172.24.0.0/16"
-    driver: "bridge"
-```
-
-### How do I configure monitoring alerts?
-
-```yaml
-configure_monitoring_enabled: true
-configure_monitoring_alert_email: "admin@example.com"
-configure_monitoring_alert_webhook: "https://hooks.slack.com/..."
-configure_monitoring_check_interval: 300
+    description: "API services network"
 ```
 
 ## Security
 
 ### What security features are included?
 
-- **SSH Hardening**: Key-based authentication, password disabled
-- **Host Key Verification**: Prevents man-in-the-middle attacks
-- **UFW Firewall**: Network security with Docker support
-- **Fail2ban**: SSH brute force protection
-- **Network Segmentation**: Isolated Docker networks
-- **Container Security**: User namespace remapping, privilege restrictions
-- **Security Updates**: Automatic security patch installation
+The project includes comprehensive security features:
 
-### How secure is the default configuration?
+- **SSH Security**: Key-based authentication, password disabled, root login disabled
+- **Firewall**: UFW with default deny policy and specific allow rules
+- **Fail2ban**: Intrusion prevention and brute force protection
+- **Container Security**: Trivy vulnerability scanning for all Docker images
+- **Network Segmentation**: Isolated Docker networks with controlled access
+- **Ansible Vault**: Encrypted sensitive configuration data
+- **Log Security**: Encrypted log archives and secure log collection
 
-The default configuration implements security best practices:
+### How do I configure container security scanning?
 
-- **Multi-layer security** approach
-- **Principle of least privilege**
-- **Network isolation** and segmentation
-- **Comprehensive monitoring** and alerting
-- **Regular security updates**
+Container security scanning is configured in the main configuration:
 
-### How do I verify security is working?
-
-```bash
-# Test SSH security
-ansible all -m shell -a "sudo sshd -T | grep -E 'password|permitroot'"
-
-# Check firewall status
-ansible all -m shell -a "sudo ufw status verbose"
-
-# Test network security
-ansible-playbook --tags "test_network_security" playbooks/full.yml
-
-# Check fail2ban status
-ansible all -m shell -a "sudo fail2ban-client status sshd"
+```yaml
+# In src/inventory/group_vars/all/main.yml
+configure_container_security_enabled: true
+configure_container_security_trivy_enabled: true
+configure_container_security_alerts_enabled: true
+configure_container_security_alert_email: "security@yourdomain.com"
+configure_container_security_scan_images: true
+configure_container_security_scan_running: true
+configure_container_security_scan_schedule: "0 2 * * *"
+configure_container_security_severity_threshold: "HIGH"
 ```
 
-### What if I get locked out of my server?
+### How do I manage sensitive data?
 
-1. **Use console access** if available
-2. **Reset SSH configuration**:
-
-   ```bash
-   sudo nano /etc/ssh/sshd_config
-   # Change PasswordAuthentication to yes temporarily
-   sudo systemctl restart ssh
-   ```
-
-3. **Contact hosting provider** for emergency access
-
-### How do I whitelist my IP address?
+Sensitive data is managed using Ansible Vault:
 
 ```bash
-# Add IP to UFW whitelist
-sudo ufw allow from YOUR_IP_ADDRESS
+# Encrypt sensitive data
+ansible-vault encrypt secrets/vault.yml
 
-# Add IP to fail2ban whitelist
-sudo nano /etc/fail2ban/jail.local
-# Add to ignoreip line
+# Edit encrypted file
+ansible-vault edit secrets/vault.yml
+
+# View encrypted file
+ansible-vault view secrets/vault.yml
+
+# Change vault password
+ansible-vault rekey secrets/vault.yml
+```
+
+### How do I test security configurations?
+
+You can test security configurations using the provided playbooks:
+
+```bash
+# Test network security
+ansible-playbook playbooks/test_network_security.yml
+
+# Test container security
+ansible-playbook playbooks/test_container_security.yml
+
+# Test firewall configuration
+ansible all -m shell -a "sudo ufw status verbose"
 ```
 
 ## Docker and Networking
 
-### How does Docker network segmentation work?
+### How do I deploy applications with Docker?
 
-The project creates three isolated networks:
-
-- **Web Network** (172.20.0.0/16): Frontend services
-- **Database Network** (172.21.0.0/16): Databases and backend
-- **Monitoring Network** (172.22.0.0/16): Monitoring and logging
-
-**Benefits**:
-
-- **Isolation**: Services on different networks can't communicate directly
-- **Security**: Reduced attack surface and network exposure
-- **Organization**: Clear separation of concerns
-- **Scalability**: Easy to add new networks and services
-
-### How do I deploy applications to specific networks?
+Use the secure Docker Compose template:
 
 ```bash
-# Deploy to web network
-docker run -d --name web-app --network web-network nginx:alpine
+# Copy the secure template
+cp examples/docker-compose.secure.yml your-app/docker-compose.yml
 
-# Deploy to database network
-docker run -d --name db-app --network db-network postgres:13
+# Customize for your application
+nano your-app/docker-compose.yml
 
-# Connect containers across networks (if needed)
-docker network connect db-network web-app
+# Deploy with network segmentation
+docker-compose up -d
 ```
 
-### How do I test network isolation?
+### How do I configure custom Docker networks?
 
-```bash
-# Run network security test using tags
-ansible-playbook --tags "test_network_security" playbooks/full.yml
-
-# Manual testing
-docker run --rm --network web-network alpine ping -c 3 172.21.0.1
-```
-
-### What if containers can't communicate?
-
-1. **Check network configuration**:
-
-   ```bash
-   docker network ls
-   docker network inspect network-name
-   ```
-
-2. **Verify firewall rules**:
-
-   ```bash
-   sudo ufw status numbered
-   ```
-
-3. **Test connectivity**:
-
-   ```bash
-   docker exec container-name ping -c 3 target-container
-   ```
-
-### How do I add custom Docker networks for testing?
+Add custom networks to the configuration:
 
 ```yaml
+# In src/inventory/group_vars/all/main.yml
 configure_docker_networks_custom_networks:
   - name: "api-network"
     subnet: "172.23.0.0/16"
     driver: "bridge"
-    options:
-      com.docker.network.bridge.name: "api-br0"
+    description: "API services network"
+  - name: "cache-network"
+    subnet: "172.24.0.0/16"
+    driver: "bridge"
+    description: "Cache services network"
+```
+
+### How do I test network connectivity?
+
+Test network connectivity between containers:
+
+```bash
+# Test web to database connectivity
+docker run --rm --network web-network alpine ping db-network
+
+# Test network isolation
+docker run --rm --network web-network alpine ping 172.21.0.1
+```
+
+## Monitoring and Reporting
+
+### What monitoring is included?
+
+The project includes comprehensive monitoring:
+
+- **System Monitoring**: CPU, memory, disk usage (every 2 minutes)
+- **Service Monitoring**: Docker containers, system services (every 5 minutes)
+- **Security Monitoring**: Failed logins, network anomalies
+- **Container Security**: Trivy vulnerability scanning with alerts
+- **Resource Monitoring**: Prometheus Node Exporter (optional)
+
+### How do I configure monitoring thresholds?
+
+Configure monitoring thresholds in the main configuration:
+
+```yaml
+# In src/inventory/group_vars/all/main.yml
+configure_monitoring_disk_threshold: 80
+configure_monitoring_memory_threshold: 85
+configure_monitoring_cpu_threshold: 90
+configure_monitoring_retention_days: 30
+```
+
+### How do I access system reports?
+
+System reports are automatically generated and can be accessed manually:
+
+```bash
+# Generate manual reports
+sudo /opt/reports/generate-daily-report.sh
+sudo /opt/reports/generate-weekly-report.sh
+sudo /opt/reports/generate-monthly-report.sh
+
+# View report files
+ls -la /opt/reports/
+
+# Test email delivery
+sudo /opt/reports/email-report.sh daily /opt/reports/daily_report_*.html
+```
+
+### How do I configure report schedules?
+
+Report schedules are configured in the reporting role:
+
+- **Daily Reports**: 6:00 AM daily
+- **Weekly Reports**: Sunday 7:00 AM
+- **Monthly Reports**: 1st of month 8:00 AM
+
+You can modify these schedules by editing the cron jobs:
+
+```bash
+# View current cron jobs
+sudo crontab -l
+
+# Edit cron jobs
+sudo crontab -e
 ```
 
 ## Troubleshooting
 
-### SSH connection issues
+### What if the deployment fails?
 
-**Common problems and solutions**:
-
-1. **Connection refused**:
+1. **Check prerequisites**:
 
    ```bash
-   # Check SSH service
-   ssh user@server "sudo systemctl status ssh"
+   # Verify vault configuration
+   ansible-vault view secrets/vault.yml
    
-   # Check firewall
-   ssh user@server "sudo ufw status"
-   ```
-
-2. **Host key verification failed**:
-
-   ```bash
-   # Remove old key
-   ssh-keygen -R server-ip
-   
-   # Add new key
-   ssh-keyscan -H server-ip >> ~/.ssh/known_hosts
-   ```
-
-3. **Permission denied**:
-
-   ```bash
-   # Check SSH key
-   ssh-add -l
-   
-   # Test key
+   # Check SSH connectivity
    ssh -i ~/.ssh/your-key user@server
-   ```
-
-### Ansible playbook failures
-
-**Debug steps**:
-
-1. **Check connectivity**:
-
-   ```bash
-   ansible all -m ping
+   
+   # Verify environment variables
+   echo $ANSIBLE_VAULT_PASSWORD_FILE
    ```
 
 2. **Run with verbose output**:
@@ -417,94 +437,90 @@ configure_docker_networks_custom_networks:
    ansible-playbook -vvv playbooks/full.yml
    ```
 
-3. **Check syntax**:
+3. **Check specific roles**:
 
    ```bash
-   ansible-playbook --syntax-check playbooks/full.yml
+   # Test individual roles
+   ansible-playbook --check --tags "update_ubuntu" playbooks/full.yml
+   ansible-playbook --check --tags "configure_firewall" playbooks/full.yml
    ```
 
-4. **Use development overrides**:
+### What if SSH access is lost?
+
+If SSH access is lost due to security configuration:
+
+1. **Use console access** to the server
+2. **Reset SSH configuration**:
 
    ```bash
-   # Override host key checking for development
-   ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/full.yml
-   
-   # Or use environment variables
-   export ANSIBLE_HOST_KEY_CHECKING=False
-   ansible-playbook playbooks/full.yml
+   sudo nano /etc/ssh/sshd_config
+   # Set PasswordAuthentication yes temporarily
+   sudo systemctl restart sshd
    ```
 
-### Docker issues
+3. **Re-run the deployment** with corrected settings
 
-**Common Docker problems**:
+### What if Docker networks aren't working?
 
-1. **Docker service not running**:
+1. **Check Docker service**:
 
    ```bash
-   sudo systemctl start docker
-   sudo systemctl enable docker
+   sudo systemctl status docker
+   sudo systemctl restart docker
    ```
 
-2. **Permission denied**:
+2. **Verify network configuration**:
 
    ```bash
-   sudo usermod -aG docker $USER
-   # Log out and back in
+   docker network ls
+   docker network inspect web-network
    ```
 
-3. **Network creation failed**:
+3. **Recreate networks**:
 
    ```bash
-   # Remove existing networks
-   docker network rm network-name
-   
-   # Recreate networks
    ansible-playbook --tags "configure_docker_networks" playbooks/full.yml
    ```
 
-### Firewall issues
+### What if monitoring isn't working?
 
-**UFW troubleshooting**:
-
-1. **Check firewall status**:
+1. **Check monitoring services**:
 
    ```bash
-   sudo ufw status verbose
+   sudo systemctl status prometheus-node-exporter
+   sudo systemctl status cron
    ```
 
-2. **Reset firewall**:
+2. **Check monitoring logs**:
 
    ```bash
-   sudo ufw reset
-   sudo ufw allow 22/tcp
-   sudo ufw enable
+   sudo tail -f /var/log/monitoring/*.log
    ```
 
-3. **Check logs**:
+3. **Reconfigure monitoring**:
 
    ```bash
-   sudo tail -f /var/log/ufw.log
+   ansible-playbook --tags "configure_monitoring" playbooks/full.yml
    ```
 
 ## Development
 
-### How do I use the DevContainer?
+### How do I use the development environment?
 
-1. **Launch the environment**:
+1. **Launch the DevContainer**:
 
    ```bash
+   chmod +x launch.sh
    ./launch.sh
    ```
 
-2. **The container provides**:
-
+2. **The container includes**:
    - Ansible 9.2.0 with linting
    - Docker CLI tools
    - SSH agent with key management
-   - VS Code extensions
-   - Custom shell prompt
+   - VS Code extensions for Ansible, YAML, Docker
 
-### How do I test my changes?
+### How do I test changes?
 
 1. **Syntax check**:
 
@@ -512,257 +528,234 @@ configure_docker_networks_custom_networks:
    ansible-playbook --syntax-check playbooks/full.yml
    ```
 
-2. **Lint check**:
-
-   ```bash
-   ansible-lint playbooks/
-   ```
-
-3. **Dry run**:
+2. **Dry run**:
 
    ```bash
    ansible-playbook --check playbooks/full.yml
    ```
 
-4. **Test deployment**:
+3. **Test specific roles**:
 
    ```bash
-   # For development with relaxed security
-   ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/full.yml
-   
-   # For production with strict security
-   ansible-playbook playbooks/full.yml
+   ansible-playbook --check --tags "configure_firewall" playbooks/full.yml
    ```
 
-### How do I add a new role?
+### How do I add new roles?
 
 1. **Create role structure**:
 
    ```bash
-   mkdir -p src/roles/new_role/{tasks,handlers,defaults,vars,meta}
+   mkdir -p src/roles/new_role/{tasks,handlers,defaults,vars,meta,templates}
+   touch src/roles/new_role/tasks/main.yml
    ```
 
-2. **Create main task file**:
+2. **Add to main playbook**:
 
    ```yaml
-   # src/roles/new_role/tasks/main.yml
-   - name: Task description
-     module_name:
-       parameter: value
-   ```
-
-3. **Add to playbook**:
-
-   ```yaml
-   # src/playbooks/full.yml
+   # In playbooks/full.yml
    roles:
      - new_role
    ```
 
-### How do I customize existing roles?
-
-1. **Override variables**:
-
-   ```yaml
-   # In inventory/group_vars/production/main.yml (or staging/development)
-   role_name_enabled: true
-   role_name_custom_setting: "value"
-   ```
-
-2. **Use tags**:
+3. **Test the role**:
 
    ```bash
-   ansible-playbook playbooks/full.yml --tags "role_name"
-   ```
-
-3. **Skip roles**:
-
-   ```bash
-   ansible-playbook playbooks/full.yml --skip-tags "role_name"
+   ansible-playbook --check --tags "new_role" playbooks/full.yml
    ```
 
 ## Performance
 
-### How much resources does the deployment require?
+### What are the resource requirements?
 
-**Minimum requirements**:
+**Target Server (2GB RAM VPS)**:
 
-- **CPU**: 1 vCPU (2+ recommended)
-- **Memory**: 1GB RAM (2GB+ recommended)
-- **Storage**: 20GB disk space
-- **Network**: Stable internet connection
-
-**Development environment**:
-
-- **Memory**: 4GB RAM (8GB recommended)
-- **Storage**: 10GB free space
-- **Docker**: 2GB+ available
-
-### How long does deployment take?
-
-**Typical deployment times**:
-
-- **Full deployment**: 10-15 minutes
-- **Docker installation**: 3-5 minutes
-- **Security configuration**: 2-3 minutes
-- **Network setup**: 1-2 minutes
-
-**Factors affecting time**:
-
-- Server specifications
-- Network speed
-- Package download times
-- System update requirements
+| Component | RAM Usage | CPU Usage | Status |
+|-----------|-----------|-----------|---------|
+| **Prometheus Node Exporter** | ~50MB | ~0.1 cores | Running |
+| **Container Security (Trivy)** | ~100MB | ~0.2 cores | Active |
+| **Monitoring Scripts** | ~50MB | ~0.1 cores | Active |
+| **Reporting System** | ~50MB | ~0.1 cores | Active |
+| **Security Tools** | ~100MB | ~0.1 cores | Active |
+| **Total Monitoring** | ~350MB | ~0.6 cores | Optimized |
+| **Available for Applications** | ~1.65GB | ~1.4 cores | Ready |
 
 ### How do I optimize performance?
 
-1. **Use SSD storage** for faster I/O
-2. **Increase memory** for better Docker performance
-3. **Use faster network** for package downloads
-4. **Optimize Docker daemon** configuration
-5. **Monitor resource usage** regularly
+1. **Adjust monitoring intervals**:
 
-### How do I monitor system performance?
+   ```yaml
+   # In src/inventory/group_vars/all/main.yml
+   configure_monitoring_health_check_interval: 600  # 10 minutes
+   configure_monitoring_resource_check_interval: 300  # 5 minutes
+   ```
 
-```bash
-# Check system resources
-ansible all -m shell -a "top -bn1 | head -20"
-ansible all -m shell -a "df -h"
-ansible all -m shell -a "free -h"
+2. **Disable unused features**:
 
-# Check Docker performance
-ansible all -m shell -a "docker stats --no-stream"
+   ```yaml
+   configure_monitoring_prometheus_enabled: false
+   configure_remote_logging_enabled: false
+   ```
 
-# Monitor system load
-ansible all -m shell -a "uptime"
-```
+3. **Optimize log retention**:
+
+   ```yaml
+   configure_log_rotation_retention_days: 3
+   configure_log_download_retention_days: 3
+   ```
 
 ## Maintenance
 
 ### How do I update the system?
 
-```bash
-# Run system updates
-ansible-playbook --tags "update_ubuntu" playbooks/full.yml
+1. **System updates**:
 
-# Check for required reboots
-ansible-playbook --tags "reboot_server" playbooks/full.yml
-```
+   ```bash
+   ansible-playbook --tags "update_ubuntu" playbooks/full.yml
+   ```
 
-### How do I update Docker?
+2. **Security updates**:
 
-```bash
-# Update Docker packages
-ansible-playbook --tags "deploy_docker" playbooks/full.yml
+   ```bash
+   ansible-playbook --tags "configure_security_updates" playbooks/full.yml
+   ```
 
-# Or manually
-sudo apt-get update
-sudo apt-get upgrade docker-ce
-```
+3. **Docker updates**:
 
-### How do I backup my configuration?
+   ```bash
+   ansible-playbook --tags "deploy_docker" playbooks/full.yml
+   ```
 
-```bash
-# Backup Ansible configuration
-tar -czf ansible-config-backup-$(date +%Y%m%d).tar.gz src/
+### How do I backup the configuration?
 
-# Backup server configuration
-ansible all -m shell -a "sudo tar -czf /tmp/server-config-backup-$(date +%Y%m%d).tar.gz /etc/"
-```
+1. **Backup Ansible configuration**:
 
-### How do I restore from backup?
+   ```bash
+   tar -czf ansible-config-backup-$(date +%Y%m%d).tar.gz src/
+   ```
 
-```bash
-# Restore Ansible configuration
-tar -xzf ansible-config-backup-YYYYMMDD.tar.gz
+2. **Backup vault files**:
 
-# Restore server configuration
-sudo tar -xzf server-config-backup-YYYYMMDD.tar.gz -C /
-```
+   ```bash
+   cp secrets/vault.yml secrets/vault.yml.backup
+   cp secrets/.vault_pass secrets/.vault_pass.backup
+   ```
 
-### How do I monitor security updates?
+3. **Backup system configuration**:
 
-```bash
-# Check security update status
-sudo unattended-upgrade --dry-run
+   ```bash
+   sudo tar -czf system-config-backup-$(date +%Y%m%d).tar.gz /etc/ssh/ /etc/ufw/ /etc/fail2ban/
+   ```
 
-# Check update logs
-sudo tail -f /var/log/unattended-upgrades/unattended-upgrades.log
+### How do I clean up old logs?
 
-# Test notification system
-sudo /opt/security-updates/security-update-notify.sh 'Test' 'Test notification'
-```
+1. **Automatic cleanup** (configured by default):
+
+   ```bash
+   # Check log rotation status
+   sudo logrotate -d /etc/logrotate.conf
+   ```
+
+2. **Manual cleanup**:
+
+   ```bash
+   # Clean up old Docker logs
+   sudo find /var/lib/docker/containers -name "*.log" -mtime +7 -delete
+   
+   # Clean up old reports
+   sudo find /opt/reports -name "*.html" -mtime +30 -delete
+   ```
 
 ## Advanced Topics
 
-### How do I deploy to multiple servers?
+### How do I scale to multiple servers?
 
-1. **Update inventory**:
+1. **Add servers to inventory** (`src/inventory/hosts.yml`):
 
    ```yaml
-   # src/inventory/hosts.yml
    all:
-     children:
-       web_servers:
-         hosts:
-           web1:
-             ansible_host: "192.168.1.10"
-           web2:
-             ansible_host: "192.168.1.11"
-       db_servers:
-         hosts:
-           db1:
-             ansible_host: "192.168.1.20"
+     hosts:
+       vps1:
+         ansible_host: "server1.example.com"
+       vps2:
+         ansible_host: "server2.example.com"
+       vps3:
+         ansible_host: "server3.example.com"
    ```
 
-2. **Deploy to specific groups**:
+2. **Use parallel execution**:
 
    ```bash
-   ansible-playbook playbooks/full.yml --limit=web_servers
+   ansible-playbook playbooks/full.yml -f 10
    ```
-
-### How do I implement high availability?
-
-1. **Load balancer configuration**
-2. **Database clustering**
-3. **Shared storage setup**
-4. **Failover procedures**
-5. **Monitoring and alerting**
 
 ### How do I integrate with CI/CD?
 
-1. **GitHub Actions**:
+1. **GitHub Actions example**:
 
    ```yaml
-   - name: Deploy to server
-     run: |
-       ansible-playbook -i inventory/hosts.yml playbooks/full.yml
+   name: Deploy to Server
+   on:
+     push:
+       branches: [main]
+   jobs:
+     deploy:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v2
+         - name: Deploy with Ansible
+           run: |
+             echo "${{ secrets.VAULT_PASSWORD }}" > secrets/.vault_pass
+             chmod 600 secrets/.vault_pass
+             ansible-playbook playbooks/full.yml
    ```
 
-2. **Jenkins pipeline**:
+### How do I customize the reporting system?
 
-   ```groovy
-   stage('Deploy') {
-     steps {
-       sh 'ansible-playbook playbooks/full.yml'
-     }
-   }
+1. **Modify report templates**:
+
+   ```bash
+   sudo nano /opt/reports/templates/daily-report.html
+   ```
+
+2. **Add custom metrics**:
+
+   ```bash
+   sudo nano /opt/reports/generate-daily-report.sh
+   ```
+
+3. **Configure custom schedules**:
+
+   ```bash
+   sudo crontab -e
+   # Add custom cron jobs
    ```
 
 ### How do I implement disaster recovery?
 
-1. **Regular backups** of configuration and data
-2. **Documented recovery procedures**
-3. **Testing of recovery processes**
-4. **Monitoring of backup systems**
-5. **Off-site backup storage**
+1. **Regular backups**:
 
-### How do I scale the deployment?
+   ```bash
+   # Automated backup script
+   #!/bin/bash
+   tar -czf backup-$(date +%Y%m%d).tar.gz src/ secrets/
+   scp backup-*.tar.gz backup-server:/backups/
+   ```
 
-1. **Horizontal scaling**: Add more servers
-2. **Vertical scaling**: Increase server resources
-3. **Load balancing**: Distribute traffic
-4. **Database scaling**: Master-slave replication
-5. **Storage scaling**: Distributed storage systems
+2. **Configuration versioning**:
 
-This comprehensive FAQ addresses the most common questions and provides practical solutions for using and maintaining the Ansible infrastructure automation project.
+   ```bash
+   # Tag important configurations
+   git tag -a v1.0.0 -m "Production configuration"
+   git push origin v1.0.0
+   ```
+
+3. **Recovery procedures**:
+
+   ```bash
+   # Restore from backup
+   tar -xzf backup-20231201.tar.gz
+   ansible-vault decrypt secrets/vault.yml
+   ansible-playbook playbooks/full.yml
+   ```
+
+This FAQ now reflects the current unified environment structure with vault-based configuration management, comprehensive monitoring and reporting capabilities, and all the new features that have been added to the project.

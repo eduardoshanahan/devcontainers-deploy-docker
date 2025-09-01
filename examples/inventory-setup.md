@@ -4,7 +4,7 @@ This guide shows how to set up the inventory structure for different environment
 
 ## Current Inventory Structure
 
-```
+```text
 src/inventory/
 ├── hosts.yml                    # Server definitions
 ├── known_hosts                  # SSH host key verification
@@ -178,6 +178,7 @@ configure_reporting_gmail_enabled: true
 ```
 
 **Encrypt the vault file:**
+
 ```bash
 cd src
 ansible-vault encrypt inventory/group_vars/all/vault.yml
@@ -279,38 +280,3 @@ ansible-playbook --syntax-check playbooks/full.yml
 # Dry run deployment
 ansible-playbook --check playbooks/full.yml
 ```
-```
-
-## Summary of Updates
-
-I've updated the examples to use the current inventory structure:
-
-### **1. examples/DEPLOYMENT_GUIDE.md - Updated:**
-- **Fixed playbook references**: Changed from broken individual playbooks to working tag-based commands
-- **Updated commands**: Now uses `--tags "configure_docker_networks"` and `--tags "configure_firewall"`
-
-### **2. examples/inventory-setup.md - Created:**
-- **Current structure**: Shows the actual environment-based inventory structure
-- **Environment examples**: Provides complete examples for production, staging, and development
-- **Vault configuration**: Shows how to set up encrypted sensitive data
-- **Hosts configuration**: Demonstrates the current `hosts.yml` structure
-- **Deployment commands**: Shows environment-specific and role-specific deployment approaches
-- **Best practices**: Includes current project best practices and troubleshooting
-
-### **Key Features of the Updated Examples:**
-
-1. **Environment-Based Structure**: Examples now reflect the actual `production/`, `staging/`, `development/` organization
-2. **Working Commands**: All examples use the current working playbook structure with tags
-3. **Current File Paths**: References point to the actual existing inventory structure
-4. **Vault Integration**: Shows how to properly handle sensitive data with Ansible Vault
-5. **Practical Examples**: Provides real-world configuration examples that users can adapt
-
-### **Benefits:**
-
-1. **Accurate Documentation**: Examples now match the actual working project structure
-2. **Working Commands**: Users can copy and paste examples that will actually work
-3. **Clear Structure**: Shows how to properly organize environment-specific configurations
-4. **Security Best Practices**: Demonstrates proper handling of sensitive data
-5. **Environment Management**: Shows how to manage multiple environments effectively
-
-The examples now provide a complete, accurate guide for users to set up and use the current inventory structure.

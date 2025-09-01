@@ -481,6 +481,7 @@ Managed host key verification file for secure connections.
 #### `inventory/group_vars/`
 
 Environment-specific configuration:
+
 - `production/main.yml` - Production settings
 - `staging/main.yml` - Staging settings  
 - `development/main.yml` - Development settings

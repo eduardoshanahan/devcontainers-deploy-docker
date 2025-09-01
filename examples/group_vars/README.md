@@ -4,7 +4,7 @@ This directory contains example configuration files for each environment in your
 
 ## File Structure
 
-```
+```text
 examples/group_vars/
 ├── README.md                           # This file
 ├── all/
@@ -57,6 +57,7 @@ ansible-vault encrypt inventory/group_vars/all/vault.yml
 ## Environment-Specific Differences
 
 ### Production Environment
+
 - **Clean slate deployments**: Removes all existing Docker resources
 - **Strict security**: Maximum security settings and monitoring
 - **Network removal enabled**: Allows complete network reconfiguration
@@ -64,6 +65,7 @@ ansible-vault encrypt inventory/group_vars/all/vault.yml
 - **Frequent monitoring**: Health checks every 6 minutes
 
 ### Staging Environment
+
 - **Preserve resources**: Keeps existing Docker resources
 - **Testing enabled**: Network security tests enabled
 - **Moderate monitoring**: Health checks every 5 minutes
@@ -71,6 +73,7 @@ ansible-vault encrypt inventory/group_vars/all/vault.yml
 - **Balanced security**: Good security with testing capabilities
 
 ### Development Environment
+
 - **Preserve resources**: Keeps existing Docker resources
 - **Relaxed monitoring**: Health checks every 10 minutes
 - **Short log retention**: 3 days with 25MB max file size
@@ -80,6 +83,7 @@ ansible-vault encrypt inventory/group_vars/all/vault.yml
 ## Common Customizations
 
 ### Docker Networks
+
 ```yaml
 configure_docker_networks_custom_networks:
   - name: "api-network"
@@ -91,6 +95,7 @@ configure_docker_networks_custom_networks:
 ```
 
 ### Firewall Rules
+
 ```yaml
 configure_firewall_container_ports:
   - 8080  # Web application
@@ -99,6 +104,7 @@ configure_firewall_container_ports:
 ```
 
 ### Monitoring Thresholds
+
 ```yaml
 configure_monitoring_alert_email: "admin@yourcompany.com"
 configure_monitoring_alert_webhook: "https://hooks.slack.com/..."
@@ -147,51 +153,3 @@ ansible-playbook --check playbooks/full.yml
 6. **Security**: Follow security best practices for each environment
 
 These examples provide a solid foundation for setting up your multi-environment Ansible deployment system.
-```
-
-## Summary
-
-I've created comprehensive examples for all the group_vars files:
-
-### **1. examples/group_vars/all/vault.yml.example**
-- **Purpose**: Encrypted sensitive variables template
-- **Content**: Email configuration, passwords, API keys
-- **Security**: Shows how to use Ansible Vault for encryption
-
-### **2. examples/group_vars/production/main.yml.example**
-- **Purpose**: Production environment configuration
-- **Features**: Clean slate deployments, strict security, frequent monitoring
-- **Settings**: 30-day log retention, 6-minute health checks, network removal enabled
-
-### **3. examples/group_vars/staging/main.yml.example**
-- **Purpose**: Staging environment configuration
-- **Features**: Preserve resources, testing enabled, balanced security
-- **Settings**: 7-day log retention, 5-minute health checks, network tests enabled
-
-### **4. examples/group_vars/development/main.yml.example**
-- **Purpose**: Development environment configuration
-- **Features**: Preserve resources, relaxed monitoring, development-friendly
-- **Settings**: 3-day log retention, 10-minute health checks, no network tests
-
-### **5. examples/group_vars/README.md**
-- **Purpose**: Comprehensive setup guide
-- **Content**: Setup instructions, environment differences, customizations
-- **Includes**: Security considerations, troubleshooting, best practices
-
-### **Key Features of the Examples:**
-
-1. **Environment-Specific Settings**: Each environment has appropriate configurations
-2. **Security Best Practices**: Proper separation of sensitive and non-sensitive data
-3. **Comprehensive Documentation**: Clear explanations and setup instructions
-4. **Real-World Examples**: Practical configurations users can adapt
-5. **Security Considerations**: Guidelines for secure configuration management
-
-### **Benefits:**
-
-1. **Clear Setup Path**: Users can follow step-by-step instructions
-2. **Environment Understanding**: Shows differences between production, staging, and development
-3. **Security Awareness**: Emphasizes proper handling of sensitive data
-4. **Customization Guide**: Provides examples for common customizations
-5. **Best Practices**: Includes security and operational best practices
-
-Users can now copy these example files, customize them for their environments, and have a working configuration that follows the project's architecture and security principles.

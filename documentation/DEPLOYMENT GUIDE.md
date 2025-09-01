@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide provides step-by-step instructions for deploying and configuring Ubuntu VPS servers using this Ansible-based infrastructure automation project. The deployment process is designed to be secure, repeatable, and production-ready.
+This guide provides step-by-step instructions for deploying and configuring Ubuntu VPS servers using this Ansible-based infrastructure automation project. The deployment process is designed to be secure, repeatable, and production-ready with comprehensive monitoring and reporting capabilities.
 
 ## Prerequisites
 
@@ -91,49 +91,94 @@ The development container will start with:
 - SSH agent with key management
 - VS Code extensions for Ansible, YAML, Docker
 
-### 3. Configure Server Inventory
+### 3. Configure Server Secrets
+
+#### Set Up Ansible Vault
 
 ```bash
-# Navigate to Ansible directory
-cd src
+# Navigate to secrets directory
+cd secrets
 
-# Copy and customize the appropriate environment file
-cp inventory/group_vars/production/main.yml inventory/group_vars/production/main.yml.backup
-nano inventory/group_vars/production/main.yml
+# Copy the example vault file
+cp vault.example.yml vault.yml
+
+# Edit the vault file with your server details
+nano vault.yml
 ```
 
-#### Required Configuration Variables
+#### Required Vault Configuration
 
 ```yaml
-# src/inventory/group_vars/production/main.yml
+# secrets/vault.yml
 # Server Configuration
-vps_server_ip: "your-production-server-ip-or-hostname"
-initial_deployment_user: "ubuntu"
-initial_deployment_ssh_key: "~/.ssh/your-production-ssh-key"
+vault_vps_server_ip: "your-vps-server-ip-or-hostname.com"
+vault_initial_deployment_user: "ubuntu"
+vault_initial_deployment_ssh_key: "~/.ssh/your-initial-deployment-key"
 
-# Container Deployment User
-containers_deployment_user: "docker_deployment"
-containers_deployment_user_ssh_key: "~/.ssh/your-production-deployment-key"
-containers_deployment_user_ssh_key_public: "/path/to/your/public/key.pub"
+# Container deployment user (created during deployment)
+vault_containers_deployment_user: "docker_deployment"
+vault_containers_deployment_user_ssh_key: "~/.ssh/your-container-deployment-key"
+vault_containers_deployment_user_ssh_key_public: "/path/to/your/public/key.pub"
 
-# SSH Configuration
-ansible_ssh_common_args: "-o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
-ansible_python_interpreter: "/usr/bin/python3.10"
+# Email Configuration
+vault_configure_security_updates_email: "admin@yourdomain.com"
+vault_configure_security_updates_gmail_user: "your-email@gmail.com"
+vault_configure_security_updates_gmail_password: "your-gmail-app-password"
 
-# Security Updates Configuration
-configure_security_updates_email: "your-email@gmail.com"
-configure_security_updates_gmail_enabled: true
-configure_security_updates_gmail_user: "your-gmail@gmail.com"
-configure_security_updates_gmail_password: "your-app-password"
-configure_security_updates_gmail_smtp_server: "smtp.gmail.com"
-configure_security_updates_gmail_smtp_port: "465"
+# Monitoring and reporting email configuration
+vault_configure_monitoring_alert_email: "alerts@yourdomain.com"
+vault_configure_reporting_email: "reports@yourdomain.com"
+vault_configure_reporting_gmail_user: "your-email@gmail.com"
+vault_configure_reporting_gmail_password: "your-gmail-app-password"
+
+# Container security alerts
+vault_configure_container_security_alert_email: "security@yourdomain.com"
+
+# SMTP Configuration
+vault_configure_security_updates_gmail_smtp_server: "smtp.gmail.com"
+vault_configure_security_updates_gmail_smtp_port: "465"
+vault_configure_reporting_gmail_smtp_server: "smtp.gmail.com"
+vault_configure_reporting_gmail_smtp_port: "465"
+
+# Remote logging (optional)
+vault_configure_remote_logging_server: "your-remote-logging-server.com"
+```
+
+#### Encrypt the Vault File
+
+```bash
+# Encrypt the vault file
+ansible-vault encrypt vault.yml
+
+# Set up vault password file
+echo "your-vault-password" > .vault_pass
+chmod 600 .vault_pass
+```
+
+#### Configure Environment Variables
+
+```bash
+# Edit the .env file
+nano .env
+```
+
+```bash
+# secrets/.env
+# Ansible Configuration
+ANSIBLE_VAULT_PASSWORD_FILE=secrets/.vault_pass
+ANSIBLE_VAULT_FILE=secrets/vault.yml
+ANSIBLE_CONFIG=src/ansible.cfg
+
+# Development overrides (optional)
+ANSIBLE_HOST_KEY_CHECKING=False
+ANSIBLE_VERBOSITY=1
 ```
 
 ### 4. Configure Host Key Verification
 
 ```bash
 # Add your server's host key to known_hosts
-ssh-keyscan -H your_server_ip >> inventory/known_hosts
+ssh-keyscan -H your_server_ip >> src/inventory/known_hosts
 
 # Verify the host key
 ssh -o StrictHostKeyChecking=yes your_server_ip
@@ -141,9 +186,27 @@ ssh -o StrictHostKeyChecking=yes your_server_ip
 
 ## Deployment Process
 
-### 1. Full System Deployment
+### 1. Automated Deployment (Recommended)
 
-#### Complete Deployment (Recommended for New Servers)
+#### Using the Deployment Script
+
+```bash
+# Navigate to workspace root
+cd /workspace
+
+# Run the automated deployment script
+./scripts/deploy-full.sh
+```
+
+This script will:
+
+1. **Validate Environment**: Check all prerequisites and configuration
+2. **Load Variables**: Source environment variables and vault configuration
+3. **Preflight Checks**: Validate server connectivity and configuration
+4. **Deploy System**: Execute the complete deployment playbook
+5. **Send Notifications**: Email deployment completion status
+
+#### Manual Deployment
 
 ```bash
 # Navigate to Ansible directory
@@ -153,20 +216,24 @@ cd src
 ansible-playbook playbooks/full.yml
 ```
 
-This playbook executes the following roles in order:
+### 2. Full System Deployment
+
+The main playbook (`playbooks/full.yml`) executes the following roles in order:
 
 1. **update_ubuntu**: System updates and security patches
 2. **disable_password_authentication**: SSH security hardening
 3. **create_deployment_user**: Dedicated deployment user creation
-4. **configure_firewall**: UFW firewall configuration
-5. **configure_fail2ban**: SSH brute force protection
-6. **configure_monitoring**: System monitoring setup
-7. **configure_log_rotation**: Automated log management
-8. **configure_security_updates**: Automatic security updates
-9. **deploy_docker**: Docker installation and configuration
-10. **configure_docker_networks**: Secure network segmentation
-11. **configure_container_security**: Container security hardening
-12. **test_network_security**: Security validation testing
+4. **deploy_docker**: Docker installation and configuration
+5. **configure_firewall**: UFW firewall configuration
+6. **configure_security_updates**: Automatic security updates
+7. **configure_monitoring**: System monitoring setup
+8. **configure_reporting**: Automated reporting system
+9. **configure_container_security**: Container security hardening
+10. **configure_remote_logging**: Centralized logging configuration
+11. **configure_log_download**: Secure log collection
+12. **configure_log_rotation**: Automated log management
+13. **configure_fail2ban**: Intrusion prevention setup
+14. **test_network_security**: Security validation testing
 
 #### Deployment Verification
 
@@ -182,9 +249,12 @@ ansible all -m shell -a "sudo ufw status"
 
 # Verify network configuration
 ansible all -m shell -a "docker network ls"
+
+# Check monitoring status
+ansible all -m shell -a "sudo systemctl status prometheus-node-exporter"
 ```
 
-### 2. Individual Component Deployment
+### 3. Individual Component Deployment
 
 #### System Updates
 
@@ -229,24 +299,33 @@ ansible-playbook --tags "test_network_security" playbooks/full.yml
 # Configure monitoring
 ansible-playbook --tags "configure_monitoring" playbooks/full.yml
 
+# Configure reporting
+ansible-playbook --tags "configure_reporting" playbooks/full.yml
+
 # Configure log rotation
 ansible-playbook --tags "configure_log_rotation" playbooks/full.yml
 ```
 
-### 3. Environment-Specific Deployments
-
-#### Development Environment
+#### Container Security
 
 ```bash
-# Use development overrides (relaxed security)
-ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/full.yml
+# Configure container security scanning
+ansible-playbook --tags "configure_container_security" playbooks/full.yml
 ```
 
-#### Production Environment
+### 4. Development Environment Overrides
+
+For development and testing, you can use environment variables to override secure defaults:
 
 ```bash
-# Use default configuration (strict security)
-ansible-playbook playbooks/full.yml
+# Disable host key checking for development
+ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook playbooks/full.yml
+
+# Enable verbose output
+ANSIBLE_VERBOSITY=2 ansible-playbook playbooks/full.yml
+
+# Use development-specific variables
+ANSIBLE_EXTRA_VARS="configure_docker_networks_test_mode=true" ansible-playbook playbooks/full.yml
 ```
 
 ## Post-Deployment Configuration
@@ -267,6 +346,9 @@ ansible all -m shell -a "sudo ufw status verbose"
 
 # Check fail2ban status
 ansible all -m shell -a "sudo systemctl status fail2ban"
+
+# Check monitoring status
+ansible all -m shell -a "sudo systemctl status prometheus-node-exporter"
 ```
 
 #### Security Verification
@@ -280,6 +362,22 @@ ansible all -m shell -a "docker network ls"
 
 # Verify network isolation
 ansible all -m shell -a "sudo ufw status numbered"
+
+# Check container security scanning
+ansible all -m shell -a "sudo trivy --version"
+```
+
+#### Reporting System Verification
+
+```bash
+# Check reporting system status
+ansible all -m shell -a "sudo systemctl status cron"
+
+# Verify report generation
+ansible all -m shell -a "sudo /opt/reports/generate-daily-report.sh"
+
+# Check email configuration
+ansible all -m shell -a "sudo /opt/reports/email-report.sh test"
 ```
 
 ### 2. Application Deployment
@@ -296,123 +394,132 @@ cd /opt/apps/your-app
 docker-compose up -d
 ```
 
+#### Use Secure Docker Compose Template
+
+```bash
+# Copy the secure template
+cp examples/docker-compose.secure.yml your-app/docker-compose.yml
+
+# Customize for your application
+nano your-app/docker-compose.yml
+
+# Deploy with network segmentation
+docker-compose up -d
+```
+
 #### Verify Application Deployment
 
 ```bash
 # Check container status
 docker ps
 
-# Test application connectivity
-curl http://localhost:8080
+# Verify network connectivity
+docker network inspect web-network
+docker network inspect db-network
+docker network inspect monitoring-network
 
-# Check application logs
+# Test application functionality
+curl http://your-app-domain.com
+```
+
+### 3. Monitoring and Reporting
+
+#### Access System Reports
+
+```bash
+# Generate manual reports
+sudo /opt/reports/generate-daily-report.sh
+sudo /opt/reports/generate-weekly-report.sh
+sudo /opt/reports/generate-monthly-report.sh
+
+# View report files
+ls -la /opt/reports/
+```
+
+#### Monitor System Health
+
+```bash
+# Check resource usage
+htop
+df -h
+free -h
+
+# Monitor Docker containers
+docker stats
+
+# Check security alerts
+sudo tail -f /var/log/fail2ban.log
+```
+
+#### Log Management
+
+```bash
+# Download logs securely
+ansible-playbook playbooks/download_logs_secure.yml
+
+# View system logs
+sudo journalctl -f
+sudo tail -f /var/log/syslog
+
+# Check Docker logs
 docker logs container-name
-```
-
-### 3. Monitoring Setup
-
-#### Configure Monitoring Alerts
-
-```bash
-# Set up email notifications
-ansible-playbook --tags "configure_security_updates" playbooks/full.yml
-
-# Configure monitoring thresholds
-# Edit monitoring configuration as needed
-```
-
-#### Verify Monitoring
-
-```bash
-# Check monitoring services
-ansible all -m shell -a "sudo systemctl status monitoring"
-
-# Test alert system
-ansible all -m shell -a "sudo /opt/security-updates/security-update-notify.sh 'Test Alert' 'This is a test notification'"
 ```
 
 ## Troubleshooting
 
 ### 1. Common Issues
 
+#### Vault Decryption Errors
+
+```bash
+# Verify vault password
+ansible-vault view secrets/vault.yml
+
+# Re-encrypt if needed
+ansible-vault rekey secrets/vault.yml
+```
+
 #### SSH Connection Issues
 
 ```bash
-# Check SSH connectivity
-ssh -v user@server
-
-# Verify host key
-ssh -o StrictHostKeyChecking=yes user@server
+# Test SSH connectivity
+ssh -i ~/.ssh/your-key user@server
 
 # Check SSH configuration
-sudo sshd -T | grep -E 'password|permitroot'
+ansible all -m shell -a "sudo sshd -T"
 ```
 
-#### Ansible Connection Issues
+#### Docker Network Issues
 
 ```bash
-# Test Ansible connectivity
-ansible all -m ping
-
-# Check inventory configuration
-ansible-inventory --list
-
-# Verify SSH keys
-ssh-add -l
-```
-
-#### Docker Issues
-
-```bash
-# Check Docker service
-sudo systemctl status docker
-
 # Check Docker networks
 docker network ls
+docker network inspect web-network
 
-# Check Docker daemon logs
-sudo journalctl -u docker
+# Restart Docker service
+sudo systemctl restart docker
 ```
 
-#### Firewall Issues
+### 2. Debugging
+
+#### Verbose Ansible Execution
 
 ```bash
-# Check firewall status
-sudo ufw status verbose
-
-# Check firewall rules
-sudo ufw status numbered
-
-# Check firewall logs
-sudo tail -f /var/log/ufw.log
-```
-
-### 2. Debug Procedures
-
-#### Enable Verbose Logging
-
-```bash
-# Run playbook with verbose output
+# Enable verbose output
 ansible-playbook -vvv playbooks/full.yml
 
-# Check Ansible logs
-tail -f /var/log/ansible.log
+# Debug specific tasks
+ansible-playbook -vvv --tags "configure_firewall" playbooks/full.yml
 ```
 
-#### Manual Verification
+#### Check Role Execution
 
 ```bash
-# SSH to server and check manually
-ssh user@server
+# Test role syntax
+ansible-playbook --syntax-check playbooks/full.yml
 
-# Check system status
-sudo systemctl status
-
-# Check Docker status
-sudo systemctl status docker
-
-# Check network configuration
-ip addr show
+# Dry run
+ansible-playbook --check playbooks/full.yml
 ```
 
 ### 3. Recovery Procedures
@@ -421,35 +528,31 @@ ip addr show
 
 ```bash
 # Revert to previous configuration
-ansible-playbook --check playbooks/full.yml
+ansible-playbook --tags "configure_firewall" playbooks/full.yml -e "configure_firewall_default_policy=ACCEPT"
 
-# Manual rollback if needed
-ssh user@server
-sudo systemctl stop docker
-sudo ufw reset
+# Restore from backup
+sudo cp /etc/ufw/user.rules.backup /etc/ufw/user.rules
+sudo ufw reload
 ```
 
 #### Emergency Access
 
 ```bash
 # If SSH access is lost, use console access
-# Reset SSH configuration if needed
+# Reset SSH configuration
 sudo nano /etc/ssh/sshd_config
-sudo systemctl restart ssh
+sudo systemctl restart sshd
 ```
 
-## Maintenance Procedures
+## Maintenance
 
 ### 1. Regular Maintenance
 
-#### System Updates Maintenance
+#### System Updates maintenance
 
 ```bash
 # Run system updates
 ansible-playbook --tags "update_ubuntu" playbooks/full.yml
-
-# Check for required reboots
-ansible-playbook --tags "reboot_server" playbooks/full.yml
 ```
 
 #### Security Updates
@@ -457,22 +560,36 @@ ansible-playbook --tags "reboot_server" playbooks/full.yml
 ```bash
 # Configure automatic security updates
 ansible-playbook --tags "configure_security_updates" playbooks/full.yml
-
-# Check security update status
-sudo unattended-upgrade --dry-run
 ```
 
-#### Log Management
+#### Log Cleanup
 
 ```bash
-# Configure log rotation
+# Clean up old logs
 ansible-playbook --tags "configure_log_rotation" playbooks/full.yml
-
-# Check log status
-sudo logrotate -d /etc/logrotate.conf
 ```
 
-### 2. Backup Procedures
+### 2. Monitoring Maintenance
+
+#### Check Monitoring Status
+
+```bash
+# Verify monitoring services
+sudo systemctl status prometheus-node-exporter
+sudo systemctl status cron
+
+# Check monitoring logs
+sudo tail -f /var/log/monitoring/*.log
+```
+
+#### Update Monitoring Configuration
+
+```bash
+# Update monitoring settings
+ansible-playbook --tags "configure_monitoring" playbooks/full.yml
+```
+
+### 3. Backup Procedures
 
 #### Configuration Backup
 
@@ -480,132 +597,16 @@ sudo logrotate -d /etc/logrotate.conf
 # Backup Ansible configuration
 tar -czf ansible-config-backup-$(date +%Y%m%d).tar.gz src/
 
-# Backup server configuration
-ansible all -m shell -a "sudo tar -czf /tmp/server-config-backup-$(date +%Y%m%d).tar.gz /etc/"
+# Backup vault files
+cp secrets/vault.yml secrets/vault.yml.backup
+cp secrets/.vault_pass secrets/.vault_pass.backup
 ```
 
-#### Data Backup
+#### System Backup
 
 ```bash
-# Backup Docker volumes
-docker run --rm -v volume_name:/data -v $(pwd):/backup alpine tar czf /backup/volume-backup.tar.gz -C /data .
-
-# Backup application data
-scp -r user@server:/opt/apps/ ./backup/
+# Backup important system files
+sudo tar -czf system-config-backup-$(date +%Y%m%d).tar.gz /etc/ssh/ /etc/ufw/ /etc/fail2ban/
 ```
 
-### 3. Monitoring and Alerting
-
-#### Health Checks
-
-```bash
-# Run health check playbook
-ansible-playbook --tags "test_network_security" playbooks/full.yml
-
-# Check system resources
-ansible all -m shell -a "df -h && free -h && uptime"
-```
-
-#### Alert Configuration
-
-```bash
-# Configure email alerts
-ansible-playbook --tags "configure_security_updates" playbooks/full.yml
-
-# Test alert system
-ansible all -m shell -a "sudo /opt/security-updates/security-update-notify.sh 'Test' 'Alert Test'"
-```
-
-## Advanced Configuration
-
-### 1. Custom Network Configuration
-
-#### Modify Network Ranges
-
-```yaml
-# Edit inventory/group_vars/production/main.yml
-configure_docker_networks_default_networks:
-  - name: "web-network"
-    subnet: "172.20.0.0/16"
-  - name: "db-network"
-    subnet: "172.21.0.0/16"
-  - name: "monitoring-network"
-    subnet: "172.22.0.0/16"
-```
-
-#### Add Custom Networks
-
-```yaml
-configure_docker_networks_custom_networks:
-  - name: "api-network"
-    subnet: "172.23.0.0/16"
-  - name: "cache-network"
-    subnet: "172.24.0.0/16"
-```
-
-### 2. Custom Firewall Rules
-
-#### Add Application Ports
-
-```yaml
-configure_firewall_container_ports:
-  - 8080  # Web application
-  - 3000  # Node.js application
-  - 9000  # Portainer
-  - 5432  # PostgreSQL
-  - 3306  # MySQL
-```
-
-#### Custom Firewall Rules
-
-```bash
-# Add custom UFW rules
-sudo ufw allow from 192.168.1.0/24 to any port 22
-sudo ufw allow from 10.0.0.0/8 to any port 80
-```
-
-### 3. Monitoring Configuration
-
-#### Custom Monitoring
-
-```yaml
-configure_monitoring_enabled: true
-configure_monitoring_alert_email: "admin@example.com"
-configure_monitoring_alert_webhook: "https://hooks.slack.com/..."
-```
-
-#### Log Configuration
-
-```yaml
-configure_log_rotation_enabled: true
-configure_log_rotation_max_size: "100M"
-configure_log_rotation_keep_days: 30
-```
-
-## Best Practices
-
-### 1. Security Best Practices
-
-- Always use host key verification in production
-- Regularly rotate SSH keys
-- Monitor security logs and alerts
-- Keep systems updated with security patches
-- Use strong passwords and key-based authentication
-
-### 2. Deployment Best Practices
-
-- Test deployments in development environment first
-- Use version control for all configurations
-- Document all customizations and changes
-- Maintain backup and recovery procedures
-- Monitor deployment success and failures
-
-### 3. Maintenance Best Practices
-
-- Schedule regular maintenance windows
-- Test backup and recovery procedures
-- Monitor system performance and resources
-- Keep documentation updated
-- Review and update security configurations
-
-This deployment guide provides comprehensive instructions for deploying and maintaining secure, containerized applications on Ubuntu VPS servers using this Ansible-based infrastructure automation project.
+This deployment guide now reflects the current unified environment structure with vault-based configuration management and comprehensive monitoring and reporting capabilities.
