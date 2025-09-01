@@ -1,44 +1,46 @@
 #!/bin/bash
 
-# Enhanced error handler for unattended upgrades
-# This script runs daily to check and fix common issues
+# Enhanced unattended-upgrade error handler with aggressive cache clearing
+# This script handles various unattended-upgrade failures and attempts to fix them
 
-LOG_FILE="/var/log/unattended-upgrade-error-handler.log"
-ERROR_STATE_FILE="/var/log/unattended-upgrade-errors.state"
-EMAIL="{{ configure_security_updates_email }}"
+# Configuration
+LOG_FILE="/var/log/security-updates.log"
+ERROR_STATE_FILE="/var/lib/unattended-upgrades/error-state.txt"
+EMAIL="{{ configure_security_updates_email | default('') }}"
 
+# Logging function
 log() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
 }
 
-# Function to check if error has already been reported
+# Function to check if error was already reported
 is_error_already_reported() {
     local error_hash="$1"
-    if [ -f "$ERROR_STATE_FILE" ] && grep -q "$error_hash" "$ERROR_STATE_FILE"; then
-        return 0  # Already reported
+    if [ -f "$ERROR_STATE_FILE" ] && grep -q "^$error_hash|" "$ERROR_STATE_FILE"; then
+        return 0  # Error already reported
     fi
-    return 1  # Not reported yet
+    return 1  # Error not reported yet
 }
 
 # Function to mark error as reported
 mark_error_as_reported() {
     local error_hash="$1"
-    local error_timestamp="$2"
-    echo "$error_hash|$error_timestamp" >> "$ERROR_STATE_FILE"
+    local timestamp="$2"
+    echo "$error_hash|$timestamp" >> "$ERROR_STATE_FILE"
 }
 
-# Enhanced function to check if error is recent enough to report
+# Function to check if error is recent (within last 24 hours)
 is_error_recent() {
     local error_timestamp="$1"
     local current_time=$(date +%s)
     local error_time=$(date -d "$error_timestamp" +%s 2>/dev/null || echo "0")
     local time_diff=$((current_time - error_time))
     
-    # Only report errors from the last 7 days (604800 seconds)
-    if [ $time_diff -lt 604800 ]; then
-        return 0  # Recent enough to report
+    # Consider error recent if it's within the last 24 hours (86400 seconds)
+    if [ $time_diff -lt 86400 ]; then
+        return 0  # Error is recent
     fi
-    return 1  # Too old to report
+    return 1  # Error is too old
 }
 
 # Function to clean old error entries from state file
@@ -119,7 +121,7 @@ else
 fi
 
 # Enhanced handling for problematic kernel packages
-PROBLEMATIC_PACKAGES=("linux-virtual" "linux-image-virtual" "linux-image-generic")
+PROBLEMATIC_PACKAGES=("linux-image-virtual" "linux-image-generic")
 
 for package in "${PROBLEMATIC_PACKAGES[@]}"; do
     if dpkg -l | grep -q "^ii.*$package"; then
@@ -163,7 +165,7 @@ if [ -f "/var/log/unattended-upgrades/unattended-upgrades.log" ]; then
             # Extract timestamp and create a more specific error identifier
             timestamp = $1 " " $2
             # Create a hash that includes package name and error type for better deduplication
-            if (match($0, /linux-virtual|linux-image/)) {
+            if (match($0, /linux-image/)) {
                 error_type = "kernel_404"
             } else if (match($0, /404/)) {
                 error_type = "general_404"
@@ -205,7 +207,7 @@ if [ -f "/var/log/unattended-upgrades/unattended-upgrades.log" ]; then
                 apt update --fix-missing >> "$LOG_FILE" 2>&1
                 
                 # Try to install the latest available kernel packages
-                apt install --only-upgrade linux-virtual linux-image-virtual linux-image-generic -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" >> "$LOG_FILE" 2>&1 || true
+                apt install --only-upgrade linux-image-virtual linux-image-generic -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" >> "$LOG_FILE" 2>&1 || true
             fi
         fi
     done
@@ -244,7 +246,4 @@ if [ -f "$LOG_FILE" ] && [ $(stat -c%s "$LOG_FILE") -gt 1048576 ]; then
 fi
 
 # Rotate error state file if it gets too large (prevent it from growing indefinitely)
-if [ -f "$ERROR_STATE_FILE" ] && [ $(stat -c%s "$ERROR_STATE_FILE") -gt 1048576 ]; then
-    mv "$ERROR_STATE_FILE" "${ERROR_STATE_FILE}.1"
-    gzip "${ERROR_STATE_FILE}.1" 2>/dev/null || true
-fi 
+if [ -f "$ERROR_STATE_FILE" ] && [ $(stat -c%s "$ERROR_STATE_FILE") -gt 1048576 ]; th

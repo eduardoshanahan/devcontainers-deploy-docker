@@ -6,17 +6,14 @@
 # It takes precedence over group_vars and follows Ansible best practices
 # =============================================================================
 
-# Environment identification
-deployment_environment: production
-
 # Feature flags for this specific host
 features:
   containers:
     networks:
-      test_mode: false  # Production setting - disable Docker network tests
-      default_networks: []  # No default networks in production
-      custom_networks: []   # No custom networks in production
-      remove_all: true      # Clean slate approach for production
+      test_mode: false  # Disable Docker network tests
+      default_networks: []  # No default networks
+      custom_networks: []   # No custom networks
+      remove_all: true      # Clean slate approach
 
 # Docker deployment configuration for this host
 deploy_docker_clean_slate: true

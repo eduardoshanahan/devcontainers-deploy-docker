@@ -1,6 +1,178 @@
 ---
-# Default Docker network configuration
+# =============================================================================
+# UNIFIED ENVIRONMENT CONFIGURATION
+# =============================================================================
+# This file contains all configuration for the single environment
+# Sensitive data is stored in secrets/vault.yml
+# =============================================================================
+
+# =============================================================================
+# SERVER CONFIGURATION
+# =============================================================================
+# Server details moved to vault.yml for security
+vps_server_ip: "{{ vault_vps_server_ip }}"
+initial_deployment_user: "{{ vault_initial_deployment_user }}"
+initial_deployment_ssh_key: "{{ vault_initial_deployment_user_ssh_key }}"
+containers_deployment_user: "{{ vault_containers_deployment_user }}"
+containers_deployment_user_ssh_key: "{{ vault_containers_deployment_user_ssh_key }}"
+containers_deployment_user_ssh_key_public: "{{ vault_containers_deployment_user_ssh_key_public }}"
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+# Security Updates Configuration
+configure_security_updates_enabled: true
+configure_security_updates_email: "{{ vault_configure_security_updates_email }}"
+configure_security_updates_gmail_enabled: true
+configure_security_updates_gmail_user: "{{ vault_configure_security_updates_gmail_user }}"
+configure_security_updates_gmail_password: "{{ vault_configure_security_updates_gmail_password }}"
+configure_security_updates_gmail_smtp_server: "{{ vault_configure_security_updates_gmail_smtp_server }}"
+configure_security_updates_gmail_smtp_port: "{{ vault_configure_security_updates_gmail_smtp_port }}"
+configure_security_updates_slack_webhook: "{{ vault_configure_security_updates_slack_webhook }}"
+configure_security_updates_discord_webhook: "{{ vault_configure_security_updates_discord_webhook }}"
+configure_security_updates_auto_reboot: false
+configure_security_updates_auto_reboot_time: "02:00"
+
+# =============================================================================
+# MONITORING CONFIGURATION
+# =============================================================================
+configure_monitoring_enabled: true
+configure_monitoring_prometheus_enabled: false
+configure_monitoring_alert_email: "{{ vault_configure_monitoring_alert_email }}"
+configure_monitoring_alert_webhook: "{{ vault_configure_monitoring_alert_webhook }}"
+configure_monitoring_retention_days: 30
+configure_monitoring_disk_threshold: 80
+configure_monitoring_memory_threshold: 85
+configure_monitoring_cpu_threshold: 90
+
+# =============================================================================
+# CONTAINER SECURITY CONFIGURATION
+# =============================================================================
+configure_container_security_enabled: true
+configure_container_security_trivy_enabled: true
+configure_container_security_alerts_enabled: true
+configure_container_security_alert_email: "{{ vault_configure_container_security_alert_email }}"
+configure_container_security_scan_images: true
+configure_container_security_scan_running: true
+configure_container_security_scan_schedule: "0 2 * * *"
+configure_container_security_severity_threshold: "HIGH"
+configure_container_security_ignore_unfixed: true
+configure_container_security_auto_cleanup: true
+
+# =============================================================================
+# DOCKER NETWORK CONFIGURATION
+# =============================================================================
+# Docker daemon configuration (preserved as requested)
 configure_docker_networks_default_base: "172.20.0.0/16"
 configure_docker_networks_default_size: 24
 configure_docker_networks_labels:
+  environment: "unified"
   managed_by: "ansible"
+
+# Docker networks (preserved as requested)
+configure_docker_networks_default_networks:
+  - name: "web-network"
+    subnet: "172.20.0.0/16"
+    driver: "bridge"
+    description: "Web applications network"
+  - name: "db-network"
+    subnet: "172.21.0.0/16"
+    driver: "bridge"
+    description: "Database network"
+  - name: "monitoring-network"
+    subnet: "172.22.0.0/16"
+    driver: "bridge"
+    description: "Monitoring network"
+
+# No custom networks
+configure_docker_networks_custom_networks: []
+
+# Network removal enabled for testing
+configure_docker_networks_remove_all: true
+
+# =============================================================================
+# REMOTE LOGGING CONFIGURATION
+# =============================================================================
+configure_remote_logging_enabled: true
+configure_remote_logging_server: "{{ vault_configure_remote_logging_server }}"
+configure_remote_logging_protocol: "udp"
+configure_remote_logging_port: 514
+configure_remote_logging_retry_interval: 30
+configure_remote_logging_max_retries: 3
+configure_remote_logging_forward_all_logs: true
+configure_remote_logging_forward_security_logs: true
+configure_remote_logging_forward_system_logs: true
+configure_remote_logging_forward_docker_logs: true
+
+# =============================================================================
+# LOG DOWNLOAD CONFIGURATION
+# =============================================================================
+configure_log_download_enabled: true
+configure_log_download_auto_collect: true
+configure_log_download_auto_cleanup: true
+configure_log_download_retention_days: 7
+configure_log_download_secure_only: true
+configure_log_download_encrypt_exports: true
+configure_log_download_cleanup_passwords: true
+configure_log_download_require_auth: true
+configure_log_download_allowed_ips: []
+
+# =============================================================================
+# REPORTING CONFIGURATION
+# =============================================================================
+configure_reporting_enabled: true
+configure_reporting_email: "{{ vault_configure_reporting_email }}"
+configure_reporting_gmail_enabled: true
+configure_reporting_gmail_user: "{{ vault_configure_reporting_gmail_user }}"
+configure_reporting_gmail_password: "{{ vault_configure_reporting_gmail_password }}"
+configure_reporting_gmail_smtp_server: "{{ vault_configure_reporting_gmail_smtp_server }}"
+configure_reporting_gmail_smtp_port: "{{ vault_configure_reporting_gmail_smtp_port }}"
+
+# =============================================================================
+# DOCKER USER PERMISSIONS
+# =============================================================================
+docker_user_enhanced_permissions: true
+docker_user_network_management: true
+docker_user_system_monitoring: true
+
+# =============================================================================
+# DOCKER DEPLOYMENT CONFIGURATION
+# =============================================================================
+deploy_docker_clean_slate: true
+deploy_docker_network_policies: {}
+
+# =============================================================================
+# FIREWALL CONFIGURATION
+# =============================================================================
+configure_firewall_enabled: true
+configure_firewall_default_policy: "DROP"
+configure_firewall_allowed_ports:
+  - 22   # SSH (needed for server access)
+  - 80   # HTTP (needed for web traffic)
+  - 443  # HTTPS (needed for secure web traffic)
+
+# Docker networks for firewall rules (preserved as requested)
+configure_firewall_docker_networks:
+  - "172.20.0.0/16"  # web-network
+  - "172.21.0.0/16"  # db-network
+  - "172.22.0.0/16"  # monitoring-network
+
+configure_firewall_container_ports: []  # No additional ports open
+configure_firewall_logging_level: "medium"
+
+# =============================================================================
+# FAIL2BAN CONFIGURATION
+# =============================================================================
+configure_fail2ban_enabled: true
+configure_fail2ban_max_retry: 3
+configure_fail2ban_bantime: 3600
+configure_fail2ban_findtime: 600
+
+# =============================================================================
+# LOG ROTATION CONFIGURATION
+# =============================================================================
+configure_log_rotation_enabled: true
+configure_log_rotation_max_size: "100M"
+configure_log_rotation_rotate_count: 4
+configure_log_rotation_compress: true
+configure_log_rotation_delay_compress: false

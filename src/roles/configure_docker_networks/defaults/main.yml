@@ -2,9 +2,8 @@
 # Role behavior settings (keep in role defaults)
 configure_docker_networks_default_driver: "bridge"
 
-# Network labels for organization
+# Network labels for organization (environment set in inventory)
 configure_docker_networks_labels:
-  environment: "production"
   managed_by: "ansible"
 
 # Network configurations (moved to inventory - these are placeholders)

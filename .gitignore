@@ -215,3 +215,13 @@ src/inventory/group_vars/production.yml
 src/inventory/group_vars/staging.yml
 src/inventory/group_vars/development.yml
 src/inventory/host_vars/vps.yml
+
+# =============================================================================
+# SECRETS DIRECTORY - CRITICAL FOR CONFIDENTIALITY
+# =============================================================================
+# The entire secrets directory is ignored EXCEPT example files
+secrets/
+secrets/*
+!secrets/*.example.yml
+!secrets/*.example
+!secrets/README.md

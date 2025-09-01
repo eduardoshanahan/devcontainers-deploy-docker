@@ -2,6 +2,8 @@
 - name: Deploy complete system
   hosts: all
   become: true
+  vars_files:
+    - "{{ lookup('env', 'ANSIBLE_VAULT_FILE') }}"
   roles:
     - update_ubuntu
     - disable_password_authentication
@@ -29,6 +31,8 @@
   hosts: all
   become: false
   gather_facts: false
+  vars_files:
+    - "{{ lookup('env', 'ANSIBLE_VAULT_FILE') }}"
   tasks:
     - name: Check if email notifications are enabled
       ansible.builtin.set_fact:
@@ -67,4 +71,4 @@
           Email Notification: {{ 'Sent' if email_enabled else 'Disabled' }}
           Recipient: {{ email_recipient if email_enabled and email_recipient else 'Not configured' }}
 
-          Your system is now ready for production use!
+          Your system is now ready for use!
