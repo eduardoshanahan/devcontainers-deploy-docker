@@ -10,7 +10,7 @@
   "default-address-pools": [
     {
       "base": "{{ configure_docker_networks_default_base }}",
-      "size": {{ configure_docker_networks_default_size | default(24) }}
+      "size": {{ configure_docker_networks_default_size }}
     }
   ],
   "live-restore": true,
