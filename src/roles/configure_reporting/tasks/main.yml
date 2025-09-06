@@ -107,7 +107,7 @@
     job: "/opt/reports/generate-weekly-report.sh"
     user: root
   become: true
-  when: configure_reporting_weekly_enabled | default(true)
+  when: configure_reporting_weekly_enabled
   register: weekly_cron_result
   failed_when: false
 
@@ -121,7 +121,7 @@
     user: root
   become: true
   when:
-    - configure_reporting_weekly_enabled | default(true)
+    - configure_reporting_weekly_enabled
     - weekly_cron_result is failed
   failed_when: false
 
