@@ -134,7 +134,7 @@
     job: "/opt/reports/generate-monthly-report.sh"
     user: root
   become: true
-  when: configure_reporting_monthly_enabled | default(true)
+  when: configure_reporting_monthly_enabled
 
 - name: Create report cleanup cron job
   ansible.builtin.cron:

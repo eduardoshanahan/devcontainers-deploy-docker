@@ -9,7 +9,7 @@
   "ip-forward": true,
   "default-address-pools": [
     {
-      "base": "{{ configure_docker_networks_default_base | default('172.20.0.0/16') }}",
+      "base": "{{ configure_docker_networks_default_base }}",
       "size": {{ configure_docker_networks_default_size | default(24) }}
     }
   ],
