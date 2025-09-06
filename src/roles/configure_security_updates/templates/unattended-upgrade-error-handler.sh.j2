@@ -6,7 +6,7 @@
 # Configuration
 LOG_FILE="/var/log/security-updates.log"
 ERROR_STATE_FILE="/var/lib/unattended-upgrades/error-state.txt"
-EMAIL="{{ configure_security_updates_email | default('') }}"
+EMAIL="{{ configure_security_updates_email }}"
 
 # Logging function
 log() {
