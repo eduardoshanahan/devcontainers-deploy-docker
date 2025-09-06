@@ -61,6 +61,11 @@
     msg: "CRITICAL: configure_reporting_weekly_retention_days is not defined. Please set it in inventory/group_vars/all/main.yml"
   when: configure_reporting_weekly_retention_days is not defined
 
+- name: Validate monthly retention variable
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_reporting_monthly_retention_days is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_reporting_monthly_retention_days is not defined
+
 - name: Display validation success
   ansible.builtin.debug:
     msg: "All required variables are properly defined! Proceeding with deployment..."

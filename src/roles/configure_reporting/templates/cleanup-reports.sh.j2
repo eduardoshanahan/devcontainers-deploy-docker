@@ -10,7 +10,7 @@ ARCHIVE_DIR="{{ configure_reporting_archive_dir }}"
 # Retention settings
 DAILY_RETENTION="{{ configure_reporting_daily_retention_days }}"
 WEEKLY_RETENTION="{{ configure_reporting_weekly_retention_days }}"
-MONTHLY_RETENTION="{{ configure_reporting_monthly_retention_days | default(90) }}"
+MONTHLY_RETENTION="{{ configure_reporting_monthly_retention_days }}"
 
 # Function to log messages
 log_message() {
