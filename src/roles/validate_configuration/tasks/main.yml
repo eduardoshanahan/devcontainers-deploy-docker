@@ -51,6 +51,11 @@
     - vault_configure_security_updates_discord_webhook
     - vault_configure_monitoring_alert_webhook
 
+- name: Validate daily retention variable
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_reporting_daily_retention_days is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_reporting_daily_retention_days is not defined
+
 - name: Display validation success
   ansible.builtin.debug:
     msg: "All required variables are properly defined! Proceeding with deployment..."
