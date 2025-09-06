@@ -151,6 +151,7 @@ configure_reporting_gmail_password: "{{ vault_configure_reporting_gmail_password
 configure_reporting_gmail_smtp_server: "{{ vault_configure_reporting_gmail_smtp_server }}"
 configure_reporting_gmail_smtp_port: "{{ vault_configure_reporting_gmail_smtp_port }}"
 configure_reporting_daily_retention_days: 7
+configure_reporting_weekly_retention_days: 30
 
 # =============================================================================
 # DOCKER USER PERMISSIONS
