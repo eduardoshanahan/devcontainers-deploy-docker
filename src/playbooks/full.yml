@@ -1,4 +1,15 @@
 ---
+- name: Validate configuration before deployment
+  hosts: all
+  gather_facts: false
+  become: false
+  vars_files:
+    - "{{ lookup('env', 'ANSIBLE_VAULT_FILE') }}"
+  tasks:
+    - name: Include variable validation
+      ansible.builtin.include_role:
+        name: validate_configuration
+
 - name: Deploy complete system
   hosts: all
   become: true
@@ -36,10 +47,10 @@
   tasks:
     - name: Check if email notifications are enabled
       ansible.builtin.set_fact:
-        email_enabled: "{{ configure_reporting_gmail_enabled | default(false) }}"
-        email_recipient: "{{ configure_reporting_email | default('') }}"
-        email_user: "{{ configure_reporting_gmail_user | default('') }}"
-        email_password: "{{ configure_reporting_gmail_password | default('') }}"
+        email_enabled: "{{ configure_reporting_gmail_enabled }}"
+        email_recipient: "{{ configure_reporting_email }}"
+        email_user: "{{ configure_reporting_gmail_user }}"
+        email_password: "{{ configure_reporting_gmail_password }}"
 
     - name: Send deployment completion notification email
       ansible.builtin.shell: |

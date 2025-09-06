@@ -1,0 +1,67 @@
+---
+- name: Validate core system variables
+  ansible.builtin.fail:
+    msg: "CRITICAL: Required variable '{{ item }}' is not defined. Please set it in inventory/group_vars/all/main.yml or secrets/vault.yml"
+  when: item is not defined
+  loop:
+    - vault_vps_server_ip
+    - vault_initial_deployment_user
+    - vault_initial_deployment_ssh_key
+    - vault_containers_deployment_user
+    - vault_containers_deployment_user_ssh_key
+    - vault_containers_deployment_user_ssh_key_public
+
+- name: Validate email configuration variables
+  ansible.builtin.fail:
+    msg: "CRITICAL: Required email variable '{{ item }}' is not defined. Please set it in secrets/vault.yml"
+  when: item is not defined
+  loop:
+    - vault_configure_security_updates_email
+    - vault_configure_security_updates_gmail_user
+    - vault_configure_security_updates_gmail_password
+    - vault_configure_monitoring_alert_email
+    - vault_configure_reporting_email
+    - vault_configure_reporting_gmail_user
+    - vault_configure_reporting_gmail_password
+    - vault_configure_container_security_alert_email
+
+- name: Validate SMTP configuration variables
+  ansible.builtin.fail:
+    msg: "CRITICAL: Required SMTP variable '{{ item }}' is not defined. Please set it in secrets/vault.yml"
+  when: item is not defined
+  loop:
+    - vault_configure_security_updates_gmail_smtp_server
+    - vault_configure_security_updates_gmail_smtp_port
+    - vault_configure_reporting_gmail_smtp_server
+    - vault_configure_reporting_gmail_smtp_port
+
+- name: Validate remote logging configuration
+  ansible.builtin.fail:
+    msg: "CRITICAL: Required remote logging variable '{{ item }}' is not defined. Please set it in secrets/vault.yml"
+  when: item is not defined
+  loop:
+    - vault_configure_remote_logging_server
+
+- name: Validate webhook configuration (optional but check if defined)
+  ansible.builtin.debug:
+    msg: "WARNING: Optional webhook variable '{{ item }}' is not defined. This is OK if you don't use webhooks."
+  when: item is not defined
+  loop:
+    - vault_configure_security_updates_slack_webhook
+    - vault_configure_security_updates_discord_webhook
+    - vault_configure_monitoring_alert_webhook
+
+- name: Display validation success
+  ansible.builtin.debug:
+    msg: "All required variables are properly defined! Proceeding with deployment..."
+
+- name: Show configuration summary
+  ansible.builtin.debug:
+    msg: |
+      Configuration Summary:
+      • Server: {{ vault_vps_server_ip }}
+      • Email: {{ vault_configure_reporting_email }}
+      • Monitoring: {{ configure_monitoring_enabled }}
+      • Reporting: {{ configure_reporting_enabled }}
+      • Container Security: {{ configure_container_security_enabled }}
+      • Docker Networks: {{ configure_docker_networks_default_networks | length }} networks configured
