@@ -4,6 +4,28 @@
     autoclean: true
     autoremove: true
   become: true
+  failed_when: false
+
+# Clear apt cache completely before updating
+- name: Clear apt cache completely
+  ansible.builtin.command: rm -rf /var/lib/apt/lists/*
+  become: true
+  changed_when: false
+
+# Remove problematic Trivy repository if it exists
+- name: Remove problematic Trivy repository
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/trivy.list
+    state: absent
+  become: true
+  failed_when: false
+
+- name: Remove Trivy GPG key if it exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings/trivy.gpg
+    state: absent
+  become: true
+  failed_when: false
 
 - name: Update package list with retry mechanism
   ansible.builtin.apt:
@@ -13,6 +35,48 @@
   retries: 3
   delay: 10
   until: apt_update_result is succeeded
+
+# If apt update still fails, try alternative methods
+- name: Try alternative apt update method
+  when: apt_update_result is failed
+  block:
+    - name: Try apt-get update directly
+      ansible.builtin.command: apt-get update
+      become: true
+      register: apt_get_update_result
+      failed_when: false
+
+    - name: Try with different mirrors if still failing
+      when: apt_get_update_result is failed
+      block:
+        - name: Backup original sources.list
+          ansible.builtin.copy:
+            src: /etc/apt/sources.list
+            dest: /etc/apt/sources.list.backup
+            remote_src: true
+          become: true
+
+        - name: Try with main Ubuntu mirror
+          ansible.builtin.lineinfile:
+            path: /etc/apt/sources.list
+            regexp: "^deb http://archive.ubuntu.com/ubuntu"
+            line: "deb http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse"
+            state: present
+          become: true
+
+        - name: Try apt update with main mirror
+          ansible.builtin.command: apt-get update
+          become: true
+          register: main_mirror_update
+          failed_when: false
+
+        - name: Restore original sources.list if main mirror fails
+          when: main_mirror_update is failed
+          ansible.builtin.copy:
+            src: /etc/apt/sources.list.backup
+            dest: /etc/apt/sources.list
+            remote_src: true
+          become: true
 
 - name: Check for held packages
   ansible.builtin.command: apt list --upgradable
@@ -26,7 +90,7 @@
 
 - name: Upgrade all packages with error handling
   ansible.builtin.apt:
-    upgrade: full # Changed from 'true' to 'full'
+    upgrade: full
     dpkg_options: "force-confdef,force-confold"
   become: true
   register: apt_upgrade_result

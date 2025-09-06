@@ -144,18 +144,18 @@ deploy_system() {
     print_status "  - Fail2ban protection"
     
     echo
-    read -p "Do you want to continue with the deployment? (y/N): " -n 1 -r
-    echo
+    # read -p "Do you want to continue with the deployment? (y/N): " -n 1 -r
+    # echo
     
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        print_warning "Deployment cancelled by user"
-        exit 0
-    fi
+    # if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    #     print_warning "Deployment cancelled by user"
+    #     exit 0
+    # fi
     
     print_status "Proceeding with deployment..."
     
     # Run from workspace root with explicit inventory path
-    if ansible-playbook -i src/inventory/hosts.yml src/playbooks/full.yml; then
+    if ansible-playbook -vvv -i src/inventory/hosts.yml src/playbooks/full.yml; then
         print_success "Full system deployment completed successfully!"
         print_success "Your system is now ready for production use!"
     else

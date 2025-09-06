@@ -121,6 +121,29 @@ configure_log_download_allowed_ips: []
 # REPORTING CONFIGURATION
 # =============================================================================
 configure_reporting_enabled: true
+configure_reporting_daily_enabled: true
+configure_reporting_weekly_enabled: true
+configure_reporting_monthly_enabled: true
+
+# Report scheduling
+configure_reporting_daily_hour: "6"
+configure_reporting_daily_minute: "0"
+configure_reporting_weekly_day: "0"  # Sunday
+configure_reporting_weekly_hour: "7"
+configure_reporting_weekly_minute: "0"
+configure_reporting_monthly_day: "1"  # 1st of month
+configure_reporting_monthly_hour: "8"
+configure_reporting_monthly_minute: "0"
+
+# Report storage and performance
+configure_reporting_storage_dir: "/opt/reports/storage"
+configure_reporting_archive_dir: "/opt/reports/archive"
+configure_reporting_critical_threshold: 3
+configure_reporting_high_threshold: 10
+configure_reporting_memory_limit: "256M"
+configure_reporting_timeout: 300
+configure_reporting_max_log_size: "5M"
+
 configure_reporting_email: "{{ vault_configure_reporting_email }}"
 configure_reporting_gmail_enabled: true
 configure_reporting_gmail_user: "{{ vault_configure_reporting_gmail_user }}"

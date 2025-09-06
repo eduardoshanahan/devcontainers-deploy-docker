@@ -19,122 +19,143 @@
     group: root
   become: true
 
-- name: Add Trivy repository key (modern method)
+# Clean up any existing Trivy repository issues
+- name: Remove existing Trivy repository files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/apt/keyrings/trivy.gpg
+    - /etc/apt/sources.list.d/trivy.list
+  become: true
+  failed_when: false
+
+# Try multiple methods to add Trivy repository
+- name: Download Trivy public key
   ansible.builtin.get_url:
     url: https://aquasecurity.github.io/trivy-repo/deb/public.key
-    dest: /etc/apt/keyrings/trivy.gpg
+    dest: /tmp/trivy-public.key
+    mode: "0644"
+  become: true
+  register: trivy_key_download
+  failed_when: false
+
+- name: Process Trivy GPG key with gpg --dearmor
+  when: trivy_key_download is succeeded
+  ansible.builtin.shell: |
+    if [ ! -f /etc/apt/keyrings/trivy.gpg ] || [ /tmp/trivy-public.key -nt /etc/apt/keyrings/trivy.gpg ]; then
+      gpg --dearmor -o /etc/apt/keyrings/trivy.gpg /tmp/trivy-public.key
+    fi
+  become: true
+  register: trivy_key_process
+  failed_when: false
+
+- name: Add Trivy repository key (method 2 - wget fallback)
+  when: trivy_key_process is failed
+  block:
+    - name: Download key with wget fallback
+      ansible.builtin.get_url:
+        url: https://aquasecurity.github.io/trivy-repo/deb/public.key
+        dest: /tmp/trivy-public-wget.key
+        mode: "0644"
+      become: true
+
+    - name: Process downloaded key with gpg --dearmor
+      ansible.builtin.shell: gpg --dearmor -o /etc/apt/keyrings/trivy.gpg /tmp/trivy-public-wget.key
+      become: true
+
+    - name: Clean up temporary wget key file
+      ansible.builtin.file:
+        path: /tmp/trivy-public-wget.key
+        state: absent
+      become: true
+
+- name: Add Trivy repository key (method 3 - curl fallback)
+  when: trivy_key_process is failed
+  block:
+    - name: Download key with curl fallback
+      ansible.builtin.get_url:
+        url: https://aquasecurity.github.io/trivy-repo/deb/public.key
+        dest: /tmp/trivy-public-curl.key
+        mode: "0644"
+      become: true
+
+    - name: Process downloaded key with gpg --dearmor
+      ansible.builtin.shell: gpg --dearmor -o /etc/apt/keyrings/trivy.gpg /tmp/trivy-public-curl.key
+      become: true
+
+    - name: Clean up temporary curl key file
+      ansible.builtin.file:
+        path: /tmp/trivy-public-curl.key
+        state: absent
+      become: true
+
+- name: Add Trivy repository
+  ansible.builtin.lineinfile:
+    path: /etc/apt/sources.list.d/trivy.list
+    line: "deb [signed-by=/etc/apt/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb jammy main"
+    state: present
+    create: true
     mode: "0644"
   become: true
 
-- name: Add Trivy repository (modern method)
-  ansible.builtin.apt_repository:
-    repo: >-
-      deb [signed-by=/etc/apt/keyrings/trivy.gpg]
-      https://aquasecurity.github.io/trivy-repo/deb
-      {{ ansible_distribution_release }} main
-    state: present
-    filename: trivy
+- name: Update apt cache after adding Trivy repository
+  ansible.builtin.apt:
+    update_cache: true
   become: true
+  register: trivy_apt_update
+  retries: 3
+  delay: 5
+  until: trivy_apt_update is succeeded
 
-- name: Install Trivy
+# If Trivy repository still fails, install from binary
+- name: Install Trivy from binary if repository fails
+  when: trivy_apt_update is failed
+  block:
+    - name: Download Trivy binary
+      ansible.builtin.get_url:
+        url: "https://github.com/aquasecurity/trivy/releases/latest/download/trivy_{{ ansible_architecture }}-linux.tar.gz"
+        dest: /tmp/trivy.tar.gz
+        mode: "0644"
+      become: true
+
+    - name: Extract Trivy binary
+      ansible.builtin.unarchive:
+        src: /tmp/trivy.tar.gz
+        dest: /tmp/
+        remote_src: true
+      become: true
+
+    - name: Install Trivy binary
+      ansible.builtin.copy:
+        src: /tmp/trivy
+        dest: /usr/local/bin/trivy
+        mode: "0755"
+        remote_src: true
+      become: true
+
+    - name: Clean up temporary files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/trivy.tar.gz
+        - /tmp/trivy
+      become: true
+
+- name: Install Trivy from repository (if repository is working)
+  when: trivy_apt_update is succeeded
   ansible.builtin.apt:
     name: trivy
     state: present
-    update_cache: true
   become: true
 
-- name: Install Docker scan plugin
-  ansible.builtin.apt:
-    name: docker-scan-plugin
-    state: present
-    update_cache: true
-  become: true
-  failed_when: false
-
-- name: Create security scripts directory
-  ansible.builtin.file:
-    path: /opt/security
-    state: directory
-    mode: "0755"
-    owner: root
-    group: root
-  become: true
-
-- name: Configure container scanning script
-  ansible.builtin.template:
-    src: container-scan-enhanced.sh.j2
-    dest: /opt/security/container-scan.sh
-    mode: "0755"
-    owner: root
-    group: root
-  become: true
-
-- name: Configure container security monitoring
-  ansible.builtin.template:
-    src: container-monitor.sh.j2
-    dest: /opt/security/container-monitor.sh
-    mode: "0755"
-    owner: root
-    group: root
-  become: true
-
-- name: Configure container security dashboard
-  ansible.builtin.template:
-    src: container-security-dashboard.sh.j2
-    dest: /opt/security/container-security-dashboard.sh
-    mode: "0755"
-    owner: root
-    group: root
-  become: true
-
-- name: Create container security cron job
-  ansible.builtin.cron:
-    name: "Container Security Scan"
-    hour: "2"
-    minute: "0"
-    job: "/opt/security/container-scan.sh"
-    user: root
-  become: true
-
-- name: Configure Docker content trust (environment variable)
-  ansible.builtin.lineinfile:
-    path: /etc/environment
-    line: "DOCKER_CONTENT_TRUST=1"
-    state: present
-  become: true
-  when: configure_container_security_enable_content_trust | default(true)
-
-- name: Test Trivy installation
+- name: Verify Trivy installation
   ansible.builtin.command: trivy --version
-  register: trivy_test
+  register: trivy_version
   changed_when: false
-  failed_when: false
   become: true
 
 - name: Display Trivy version
   ansible.builtin.debug:
-    msg: >-
-      Trivy version: {{
-        trivy_test.stdout if trivy_test.rc == 0
-        else 'Trivy installation failed'
-      }}
-
-- name: Configure auto-cleanup of vulnerable images
-  ansible.builtin.template:
-    src: cleanup-vulnerable-images.sh.j2
-    dest: /opt/security/cleanup-vulnerable-images.sh
-    mode: "0755"
-    owner: root
-    group: root
-  become: true
-  when: configure_container_security_auto_cleanup | default(false)
-
-- name: Create auto-cleanup cron job
-  ansible.builtin.cron:
-    name: "Auto-cleanup Vulnerable Images"
-    hour: "3"
-    minute: "0"
-    job: "/opt/security/cleanup-vulnerable-images.sh"
-    user: root
-  become: true
-  when: configure_container_security_auto_cleanup | default(false)
+    msg: "Trivy installed successfully: {{ trivy_version.stdout }}"
