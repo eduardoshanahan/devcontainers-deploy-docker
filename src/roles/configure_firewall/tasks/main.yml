@@ -42,7 +42,7 @@
   community.general.ufw:
     rule: allow
     src: "{{ item }}"
-  loop: "{{ configure_firewall_docker_networks | default([]) }}"
+  loop: "{{ configure_firewall_docker_networks }}"
   become: true
   when: configure_firewall_docker_networks | length > 0
 
@@ -51,14 +51,14 @@
   community.general.ufw:
     rule: allow
     port: "{{ item }}"
-  loop: "{{ configure_firewall_container_ports | default([]) }}"
+  loop: "{{ configure_firewall_container_ports }}"
   become: true
   when: configure_firewall_container_ports is defined and configure_firewall_container_ports | length > 0
 
 # Add UFW logging for network monitoring
 - name: Configure UFW logging
   community.general.ufw:
-    logging: "{{ configure_firewall_logging_level | default('low') }}"
+    logging: "{{ configure_firewall_logging_level }}"
   become: true
 
 - name: Enable UFW

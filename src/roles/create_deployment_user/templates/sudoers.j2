@@ -11,7 +11,7 @@
     /usr/bin/apt install --only-upgrade docker-ce, \
     /usr/bin/apt install --only-upgrade docker-ce-cli, \
     /usr/bin/apt install --only-upgrade containerd.io, \
-    {% for network in configure_firewall_docker_networks | default(['172.20.0.0/16', '172.21.0.0/16', '172.22.0.0/16']) %}
+    {% for network in configure_firewall_docker_networks %}
     /usr/bin/ufw allow from {{ network }}, \
     {% endfor %}
     /usr/bin/ufw status, \

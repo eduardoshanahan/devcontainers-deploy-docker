@@ -66,6 +66,16 @@
     msg: "CRITICAL: configure_reporting_monthly_retention_days is not defined. Please set it in inventory/group_vars/all/main.yml"
   when: configure_reporting_monthly_retention_days is not defined
 
+- name: Validate features.containers.networks.remove_all
+  ansible.builtin.fail:
+    msg: "CRITICAL: features.containers.networks.remove_all is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: features.containers.networks.remove_all is not defined
+
+- name: Validate features.containers.networks.test_mode
+  ansible.builtin.fail:
+    msg: "CRITICAL: features.containers.networks.test_mode is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: features.containers.networks.test_mode is not defined
+
 - name: Display validation success
   ansible.builtin.debug:
     msg: "All required variables are properly defined! Proceeding with deployment..."

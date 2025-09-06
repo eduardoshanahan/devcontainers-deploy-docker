@@ -202,3 +202,9 @@ configure_log_rotation_max_size: "100M"
 configure_log_rotation_rotate_count: 4
 configure_log_rotation_compress: true
 configure_log_rotation_delay_compress: false
+
+features:
+  containers:
+    networks:
+      remove_all: false
+      test_mode: false

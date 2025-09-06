@@ -5,4 +5,4 @@
 
 - name: Show test mode value
   ansible.builtin.debug:
-    msg: "Test mode is: {{ features.containers.networks.test_mode | default('undefined') }}"
+    msg: "Test mode is: {{ features.containers.networks.test_mode }}"
