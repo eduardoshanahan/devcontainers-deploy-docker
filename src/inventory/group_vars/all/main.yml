@@ -37,7 +37,6 @@ configure_security_updates_auto_reboot_time: "02:00"
 # MONITORING CONFIGURATION
 # =============================================================================
 configure_monitoring_enabled: true
-configure_monitoring_prometheus_enabled: false
 configure_monitoring_alert_email: "{{ vault_configure_monitoring_alert_email }}"
 configure_monitoring_alert_webhook: "{{ vault_configure_monitoring_alert_webhook }}"
 configure_monitoring_retention_days: 30
@@ -52,8 +51,13 @@ configure_monitoring_max_log_size: "{{ monitoring.resources.max_log_size }}"
 configure_monitoring_docker_logs_enabled: "{{ monitoring.docker.logs_enabled }}"
 configure_monitoring_docker_log_driver: "{{ monitoring.docker.log_driver }}"
 configure_monitoring_docker_log_max_size: "{{ monitoring.docker.log_max_size }}"
+configure_monitoring_docker_log_max_files: "{{ monitoring.docker.log_max_files }}"
+configure_monitoring_prometheus_enabled: "{{ monitoring.prometheus.enabled }}"
+configure_monitoring_prometheus_port: "{{ monitoring.prometheus.port }}"
+configure_monitoring_elk_enabled: "{{ monitoring.elk.enabled }}"
 configure_monitoring_alerts_email: "{{ vault_configure_monitoring_alert_email }}"
 configure_monitoring_alerts_slack_webhook: "{{ vault_configure_monitoring_alert_slack_webhook }}"
+configure_monitoring_alerts_discord_webhook: "{{ notifications.webhooks.discord_webhook }}"
 
 # =============================================================================
 # CONTAINER SECURITY CONFIGURATION
@@ -65,7 +69,21 @@ configure_container_security_alert_email: "{{ vault_configure_container_security
 configure_container_security_scan_images: true
 configure_container_security_scan_running: true
 configure_container_security_scan_schedule: "0 2 * * *"
+configure_container_security_scan_severity: "HIGH,CRITICAL"
 configure_container_security_severity_threshold: "HIGH"
+configure_container_security_monitor_privileged: true
+configure_container_security_monitor_host_network: true
+configure_container_security_monitor_host_mounts: true
+configure_container_security_monitor_unusual_behavior: true
+configure_container_security_alerts_email: "{{ vault_configure_container_security_alert_email }}"
+configure_container_security_scan_format: "json"
+configure_container_security_scan_timeout: "300"
+configure_container_security_vulnerability_threshold_critical: 0
+configure_container_security_vulnerability_threshold_high: 5
+configure_container_security_vulnerability_threshold_medium: 10
+configure_container_security_reports_retention_days: "30"
+configure_container_security_alerts_slack_webhook: "{{ vault_configure_container_security_alerts_slack_webhook }}"
+configure_container_security_alerts_discord_webhook: "{{ vault_configure_container_security_alerts_discord_webhook }}"
 configure_container_security_ignore_unfixed: true
 configure_container_security_auto_cleanup: true
 
@@ -219,7 +237,10 @@ features:
     networks:
       remove_all: false
       test_mode: false
-  monitoring: true
+  monitoring:
+    enabled: true
+    prometheus:
+      enabled: false
 
 # =============================================================================
 # MONITORING CORE CONFIGURATION
@@ -231,6 +252,7 @@ monitoring:
     memory_threshold: 90
     cpu_threshold: 80
     network_threshold: 80
+    enabled: true
   resources:
     memory_limit: "512M"
     cpu_limit: "1"
@@ -240,3 +262,32 @@ monitoring:
     logs_enabled: true
     log_driver: "json-file"
     log_max_size: "10m"
+    log_max_files: 3
+  prometheus:
+    enabled: false
+    port: 9100
+  elk:
+    enabled: false
+
+# =============================================================================
+# NOTIFICATIONS CONFIGURATION
+# =============================================================================
+notifications:
+  email:
+    recipients:
+      - "{{ vault_configure_monitoring_alert_email }}"
+  webhooks:
+    slack_webhook: "{{ vault_configure_monitoring_alert_slack_webhook }}"
+    discord_webhook: "{{ vault_configure_monitoring_alert_discord_webhook }}"
+
+# =============================================================================
+# TEST CONFIGURATION
+# =============================================================================
+test_network_security_expected_networks: "{{ configure_docker_networks_default_networks }}"
+
+# =============================================================================
+# LOG DOWNLOAD CONFIGURATION
+# =============================================================================
+download_logs_secure_include_system_logs: true
+download_logs_secure_include_docker_logs: true
+download_logs_secure_include_security_logs: true

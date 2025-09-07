@@ -4,9 +4,9 @@
 # This script automatically removes Docker images with high/critical vulnerabilities
 
 LOG_FILE="/var/log/container-security-cleanup.log"
-SEVERITY="{{ configure_container_security_scan_severity | default('HIGH,CRITICAL') }}"
-THRESHOLD_CRITICAL={{ configure_container_security_vulnerability_threshold_critical | default(0) }}
-THRESHOLD_HIGH={{ configure_container_security_vulnerability_threshold_high | default(5) }}
+SEVERITY="{{ configure_container_security_scan_severity }}"
+THRESHOLD_CRITICAL={{ configure_container_security_vulnerability_threshold_critical }}
+THRESHOLD_HIGH={{ configure_container_security_vulnerability_threshold_high }}
 
 # Function to log messages
 log_message() {

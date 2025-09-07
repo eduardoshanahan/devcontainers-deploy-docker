@@ -26,7 +26,7 @@
         - /var/log/auth.log
         - /var/log/dpkg.log
       failed_when: false
-      when: download_logs_secure_include_system_logs | default(true)
+      when: download_logs_secure_include_system_logs
 
     - name: Download monitoring logs
       ansible.builtin.fetch:
@@ -37,7 +37,7 @@
         - /opt/monitoring/health-check-lightweight.sh
         - /var/log/monitoring/
       failed_when: false
-      when: download_logs_secure_include_docker_logs | default(true)
+      when: download_logs_secure_include_docker_logs
 
     - name: Download security logs
       ansible.builtin.fetch:
@@ -48,7 +48,7 @@
         - /opt/security/
         - /var/log/security/
       failed_when: false
-      when: download_logs_secure_include_security_logs | default(true)
+      when: download_logs_secure_include_security_logs
 
     - name: Display download summary
       ansible.builtin.debug:

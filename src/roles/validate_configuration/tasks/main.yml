@@ -164,6 +164,213 @@
     msg: "CRITICAL: monitoring.docker.log_max_size is not defined. Please set it in inventory/group_vars/all/main.yml"
   when: monitoring.docker.log_max_size is not defined
 
+- name: Validate monitoring.docker.log_max_files
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.docker.log_max_files is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.docker.log_max_files is not defined
+
+- name: Validate monitoring.prometheus.enabled
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.prometheus.enabled is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.prometheus.enabled is not defined
+
+- name: Validate monitoring.prometheus.port
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.prometheus.port is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.prometheus.port is not defined
+
+- name: Validate monitoring.elk.enabled
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.elk.enabled is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.elk.enabled is not defined
+
+- name: Validate monitoring.core.enabled
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.core.enabled is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.core.enabled is not defined
+
+- name: Debug - Show notifications structure
+  ansible.builtin.debug:
+    msg: "Notifications: {{ notifications | default('UNDEFINED') }}"
+
+- name: Debug - Show notifications.email specifically
+  ansible.builtin.debug:
+    msg: "notifications.email: {{ notifications.email | default('UNDEFINED') }}"
+
+- name: Debug - Show notifications.email.recipients specifically
+  ansible.builtin.debug:
+    msg: "notifications.email.recipients: {{ notifications.email.recipients | default('UNDEFINED') }}"
+
+- name: Validate notifications.email.recipients
+  ansible.builtin.fail:
+    msg: "CRITICAL: notifications.email.recipients is not defined or empty. Please set it in inventory/group_vars/all/main.yml"
+  when: notifications.email.recipients is not defined or notifications.email.recipients | length == 0
+
+- name: Validate notifications.webhooks.slack_webhook
+  ansible.builtin.fail:
+    msg: "CRITICAL: notifications.webhooks.slack_webhook is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: notifications.webhooks.slack_webhook is not defined
+
+- name: Validate configure_firewall_logging_level
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_firewall_logging_level is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_firewall_logging_level is not defined
+
+- name: Validate configure_log_download_auto_collect
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_log_download_auto_collect is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_log_download_auto_collect is not defined
+
+- name: Validate configure_log_download_retention_days
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_log_download_retention_days is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_log_download_retention_days is not defined
+
+- name: Validate configure_log_download_secure_only
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_log_download_secure_only is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_log_download_secure_only is not defined
+
+- name: Validate configure_log_download_encrypt_exports
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_log_download_encrypt_exports is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_log_download_encrypt_exports is not defined
+
+- name: Validate configure_log_download_cleanup_passwords
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_log_download_cleanup_passwords is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_log_download_cleanup_passwords is not defined
+
+- name: Validate configure_log_download_require_auth
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_log_download_require_auth is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_log_download_require_auth is not defined
+
+- name: Validate configure_log_download_allowed_ips
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_log_download_allowed_ips is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_log_download_allowed_ips is not defined
+
+- name: Validate configure_container_security_scan_severity
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_scan_severity is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_scan_severity is not defined
+
+- name: Validate configure_container_security_severity_threshold
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_severity_threshold is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_severity_threshold is not defined
+
+- name: Validate configure_container_security_monitor_privileged
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_monitor_privileged is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_monitor_privileged is not defined
+
+- name: Validate configure_container_security_monitor_host_network
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_monitor_host_network is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_monitor_host_network is not defined
+
+- name: Validate configure_container_security_monitor_host_mounts
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_monitor_host_mounts is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_monitor_host_mounts is not defined
+
+- name: Validate configure_container_security_monitor_unusual_behavior
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_monitor_unusual_behavior is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_monitor_unusual_behavior is not defined
+
+- name: Validate configure_container_security_alerts_email
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_alerts_email is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_alerts_email is not defined
+
+- name: Validate configure_container_security_scan_format
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_scan_format is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_scan_format is not defined
+
+- name: Validate configure_container_security_scan_timeout
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_scan_timeout is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_scan_timeout is not defined
+
+- name: Validate configure_container_security_vulnerability_threshold_critical
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_vulnerability_threshold_critical is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_vulnerability_threshold_critical is not defined
+
+- name: Validate configure_container_security_vulnerability_threshold_high
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_vulnerability_threshold_high is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_vulnerability_threshold_high is not defined
+
+- name: Validate configure_container_security_reports_retention_days
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_reports_retention_days is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_reports_retention_days is not defined
+
+- name: Validate configure_container_security_alerts_slack_webhook
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_alerts_slack_webhook is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_alerts_slack_webhook is not defined
+
+- name: Validate configure_container_security_alerts_discord_webhook
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_alerts_discord_webhook is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_alerts_discord_webhook is not defined
+
+- name: Validate configure_container_security_vulnerability_threshold_medium
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_vulnerability_threshold_medium is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_vulnerability_threshold_medium is not defined
+
+- name: Validate configure_container_security_ignore_unfixed
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_ignore_unfixed is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_ignore_unfixed is not defined
+
+- name: Validate configure_container_security_auto_cleanup
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_container_security_auto_cleanup is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_container_security_auto_cleanup is not defined
+
+- name: Validate download_logs_secure_include_system_logs
+  ansible.builtin.fail:
+    msg: "CRITICAL: download_logs_secure_include_system_logs is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: download_logs_secure_include_system_logs is not defined
+
+- name: Validate download_logs_secure_include_docker_logs
+  ansible.builtin.fail:
+    msg: "CRITICAL: download_logs_secure_include_docker_logs is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: download_logs_secure_include_docker_logs is not defined
+
+- name: Validate download_logs_secure_include_security_logs
+  ansible.builtin.fail:
+    msg: "CRITICAL: download_logs_secure_include_security_logs is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: download_logs_secure_include_security_logs is not defined
+
+- name: Validate test_network_security_expected_networks
+  ansible.builtin.fail:
+    msg: "CRITICAL: test_network_security_expected_networks is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: test_network_security_expected_networks is not defined
+
+- name: Validate configure_firewall_docker_networks
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_firewall_docker_networks is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_firewall_docker_networks is not defined
+
+- name: Validate configure_firewall_container_ports
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_firewall_container_ports is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_firewall_container_ports is not defined
+
+- name: Validate configure_monitoring_alerts_discord_webhook
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_monitoring_alerts_discord_webhook is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_monitoring_alerts_discord_webhook is not defined
+
 - name: Display validation success
   ansible.builtin.debug:
     msg: "All required variables are properly defined! Proceeding with deployment..."

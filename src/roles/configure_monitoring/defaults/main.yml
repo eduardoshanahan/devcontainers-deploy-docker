@@ -22,17 +22,17 @@ configure_monitoring_max_log_size: "{{ monitoring.resources.max_log_size }}"
 configure_monitoring_docker_logs_enabled: "{{ monitoring.docker.logs_enabled }}"
 configure_monitoring_docker_log_driver: "{{ monitoring.docker.log_driver }}"
 configure_monitoring_docker_log_max_size: "{{ monitoring.docker.log_max_size }}"
-configure_monitoring_docker_log_max_files: "{{ monitoring.docker.log_max_files | default('3') }}"
+configure_monitoring_docker_log_max_files: "{{ monitoring.docker.log_max_files }}"
 
 # Prometheus
-configure_monitoring_prometheus_enabled: "{{ monitoring.prometheus.enabled | default(false) }}"
-configure_monitoring_prometheus_port: "{{ monitoring.prometheus.port | default(9100) }}"
+configure_monitoring_prometheus_enabled: "{{ monitoring.prometheus.enabled }}"
+configure_monitoring_prometheus_port: "{{ monitoring.prometheus.port }}"
 
 # ELK Stack
-configure_monitoring_elk_enabled: "{{ monitoring.elk.enabled | default(false) }}"
+configure_monitoring_elk_enabled: "{{ monitoring.elk.enabled }}"
 
 # Alerting
-configure_monitoring_alerts_enabled: "{{ monitoring.core.enabled | default(true) }}"
-configure_monitoring_alerts_email: "{{ notifications.email.recipients[0] | default('') }}"
-configure_monitoring_alerts_slack_webhook: "{{ notifications.webhooks.slack_webhook | default('') }}"
-configure_monitoring_alerts_discord_webhook: "{{ notifications.webhooks.discord_webhook | default('') }}"
+configure_monitoring_alerts_enabled: "{{ monitoring.core.enabled }}"
+configure_monitoring_alerts_email: "{{ notifications.email.recipients[0] }}"
+configure_monitoring_alerts_slack_webhook: "{{ vault_configure_monitoring_alert_slack_webhook }}"
+configure_monitoring_alerts_discord_webhook: "{{ notifications.webhooks.discord_webhook }}"

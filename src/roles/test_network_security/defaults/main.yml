@@ -23,7 +23,7 @@ test_network_security_test_containers:
     service: "api"
 
 # Expected network configurations (reference the main configuration)
-test_network_security_expected_networks: "{{ configure_docker_networks_default_networks | default([]) }}"
+test_network_security_expected_networks: "{{ configure_docker_networks_default_networks }}"
 
 # Expected firewall rules (use actual configuration)
 test_network_security_expected_firewall_rules:

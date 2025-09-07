@@ -1,11 +1,11 @@
 ---
 # List of specific Docker networks to allow (more restrictive than default broad ranges)
 # These are custom networks with specific ranges instead of the broad 172.16.0.0/12, 192.168.0.0/16, 10.0.0.0/8
-configure_firewall_docker_networks: "{{ configure_firewall_docker_networks | default([]) }}"
+configure_firewall_docker_networks: "{{ configure_firewall_docker_networks }}"
 
 # List of additional container ports to allow through firewall
 # Add ports your containers will expose to the internet
-configure_firewall_container_ports: "{{ configure_firewall_container_ports | default([]) }}"
+configure_firewall_container_ports: "{{ configure_firewall_container_ports }}"
 
 # UFW logging level (low, medium, high, full)
-configure_firewall_logging_level: "{{ configure_firewall_logging_level | default('medium') }}"
+configure_firewall_logging_level: "{{ configure_firewall_logging_level }}"

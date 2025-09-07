@@ -8,9 +8,9 @@ SCAN_DIR="/opt/security/scans"
 REPORT_DIR="/opt/security/reports"
 ALERT_DIR="/opt/security/alerts"
 DATE=$(date +%Y%m%d_%H%M%S)
-SEVERITY="{{ configure_container_security_scan_severity | default('HIGH,CRITICAL') }}"
-FORMAT="{{ configure_container_security_scan_format | default('json') }}"
-TIMEOUT="{{ configure_container_security_scan_timeout | default('300') }}"
+SEVERITY="{{ configure_container_security_scan_severity }}"
+FORMAT="{{ configure_container_security_scan_format }}"
+TIMEOUT="{{ configure_container_security_scan_timeout }}"
 
 # Create directories
 mkdir -p "$SCAN_DIR" "$REPORT_DIR" "$ALERT_DIR"
@@ -28,21 +28,21 @@ send_alert() {
     log_message "ALERT [$severity]: $message"
     
     # Send email alert if configured
-    if [ -n "{{ configure_container_security_alerts_email | default('') }}" ]; then
+    if [ -n "{{ configure_container_security_alerts_email }}" ]; then
         echo "$message" | mail -s "Container Security Alert [$severity]" "{{ configure_container_security_alerts_email }}"
     fi
     
     # Send Slack alert if configured
-    if [ -n "{{ configure_container_security_alerts_slack_webhook | default('') }}" ]; then
+    if [ -n "{{ configure_container_security_alerts_slack_webhook }}" ]; then
         curl -X POST -H 'Content-type: application/json' \
             --data "{\"text\":\"�� Container Security Alert [$severity]: $message\"}" \
             "{{ configure_container_security_alerts_slack_webhook }}"
     fi
     
     # Send Discord alert if configured
-    if [ -n "{{ configure_container_security_alerts_discord_webhook | default('') }}" ]; then
+    if [ -n "{{ configure_container_security_alerts_discord_webhook }}" ]; then
         curl -X POST -H 'Content-type: application/json' \
-            --data "{\"content\":\"�� Container Security Alert [$severity]: $message\"}" \
+            --data "{\"content\":\" Container Security Alert [$severity]: $message\"}" \
             "{{ configure_container_security_alerts_discord_webhook }}"
     fi
 }
@@ -104,9 +104,9 @@ for IMAGE in $ALL_IMAGES; do
         TOTAL_LOW=$((TOTAL_LOW + LOW_COUNT))
         
         # Check vulnerability thresholds
-        THRESHOLD_CRITICAL={{ configure_container_security_vulnerability_threshold_critical | default(0) }}
-        THRESHOLD_HIGH={{ configure_container_security_vulnerability_threshold_high | default(5) }}
-        THRESHOLD_MEDIUM={{ configure_container_security_vulnerability_threshold_medium | default(10) }}
+        THRESHOLD_CRITICAL={{ configure_container_security_vulnerability_threshold_critical }}
+        THRESHOLD_HIGH={{ configure_container_security_vulnerability_threshold_high }}
+        THRESHOLD_MEDIUM={{ configure_container_security_vulnerability_threshold_medium }}
         
         if [ "$CRITICAL_COUNT" -gt "$THRESHOLD_CRITICAL" ] || [ "$HIGH_COUNT" -gt "$THRESHOLD_HIGH" ]; then
             IMAGES_WITH_VULNS=$((IMAGES_WITH_VULNS + 1))
@@ -135,7 +135,7 @@ jq --argjson total "$(echo "$ALL_IMAGES" | wc -l)" --argjson crit "$TOTAL_CRITIC
 /opt/security/generate-vulnerability-report.sh "$DATE"
 
 # Cleanup old reports (keep for 30 days)
-find "$REPORT_DIR" -name "*.json" -mtime +{{ configure_container_security_reports_retention_days | default(30) }} -delete 2>/dev/null || true
+find "$REPORT_DIR" -name "*.json" -mtime +{{ configure_container_security_reports_retention_days }} -delete 2>/dev/null || true
 
 log_message "Enhanced container security scan completed"
 log_message "Summary: $IMAGES_WITH_VULNS images with vulnerabilities, Total: Critical=$TOTAL_CRITICAL, High=$TOTAL_HIGH, Medium=$TOTAL_MEDIUM, Low=$TOTAL_LOW" 

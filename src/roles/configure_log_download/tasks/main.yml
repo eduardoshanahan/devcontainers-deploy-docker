@@ -72,7 +72,7 @@
     job: "/opt/logs/collect-logs.sh"
     user: root
   become: true
-  when: configure_log_download_auto_collect | default(true)
+  when: configure_log_download_auto_collect
 
 - name: Create log cleanup cron job
   ansible.builtin.cron:
@@ -82,4 +82,4 @@
     job: "/opt/logs/cleanup-logs.sh"
     user: root
   become: true
-  when: configure_log_download_auto_cleanup | default(true)
+  when: configure_log_download_auto_cleanup
