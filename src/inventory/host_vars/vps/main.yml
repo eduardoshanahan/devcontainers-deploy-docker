@@ -6,21 +6,5 @@
 # It takes precedence over group_vars and follows Ansible best practices
 # =============================================================================
 
-# Feature flags for this specific host
-features:
-  containers:
-    networks:
-      test_mode: false  # Disable Docker network tests
-      default_networks: []  # No default networks
-      custom_networks: []   # No custom networks
-      remove_all: true      # Clean slate approach
-
-# Docker deployment configuration for this host
-deploy_docker_clean_slate: true
-deploy_docker_network_policies: {}
-
-# Security settings for this host
-configure_firewall_default_policy: "DROP"
-configure_fail2ban_max_retry: 3
-configure_fail2ban_bantime: 3600
-configure_fail2ban_findtime: 600
+# Host-specific overrides can be added here when needed
+# Currently all configuration is managed through group_vars/all/main.yml

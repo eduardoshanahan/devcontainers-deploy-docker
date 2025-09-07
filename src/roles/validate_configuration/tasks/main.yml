@@ -76,6 +76,34 @@
     msg: "CRITICAL: features.containers.networks.test_mode is not defined. Please set it in inventory/group_vars/all/main.yml"
   when: features.containers.networks.test_mode is not defined
 
+- name: Validate configure_docker_networks_default_driver
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_docker_networks_default_driver is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_docker_networks_default_driver is not defined
+
+- name: Validate configure_monitoring_alerts_email
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_monitoring_alerts_email is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_monitoring_alerts_email is not defined
+
+- name: Validate configure_monitoring_alerts_slack_webhook
+  ansible.builtin.fail:
+    msg: "CRITICAL: configure_monitoring_alerts_slack_webhook is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: configure_monitoring_alerts_slack_webhook is not defined
+
+- name: Debug - Show all features variables
+  ansible.builtin.debug:
+    msg: "Features: {{ features | default('UNDEFINED') }}"
+
+- name: Debug - Show features.monitoring specifically
+  ansible.builtin.debug:
+    msg: "features.monitoring: {{ features.monitoring | default('UNDEFINED') }}"
+
+- name: Validate features.monitoring
+  ansible.builtin.fail:
+    msg: "CRITICAL: features.monitoring is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: features.monitoring is not defined
+
 - name: Display validation success
   ansible.builtin.debug:
     msg: "All required variables are properly defined! Proceeding with deployment..."

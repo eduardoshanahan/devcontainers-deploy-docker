@@ -8,11 +8,11 @@ ALERT_FILE="/opt/monitoring/alerts/health_alerts_$(date +%Y%m%d).log"
 DATE=$(date +%Y-%m-%d_%H:%M:%S)
 
 # Resource thresholds with severity levels
-DISK_THRESHOLD_WARN={{ configure_monitoring_disk_threshold | default(85) }}
+DISK_THRESHOLD_WARN={{ configure_monitoring_disk_threshold }}
 DISK_THRESHOLD_CRITICAL=95
-MEMORY_THRESHOLD_WARN={{ configure_monitoring_memory_threshold | default(90) }}
+MEMORY_THRESHOLD_WARN={{ configure_monitoring_memory_threshold }}
 MEMORY_THRESHOLD_CRITICAL=95
-CPU_THRESHOLD_WARN={{ configure_monitoring_cpu_threshold | default(80) }}
+CPU_THRESHOLD_WARN={{ configure_monitoring_cpu_threshold }}
 CPU_THRESHOLD_CRITICAL=95
 
 # Function to log messages with severity
@@ -35,7 +35,7 @@ send_alert() {
         echo "$DATE - [$severity] $message" >> "$ALERT_FILE"
         
         # Send email alert if configured
-        if [ -n "{{ configure_monitoring_alerts_email | default('') }}" ]; then
+        if [ -n "{{ configure_monitoring_alerts_email }}" ]; then
             echo "$message" | mail -s "VPS Health Alert [$severity]" "{{ configure_monitoring_alerts_email }}"
         fi
     fi

@@ -19,6 +19,9 @@ This directory contains sensitive configuration files that should NEVER be commi
 ### Vault File
 
 ```bash
+# Encrypting a vault file from vault.unencrypted.yml using the password file
+ansible-vault encrypt secrets/vault.unencrypted.yml --output secrets/vault.yml --vault-password-file secrets/.vault_pass
+
 # Edit vault file
 ansible-vault edit secrets/vault.yml
 
@@ -36,11 +39,3 @@ source secrets/.env
 export $(cat secrets/.env | xargs)
 ```
 
-## Migration from Old Structure
-
-This directory replaces the old vault structure:
-
-- Old: `src/inventory/group_vars/all/vault.yml`
-- New: `secrets/vault.yml`
-
-Update your ansible.cfg and playbooks to reference the new location.

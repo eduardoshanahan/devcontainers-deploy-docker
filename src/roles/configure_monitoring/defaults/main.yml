@@ -3,7 +3,7 @@
 # All configuration is now managed through the centralized system
 
 # Master feature toggle
-configure_monitoring_enabled: "{{ features.monitoring | default(true) }}"
+configure_monitoring_enabled: "{{ features.monitoring }}"
 
 # Core monitoring settings
 configure_monitoring_health_check_interval: "{{ monitoring.core.health_check_interval | default(300) }}"

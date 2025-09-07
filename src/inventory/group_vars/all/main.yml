@@ -44,6 +44,8 @@ configure_monitoring_retention_days: 30
 configure_monitoring_disk_threshold: 80
 configure_monitoring_memory_threshold: 85
 configure_monitoring_cpu_threshold: 90
+configure_monitoring_alerts_email: "{{ vault_configure_monitoring_alert_email }}"
+configure_monitoring_alerts_slack_webhook: "{{ vault_configure_monitoring_alert_slack_webhook }}"
 
 # =============================================================================
 # CONTAINER SECURITY CONFIGURATION
@@ -65,6 +67,7 @@ configure_container_security_auto_cleanup: true
 # Docker daemon configuration (preserved as requested)
 configure_docker_networks_default_base: "172.20.0.0/16"
 configure_docker_networks_default_size: 24
+configure_docker_networks_default_driver: "bridge"
 configure_docker_networks_labels:
   environment: "unified"
   managed_by: "ansible"
@@ -208,3 +211,4 @@ features:
     networks:
       remove_all: false
       test_mode: false
+  monitoring: true

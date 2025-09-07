@@ -70,8 +70,7 @@
     name: "{{ item.name }}"
     driver: >-
       {{
-        item.driver |
-        default(configure_docker_networks_default_driver)
+        configure_docker_networks_default_driver
       }}
     ipam_config:
       - subnet: "{{ item.subnet }}"
@@ -90,8 +89,7 @@
     name: "{{ item.name }}"
     driver: >-
       {{
-        item.driver |
-        default(configure_docker_networks_default_driver)
+        configure_docker_networks_default_driver
       }}
     ipam_config:
       - subnet: "{{ item.subnet }}"

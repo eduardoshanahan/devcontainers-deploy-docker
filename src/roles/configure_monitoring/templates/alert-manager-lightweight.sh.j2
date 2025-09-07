@@ -4,8 +4,8 @@
 # Optimized for 2GB RAM VPS
 
 ALERT_FILE="/opt/monitoring/alerts/current_alerts.log"
-EMAIL="{{ configure_monitoring_alerts_email | default('') }}"
-SLACK_WEBHOOK="{{ configure_monitoring_alerts_slack_webhook | default('') }}"
+EMAIL="{{ configure_monitoring_alerts_email }}"
+SLACK_WEBHOOK="{{ configure_monitoring_alerts_slack_webhook }}"
 
 # Function to send email alert
 send_email_alert() {
