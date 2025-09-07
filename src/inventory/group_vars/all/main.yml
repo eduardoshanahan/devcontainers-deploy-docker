@@ -42,8 +42,16 @@ configure_monitoring_alert_email: "{{ vault_configure_monitoring_alert_email }}"
 configure_monitoring_alert_webhook: "{{ vault_configure_monitoring_alert_webhook }}"
 configure_monitoring_retention_days: 30
 configure_monitoring_disk_threshold: 80
-configure_monitoring_memory_threshold: 85
-configure_monitoring_cpu_threshold: 90
+configure_monitoring_memory_threshold: "{{ monitoring.core.memory_threshold }}"
+configure_monitoring_cpu_threshold: "{{ monitoring.core.cpu_threshold }}"
+configure_monitoring_network_threshold: "{{ monitoring.core.network_threshold }}"
+configure_monitoring_memory_limit: "{{ monitoring.resources.memory_limit }}"
+configure_monitoring_cpu_limit: "{{ monitoring.resources.cpu_limit }}"
+configure_monitoring_log_retention_days: "{{ monitoring.resources.log_retention_days }}"
+configure_monitoring_max_log_size: "{{ monitoring.resources.max_log_size }}"
+configure_monitoring_docker_logs_enabled: "{{ monitoring.docker.logs_enabled }}"
+configure_monitoring_docker_log_driver: "{{ monitoring.docker.log_driver }}"
+configure_monitoring_docker_log_max_size: "{{ monitoring.docker.log_max_size }}"
 configure_monitoring_alerts_email: "{{ vault_configure_monitoring_alert_email }}"
 configure_monitoring_alerts_slack_webhook: "{{ vault_configure_monitoring_alert_slack_webhook }}"
 
@@ -212,3 +220,23 @@ features:
       remove_all: false
       test_mode: false
   monitoring: true
+
+# =============================================================================
+# MONITORING CORE CONFIGURATION
+# =============================================================================
+monitoring:
+  core:
+    health_check_interval: 300
+    disk_threshold: 85
+    memory_threshold: 90
+    cpu_threshold: 80
+    network_threshold: 80
+  resources:
+    memory_limit: "512M"
+    cpu_limit: "1"
+    log_retention_days: 7
+    max_log_size: "10M"
+  docker:
+    logs_enabled: true
+    log_driver: "json-file"
+    log_max_size: "10m"

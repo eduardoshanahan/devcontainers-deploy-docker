@@ -104,6 +104,66 @@
     msg: "CRITICAL: features.monitoring is not defined. Please set it in inventory/group_vars/all/main.yml"
   when: features.monitoring is not defined
 
+- name: Validate monitoring.core.health_check_interval
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.core.health_check_interval is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.core.health_check_interval is not defined
+
+- name: Validate monitoring.core.disk_threshold
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.core.disk_threshold is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.core.disk_threshold is not defined
+
+- name: Validate monitoring.core.memory_threshold
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.core.memory_threshold is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.core.memory_threshold is not defined
+
+- name: Validate monitoring.core.cpu_threshold
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.core.cpu_threshold is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.core.cpu_threshold is not defined
+
+- name: Validate monitoring.core.network_threshold
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.core.network_threshold is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.core.network_threshold is not defined
+
+- name: Validate monitoring.resources.memory_limit
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.resources.memory_limit is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.resources.memory_limit is not defined
+
+- name: Validate monitoring.resources.cpu_limit
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.resources.cpu_limit is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.resources.cpu_limit is not defined
+
+- name: Validate monitoring.resources.log_retention_days
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.resources.log_retention_days is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.resources.log_retention_days is not defined
+
+- name: Validate monitoring.resources.max_log_size
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.resources.max_log_size is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.resources.max_log_size is not defined
+
+- name: Validate monitoring.docker.logs_enabled
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.docker.logs_enabled is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.docker.logs_enabled is not defined
+
+- name: Validate monitoring.docker.log_driver
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.docker.log_driver is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.docker.log_driver is not defined
+
+- name: Validate monitoring.docker.log_max_size
+  ansible.builtin.fail:
+    msg: "CRITICAL: monitoring.docker.log_max_size is not defined. Please set it in inventory/group_vars/all/main.yml"
+  when: monitoring.docker.log_max_size is not defined
+
 - name: Display validation success
   ansible.builtin.debug:
     msg: "All required variables are properly defined! Proceeding with deployment..."

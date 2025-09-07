@@ -6,22 +6,22 @@
 configure_monitoring_enabled: "{{ features.monitoring }}"
 
 # Core monitoring settings
-configure_monitoring_health_check_interval: "{{ monitoring.core.health_check_interval | default(300) }}"
-configure_monitoring_disk_threshold: "{{ monitoring.core.disk_threshold | default(85) }}"
-configure_monitoring_memory_threshold: "{{ monitoring.core.memory_threshold | default(90) }}"
-configure_monitoring_cpu_threshold: "{{ monitoring.core.cpu_threshold | default(80) }}"
-configure_monitoring_network_threshold: "{{ monitoring.core.network_threshold | default(80) }}"
+configure_monitoring_health_check_interval: "{{ monitoring.core.health_check_interval }}"
+configure_monitoring_disk_threshold: "{{ monitoring.core.disk_threshold }}"
+configure_monitoring_memory_threshold: "{{ monitoring.core.memory_threshold }}"
+configure_monitoring_cpu_threshold: "{{ monitoring.core.cpu_threshold }}"
+configure_monitoring_network_threshold: "{{ monitoring.core.network_threshold }}"
 
 # Resource limits
-configure_monitoring_memory_limit: "{{ monitoring.resources.memory_limit | default('512M') }}"
-configure_monitoring_cpu_limit: "{{ monitoring.resources.cpu_limit | default('1') }}"
-configure_monitoring_log_retention_days: "{{ monitoring.resources.log_retention_days | default(7) }}"
-configure_monitoring_max_log_size: "{{ monitoring.resources.max_log_size | default('10M') }}"
+configure_monitoring_memory_limit: "{{ monitoring.resources.memory_limit }}"
+configure_monitoring_cpu_limit: "{{ monitoring.resources.cpu_limit }}"
+configure_monitoring_log_retention_days: "{{ monitoring.resources.log_retention_days }}"
+configure_monitoring_max_log_size: "{{ monitoring.resources.max_log_size }}"
 
 # Docker monitoring
-configure_monitoring_docker_logs_enabled: "{{ monitoring.docker.logs_enabled | default(true) }}"
-configure_monitoring_docker_log_driver: "{{ monitoring.docker.log_driver | default('json-file') }}"
-configure_monitoring_docker_log_max_size: "{{ monitoring.docker.log_max_size | default('10m') }}"
+configure_monitoring_docker_logs_enabled: "{{ monitoring.docker.logs_enabled }}"
+configure_monitoring_docker_log_driver: "{{ monitoring.docker.log_driver }}"
+configure_monitoring_docker_log_max_size: "{{ monitoring.docker.log_max_size }}"
 configure_monitoring_docker_log_max_files: "{{ monitoring.docker.log_max_files | default('3') }}"
 
 # Prometheus
