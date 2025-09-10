@@ -76,14 +76,27 @@
   become: true
 
 - name: Reset fail2ban database if timezone issues detected
-  ansible.builtin.shell: |
-    systemctl stop fail2ban
-    rm -f /var/lib/fail2ban/fail2ban.sqlite3
-    rm -f /var/log/fail2ban.log.1
-    systemctl start fail2ban
   become: true
   when: timezone_check.stdout == "timezone_issue_detected"
   notify: Restart fail2ban
+  block:
+    - name: Stop fail2ban service
+      ansible.builtin.systemd:
+        name: fail2ban
+        state: stopped
+
+    - name: Remove fail2ban database and logs
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/fail2ban/fail2ban.sqlite3
+        - /var/log/fail2ban.log.1
+
+    - name: Start fail2ban service
+      ansible.builtin.systemd:
+        name: fail2ban
+        state: started
 
 - name: Create enhanced fail2ban timezone fix script
   ansible.builtin.copy:
@@ -95,11 +108,11 @@
       if grep -q "timezone issue" /var/log/fail2ban.log 2>/dev/null; then
         echo "Timezone issues detected, performing comprehensive reset..."
         systemctl stop fail2ban
-        
+
         # Remove database and rotated logs to force full reprocessing
         rm -f /var/lib/fail2ban/fail2ban.sqlite3
         rm -f /var/log/fail2ban.log.1
-        
+
         systemctl start fail2ban
         logger "Fail2ban: Comprehensive reset due to timezone issues"
         echo "Fail2ban reset completed"
@@ -112,31 +125,99 @@
     group: root
   become: true
 
-- name: Add comprehensive fail2ban health check
-  ansible.builtin.shell: |
-    # Check if fail2ban is processing attempts correctly
-    status_output=$(fail2ban-client status sshd 2>/dev/null || echo "")
-    total_failed=$(echo "$status_output" | grep -i "total failed" | sed 's/.*: *//' | awk '{print $1}' || echo "0")
+- name: Create fail2ban health check script
+  ansible.builtin.copy:
+    content: |
+      #!/bin/bash
+      # Enhanced fail2ban health check script
+      # Detects multiple types of issues: timezone, log position, and processing problems
 
-    # If fail2ban shows 0 failed attempts but auth.log has many, there's a processing issue
-    auth_attempts=$(grep -c "Failed password\|Invalid user" /var/log/auth.log 2>/dev/null || echo "0")
+      # Check if service is running
+      if ! systemctl is-active --quiet fail2ban; then
+        echo "processing_issue_detected"
+        exit 0
+      fi
 
-    if [ "$total_failed" -eq "0" ] && [ "$auth_attempts" -gt "100" ]; then
-      echo "processing_issue_detected"
-    else
+      # Get fail2ban status
+      status_output=$(fail2ban-client status sshd 2>/dev/null || echo "")
+      total_failed=$(echo "$status_output" | grep -i "total failed" | sed 's/.*: *//' | awk '{print $1}' || echo "0")
+
+      # Count actual attempts in auth.log
+      auth_attempts=$(grep -c "Failed password\|Invalid user\|authentication failure" /var/log/auth.log 2>/dev/null || echo "0")
+
+      # Check for timezone issues in logs
+      timezone_issues=$(grep -c "timezone issue" /var/log/fail2ban.log 2>/dev/null || echo "0")
+
+      # Check log position - if fail2ban recently started but position is high, it's wrong
+      recent_start=$(grep "Added logfile.*pos =" /var/log/fail2ban.log 2>/dev/null | tail -1)
+      if [ -n "$recent_start" ]; then
+        log_position=$(echo "$recent_start" | sed -n 's/.*pos = \([0-9]*\).*/\1/p' || echo "0")
+        # If position is > 1000000 and we have many auth attempts, it's likely wrong
+        if [ "$log_position" -gt "1000000" ] && [ "$auth_attempts" -gt "1000" ]; then
+          echo "processing_issue_detected"
+          exit 0
+        fi
+      fi
+
+      # Main processing check: if fail2ban shows 0 but auth.log has many attempts
+      if [ "$total_failed" -eq "0" ] && [ "$auth_attempts" -gt "100" ]; then
+        echo "processing_issue_detected"
+        exit 0
+      fi
+
+      # Check for timezone issues
+      if [ "$timezone_issues" -gt "0" ]; then
+        echo "processing_issue_detected"
+        exit 0
+      fi
+
       echo "no_processing_issue"
-    fi
+    dest: /opt/security/fail2ban-health-check.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Run fail2ban health check
+  ansible.builtin.command: /opt/security/fail2ban-health-check.sh
   register: processing_check
   changed_when: false
   become: true
 
 - name: Reset fail2ban if not processing attempts correctly
-  ansible.builtin.shell: |
-    echo "Fail2ban processing issue detected, performing comprehensive reset..."
-    systemctl stop fail2ban
-    rm -f /var/lib/fail2ban/fail2ban.sqlite3
-    rm -f /var/log/fail2ban.log.1
-    systemctl start fail2ban
-    logger "Fail2ban: Reset due to log processing issues"
   become: true
   when: processing_check.stdout == "processing_issue_detected"
+  block:
+    - name: Stop fail2ban service
+      ansible.builtin.systemd:
+        name: fail2ban
+        state: stopped
+
+    - name: Remove fail2ban database and state files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/fail2ban/fail2ban.sqlite3
+        - /var/lib/fail2ban/*.sqlite3
+        - /var/log/fail2ban.log.1
+        - /var/log/fail2ban.log.2
+
+    - name: Log the reset action
+      ansible.builtin.shell: |
+        logger "Fail2ban: Comprehensive reset due to processing issues - forced log reprocessing"
+      changed_when: true
+
+    - name: Start fail2ban service
+      ansible.builtin.systemd:
+        name: fail2ban
+        state: started
+
+- name: Add fail2ban timezone fix cron job
+  ansible.builtin.cron:
+    name: "Fail2ban timezone fix"
+    hour: "0"
+    minute: "0"
+    job: "/opt/security/fail2ban-timezone-fix.sh"
+    user: root
+  become: true
