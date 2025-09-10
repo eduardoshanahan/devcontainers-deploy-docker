@@ -2,6 +2,7 @@
 
 # Comprehensive System Report Generator
 # Generates detailed system reports with multiple data sources
+# Last updated: 2025-09-10 15:15:00 UTC - Fixed Security Status section with comprehensive data
 
 LOG_FILE="/var/log/reporting/report-generation.log"
 REPORT_DIR="{{ configure_reporting_storage_dir }}"
@@ -14,10 +15,8 @@ EMAIL="{{ configure_reporting_email }}"
 GMAIL_ENABLED="{{ configure_reporting_gmail_enabled | lower }}"
 GMAIL_USER="{{ configure_reporting_gmail_user }}"
 GMAIL_PASSWORD="{{ configure_reporting_gmail_password }}"
-GMAIL_SMTP_SERVER="{{ configure_reporting_gmail_smtp_server }}"
-GMAIL_SMTP_PORT="{{ configure_reporting_gmail_smtp_port }}"
 
-# Function to log messages
+# Logging function
 log_message() {
     local level="$1"
     local message="$2"
@@ -30,95 +29,137 @@ get_system_info() {
     cat << EOF
     <h2>System Information</h2>
     <table class="info-table">
-        <tr><td>Hostname:</td><td>$(hostname)</td></tr>
-        <tr><td>OS:</td><td>$(lsb_release -d | cut -f2)</td></tr>
-        <tr><td>Kernel:</td><td>$(uname -r)</td></tr>
-        <tr><td>Uptime:</td><td>$(uptime -p)</td></tr>
-        <tr><td>Load Average:</td><td>$(uptime | awk -F'load average:' '{print $2}')</td></tr>
+        <tr><td>Hostname</td><td>$(hostname)</td></tr>
+        <tr><td>OS</td><td>$(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2)</td></tr>
+        <tr><td>Kernel</td><td>$(uname -r)</td></tr>
+        <tr><td>Uptime</td><td>$(uptime -p)</td></tr>
+        <tr><td>Load Average</td><td>$(uptime | awk -F'load average:' '{print $2}')</td></tr>
     </table>
 EOF
 }
 
 # Function to get resource usage
 get_resource_usage() {
-    local disk_usage=$(df / | awk 'NR==2 {print $5}')
+    local disk_usage=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
     local memory_usage=$(free | awk 'NR==2{printf "%.1f", $3*100/$2}')
     local cpu_usage=$(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | sed 's/%us,//')
     
     cat << EOF
     <h2>Resource Usage</h2>
     <table class="info-table">
-        <tr><td>Disk Usage:</td><td>$disk_usage</td></tr>
-        <tr><td>Memory Usage:</td><td>${memory_usage}%</td></tr>
-        <tr><td>CPU Usage:</td><td>${cpu_usage}%</td></tr>
+        <tr><td>Disk Usage</td><td>${disk_usage}%</td></tr>
+        <tr><td>Memory Usage</td><td>${memory_usage}%</td></tr>
+        <tr><td>CPU Usage</td><td>${cpu_usage}%</td></tr>
     </table>
 EOF
 }
 
 # Function to get Docker information
 get_docker_info() {
-    local running_containers=$(docker ps --format "{{ '{{' }}.Names{{ '}}' }}" 2>/dev/null | wc -l)
-    local total_containers=$(docker ps -a --format "{{ '{{' }}.Names{{ '}}' }}" 2>/dev/null | wc -l)
-    local docker_images=$(docker images --format "{{ '{{' }}.Repository{{ '}}' }}" 2>/dev/null | wc -l)
+    local running_containers=$(docker ps -q | wc -l 2>/dev/null || echo "0")
+    local total_containers=$(docker ps -a -q | wc -l 2>/dev/null || echo "0")
+    local docker_images=$(docker images -q | wc -l 2>/dev/null || echo "0")
     
     cat << EOF
     <h2>Docker Status</h2>
     <table class="info-table">
-        <tr><td>Running Containers:</td><td>$running_containers</td></tr>
-        <tr><td>Total Containers:</td><td>$total_containers</td></tr>
-        <tr><td>Docker Images:</td><td>$docker_images</td></tr>
+        <tr><td>Running Containers</td><td>$running_containers</td></tr>
+        <tr><td>Total Containers</td><td>$total_containers</td></tr>
+        <tr><td>Docker Images</td><td>$docker_images</td></tr>
     </table>
 EOF
 }
 
 # Function to get security information with proper classification
 get_security_info() {
-    local failed_logins=$(grep "Failed password" /var/log/auth.log 2>/dev/null | wc -l)
+    # Calculate all security variables - FIXED: Clean variables to remove newlines
+    failed_passwords=$(grep -c "Failed password" /var/log/auth.log 2>/dev/null | tr -d '\n\r' || echo "0")
+    auth_failures=$(grep -c "authentication failure" /var/log/auth.log 2>/dev/null | tr -d '\n\r' || echo "0")
+    invalid_users=$(grep -c "Invalid user" /var/log/auth.log 2>/dev/null | tr -d '\n\r' || echo "0")
+    connection_closed=$(grep -c "Connection closed by authenticating user" /var/log/auth.log 2>/dev/null | tr -d '\n\r' || echo "0")
+    preauth_disconnect=$(grep -c "Disconnected from authenticating user" /var/log/auth.log 2>/dev/null | tr -d '\n\r' || echo "0")
     
-    # FIXED: More robust fail2ban status parsing
-    local currently_banned="0"
-    local total_banned_lifetime="0"
+    # Ensure all variables are numeric
+    failed_passwords=${failed_passwords:-0}
+    auth_failures=${auth_failures:-0}
+    invalid_users=${invalid_users:-0}
+    connection_closed=${connection_closed:-0}
+    preauth_disconnect=${preauth_disconnect:-0}
+    
+    total_failed_logins=$((failed_passwords + auth_failures + invalid_users + connection_closed + preauth_disconnect))
+    
+    # Get fail2ban statistics
+    currently_banned="0"
+    total_banned_lifetime="0"
+    fail2ban_status="Unknown"
+    fail2ban_health="Unknown"
     
     if command -v fail2ban-client >/dev/null 2>&1; then
-        local fail2ban_status=$(sudo fail2ban-client status sshd 2>/dev/null || echo "")
-        if [ -n "$fail2ban_status" ]; then
-            currently_banned=$(echo "$fail2ban_status" | grep -i "currently banned" | sed 's/.*: *//' | awk '{print $1}' || echo "0")
-            total_banned_lifetime=$(echo "$fail2ban_status" | grep -i "total banned" | sed 's/.*: *//' | awk '{print $1}' || echo "0")
+        # Check if fail2ban service is running
+        if systemctl is-active --quiet fail2ban; then
+            fail2ban_service_status="Running"
+            
+            # Get jail status
+            fail2ban_jail_status=$(sudo fail2ban-client status sshd 2>/dev/null || echo "")
+            if [ -n "$fail2ban_jail_status" ]; then
+                currently_banned=$(echo "$fail2ban_jail_status" | grep -i "currently banned" | sed 's/.*: *//' | awk '{print $1}' || echo "0")
+                total_banned_lifetime=$(echo "$fail2ban_jail_status" | grep -i "total banned" | sed 's/.*: *//' | awk '{print $1}' || echo "0")
+                fail2ban_total_failed=$(echo "$fail2ban_jail_status" | grep -i "total failed" | sed 's/.*: *//' | awk '{print $1}' || echo "0")
+                
+                # Health assessment
+                if [ "$fail2ban_total_failed" -gt "0" ] || [ "$total_banned_lifetime" -gt "0" ]; then
+                    fail2ban_health="✅ Active (Processing attempts)"
+                elif grep -q "timezone issue" /var/log/fail2ban.log 2>/dev/null; then
+                    fail2ban_health="⚠️ Timezone Issues Detected"
+                else
+                    fail2ban_health="⚠️ Not Processing Attempts"
+                fi
+            else
+                fail2ban_health="❌ Jail Status Unavailable"
+            fi
+        else
+            fail2ban_service_status="Stopped"
+            fail2ban_health="❌ Service Not Running"
         fi
+    else
+        fail2ban_service_status="Not Installed"
+        fail2ban_health="❌ Not Installed"
     fi
     
-    # Enhanced alert categorization by severity
-    local critical_alerts=$(grep -c "CRITICAL" /var/log/health-monitor.log 2>/dev/null || echo "0")
-    local high_alerts=$(grep -c "HIGH" /var/log/health-monitor.log 2>/dev/null || echo "0")
-    local medium_alerts=$(grep -c "MEDIUM" /var/log/health-monitor.log 2>/dev/null || echo "0")
-    local info_messages=$(grep -c "INFO" /var/log/health-monitor.log 2>/dev/null || echo "0")
+    # Check for recent timezone issues
+    timezone_issues=$(grep -c "timezone issue" /var/log/fail2ban.log 2>/dev/null || echo "0")
+    last_ban=$(grep "Ban " /var/log/fail2ban.log 2>/dev/null | tail -1 | awk '{print $1, $2}' || echo "Never")
     
-    # Recent alerts (last 24 hours) by severity
-    local recent_critical=$(grep "$(date -d '24 hours ago' '+%Y-%m-%d')" /var/log/health-monitor.log 2>/dev/null | grep -c "CRITICAL" || echo "0")
-    local recent_high=$(grep "$(date -d '24 hours ago' '+%Y-%m-%d')" /var/log/health-monitor.log 2>/dev/null | grep -c "HIGH" || echo "0")
-    local recent_medium=$(grep "$(date -d '24 hours ago' '+%Y-%m-%d')" /var/log/health-monitor.log 2>/dev/null | grep -c "MEDIUM" || echo "0")
+    # Get health monitor alerts
+    critical_alerts=$(grep -c "CRITICAL" /var/log/health-monitor.log 2>/dev/null || echo "0")
+    high_alerts=$(grep -c "HIGH" /var/log/health-monitor.log 2>/dev/null || echo "0")
+    medium_alerts=$(grep -c "MEDIUM" /var/log/health-monitor.log 2>/dev/null || echo "0")
+    info_messages=$(grep -c "INFO" /var/log/health-monitor.log 2>/dev/null || echo "0")
     
+    # Generate the Security Status HTML section
     cat << EOF
     <h2>Security Status</h2>
     <table class="info-table">
-        <tr><td>Failed Login Attempts:</td><td>$failed_logins</td></tr>
-        <tr><td>Currently Banned IP Addresses:</td><td>$currently_banned</td></tr>
-        <tr><td>Total Banned (Lifetime):</td><td>$total_banned_lifetime</td></tr>
+        <tr><td>Failed Login Attempts</td><td>$total_failed_logins</td></tr>
+        <tr><td>Currently Banned IP Addresses</td><td>$currently_banned</td></tr>
+        <tr><td>Total Banned (Lifetime)</td><td>$total_banned_lifetime</td></tr>
     </table>
     
-    <h2>Alert Classification</h2>
+    <h3>Fail2ban Health Monitor</h3>
     <table class="info-table">
-        <tr><td><strong>CRITICAL Alerts (Immediate Action):</strong></td><td>$critical_alerts</td></tr>
-        <tr><td><strong>HIGH Alerts (Action Soon):</strong></td><td>$high_alerts</td></tr>
-        <tr><td><strong>MEDIUM Alerts (Monitor):</strong></td><td>$medium_alerts</td></tr>
-        <tr><td><strong>INFO Messages:</strong></td><td>$info_messages</td></tr>
+        <tr><td>Service Status</td><td>$fail2ban_service_status</td></tr>
+        <tr><td>Health Assessment</td><td>$fail2ban_health</td></tr>
+        <tr><td>Attempts Detected by Fail2ban</td><td>$fail2ban_total_failed</td></tr>
+        <tr><td>Timezone Issues (Lifetime)</td><td>$timezone_issues</td></tr>
+        <tr><td>Last Successful Ban</td><td>$last_ban</td></tr>
     </table>
     
-    <h2>Recent Alerts (Last 24 Hours)</h2>
+    <h3>Alert Classification</h3>
     <table class="info-table">
-        <tr><td>Critical Issues:</td><td>$recent_critical</td></tr>
-        <tr><td>High Priority:</td><td>$recent_high</td></tr>
-        <tr><td>Medium Priority:</td><td>$recent_medium</td></tr>
+        <tr><td>CRITICAL Alerts (Immediate Action)</td><td class="status-critical">$critical_alerts</td></tr>
+        <tr><td>HIGH Alerts (Action Soon)</td><td class="status-warning">$high_alerts</td></tr>
+        <tr><td>MEDIUM Alerts (Monitor)</td><td>$medium_alerts</td></tr>
+        <tr><td>INFO Messages</td><td>$info_messages</td></tr>
     </table>
 EOF
 }
@@ -216,14 +257,14 @@ case "$REPORT_TYPE" in
         ;;
 esac
 
-log_message "INFO" "Report generated: $REPORT_FILE"
-
-# Email the report if email is configured
-if [ -n "$EMAIL" ]; then
-    log_message "INFO" "Sending report via email to $EMAIL"
-    /opt/reports/email-report.sh "$REPORT_TYPE" "$REPORT_FILE"
+if [ $? -eq 0 ]; then
+    log_message "INFO" "Report generated successfully: $REPORT_FILE"
+    
+    # Email the report if configured
+    if [ "$GMAIL_ENABLED" = "true" ] && [ -n "$EMAIL" ]; then
+        /opt/reports/email-report.sh "$REPORT_TYPE" "$REPORT_FILE"
+    fi
 else
-    log_message "WARN" "No email configured for reports"
+    log_message "ERROR" "Failed to generate report"
+    exit 1
 fi
-
-log_message "INFO" "$REPORT_TYPE report generation completed"

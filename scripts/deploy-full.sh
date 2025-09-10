@@ -155,7 +155,7 @@ deploy_system() {
     print_status "Proceeding with deployment..."
     
     # Run from workspace root with explicit inventory path
-    if ansible-playbook -vvv -i src/inventory/hosts.yml src/playbooks/full.yml; then
+    if ansible-playbook -i src/inventory/hosts.yml src/playbooks/full.yml; then
         print_success "Full system deployment completed successfully!"
         print_success "Your system is now ready for production use!"
     else

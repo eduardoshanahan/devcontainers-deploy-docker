@@ -4,9 +4,14 @@ findtime = {{ configure_fail2ban_findtime }}
 maxretry = {{ configure_fail2ban_maxretry }}
 ignoreip = {{ configure_fail2ban_ignoreip }}
 
+# Fix timezone issues by forcing UTC and resetting log positions
+backend = systemd
+
 [sshd]
 enabled = true
 port = ssh
 filter = sshd
 logpath = /var/log/auth.log
-maxretry = {{ configure_fail2ban_maxretry }} 
+maxretry = {{ configure_fail2ban_maxretry }}
+# Force log position reset to handle timezone issues
+backend = auto 

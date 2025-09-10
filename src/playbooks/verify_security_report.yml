@@ -1,0 +1,23 @@
+---
+- name: Verify Security Report Statistics
+  hosts: all
+  become: true
+  gather_facts: true
+  vars_files:
+    - "secrets/vault.yml"
+  tasks:
+    - name: Run security report verification script
+      ansible.builtin.shell: /opt/reports/verify-security-report.sh
+      register: verification_output
+      changed_when: false
+      failed_when: false
+
+    - name: Display verification results
+      ansible.builtin.debug:
+        msg: "{{ verification_output.stdout_lines }}"
+
+    - name: Save verification results to file
+      ansible.builtin.copy:
+        content: "{{ verification_output.stdout }}"
+        dest: "/tmp/security-verification-{{ ansible_date_time.epoch }}.txt"
+        mode: "0644"

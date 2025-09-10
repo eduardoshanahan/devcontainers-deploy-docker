@@ -1,0 +1,252 @@
+#!/bin/bash
+
+# Security Report Verification Script
+# This script verifies the security statistics reported in the daily system report
+# by checking the actual log files and system status
+
+echo "=========================================="
+echo "Security Report Verification Script"
+echo "=========================================="
+echo "Generated on: $(date)"
+echo "Server: $(hostname)"
+echo ""
+
+# Function to check if a file exists and is readable
+check_file() {
+    local file="$1"
+    if [ -f "$file" ] && [ -r "$file" ]; then
+        echo "✓ $file exists and is readable"
+        return 0
+    else
+        echo "✗ $file does not exist or is not readable"
+        return 1
+    fi
+}
+
+echo "1. CHECKING LOG FILE ACCESSIBILITY"
+echo "=================================="
+check_file "/var/log/auth.log"
+check_file "/var/log/fail2ban.log"
+check_file "/var/log/health-monitor.log"
+
+echo ""
+echo "2. FAILED LOGIN ATTEMPTS VERIFICATION"
+echo "====================================="
+
+# FIXED: Remove 'local' and make variables global
+echo "Checking /var/log/auth.log for all types of failed login attempts:"
+
+if [ -f "/var/log/auth.log" ] && [ -r "/var/log/auth.log" ]; then
+    failed_passwords=$(grep -c "Failed password" /var/log/auth.log 2>/dev/null || echo "0")
+    auth_failures=$(grep -c "authentication failure" /var/log/auth.log 2>/dev/null || echo "0")
+    invalid_users=$(grep -c "Invalid user" /var/log/auth.log 2>/dev/null || echo "0")
+    connection_closed=$(grep -c "Connection closed by authenticating user" /var/log/auth.log 2>/dev/null || echo "0")
+    preauth_disconnect=$(grep -c "Disconnected from authenticating user" /var/log/auth.log 2>/dev/null || echo "0")
+    
+    total_failed=$((failed_passwords + auth_failures + invalid_users + connection_closed + preauth_disconnect))
+    
+    echo "  Failed password attempts: $failed_passwords"
+    echo "  Authentication failures: $auth_failures"
+    echo "  Invalid user attempts: $invalid_users"
+    echo "  Connection closed: $connection_closed"
+    echo "  Pre-auth disconnects: $preauth_disconnect"
+    echo "  ================================"
+    echo "  TOTAL FAILED LOGINS: $total_failed"
+else
+    echo "  TOTAL FAILED LOGINS: 0 (file not accessible)"
+    total_failed=0
+fi
+
+# Check for recent failed attempts (last 24 hours)
+echo ""
+echo "Recent failed attempts (last 24 hours):"
+if [ -f "/var/log/auth.log" ] && [ -r "/var/log/auth.log" ]; then
+    yesterday=$(date -d '24 hours ago' '+%b %d')
+    today=$(date '+%b %d')
+    
+    failed_24h=$(grep -E "($yesterday|$today)" /var/log/auth.log | grep -c "Failed password" 2>/dev/null || echo "0")
+    auth_failures_24h=$(grep -E "($yesterday|$today)" /var/log/auth.log | grep -c "authentication failure" 2>/dev/null || echo "0")
+    invalid_users_24h=$(grep -E "($yesterday|$today)" /var/log/auth.log | grep -c "Invalid user" 2>/dev/null || echo "0")
+    total_24h=$((failed_24h + auth_failures_24h + invalid_users_24h))
+    
+    echo "  Failed password attempts in last 24h: $failed_24h"
+    echo "  Authentication failures in last 24h: $auth_failures_24h"
+    echo "  Invalid user attempts in last 24h: $invalid_users_24h"
+    echo "  TOTAL in last 24h: $total_24h"
+fi
+
+echo ""
+echo "3. FAIL2BAN STATUS VERIFICATION"
+echo "==============================="
+
+# Check if fail2ban-client is available
+if command -v fail2ban-client >/dev/null 2>&1; then
+    echo "✓ fail2ban-client is available"
+    
+    # Check if fail2ban service is running
+    if systemctl is-active --quiet fail2ban; then
+        echo "✓ fail2ban service is active"
+    else
+        echo "✗ fail2ban service is not active"
+    fi
+    
+    echo ""
+    echo "Fail2ban client status:"
+    sudo fail2ban-client status 2>/dev/null || echo "Status unavailable"
+    
+    echo ""
+    echo "SSH jail status:"
+    fail2ban_ssh_status=$(sudo fail2ban-client status sshd 2>/dev/null || echo "SSH jail status unavailable")
+    echo "$fail2ban_ssh_status"
+    
+    echo ""
+    echo "Currently banned IPs:"
+    banned_ips=$(sudo fail2ban-client status sshd 2>/dev/null | grep "Banned IP list" | sed 's/.*: *//')
+    if [ -z "$banned_ips" ] || [ "$banned_ips" = "" ]; then
+        echo "  No currently banned IPs"
+        currently_banned=0
+    else
+        echo "  $banned_ips"
+        currently_banned=$(echo "$banned_ips" | wc -w)
+    fi
+    
+    echo ""
+    echo "Parsed fail2ban statistics:"
+    if [ -n "$fail2ban_ssh_status" ] && [ "$fail2ban_ssh_status" != "SSH jail status unavailable" ]; then
+        currently_banned_parsed=$(echo "$fail2ban_ssh_status" | grep -i "currently banned" | sed 's/.*: *//' | awk '{print $1}' 2>/dev/null || echo "0")
+        total_banned_parsed=$(echo "$fail2ban_ssh_status" | grep -i "total banned" | sed 's/.*: *//' | awk '{print $1}' 2>/dev/null || echo "0")
+        echo "  Currently banned: $currently_banned_parsed"
+        echo "  Total banned (lifetime): $total_banned_parsed"
+    else
+        echo "  Currently banned: 0 (status unavailable)"
+        echo "  Total banned (lifetime): 0 (status unavailable)"
+        currently_banned_parsed=0
+        total_banned_parsed=0
+    fi
+else
+    echo "✗ fail2ban-client is not available"
+    currently_banned=0
+    currently_banned_parsed=0
+    total_banned_parsed=0
+fi
+
+echo ""
+echo "4. FAIL2BAN LOG VERIFICATION"
+echo "============================"
+
+if [ -f "/var/log/fail2ban.log" ] && [ -r "/var/log/fail2ban.log" ]; then
+    echo "Checking /var/log/fail2ban.log for ban events:"
+    total_bans=$(grep -c "Ban " /var/log/fail2ban.log 2>/dev/null || echo "0")
+    total_unbans=$(grep -c "Unban " /var/log/fail2ban.log 2>/dev/null || echo "0")
+    echo "  Total ban events: $total_bans"
+    echo "  Total unban events: $total_unbans"
+    
+    echo ""
+    echo "Recent ban events (last 24 hours):"
+    yesterday=$(date -d '24 hours ago' '+%Y-%m-%d')
+    today=$(date '+%Y-%m-%d')
+    recent_bans=$(grep -E "($yesterday|$today)" /var/log/fail2ban.log | grep -c "Ban " 2>/dev/null || echo "0")
+    echo "  Ban events in last 24h: $recent_bans"
+else
+    echo "fail2ban.log not accessible"
+    total_bans=0
+    total_unbans=0
+    recent_bans=0
+fi
+
+echo ""
+echo "5. HEALTH MONITOR LOG VERIFICATION"
+echo "=================================="
+
+if [ -f "/var/log/health-monitor.log" ] && [ -r "/var/log/health-monitor.log" ]; then
+    echo "Checking /var/log/health-monitor.log for alerts:"
+    critical_alerts=$(grep -c "CRITICAL" /var/log/health-monitor.log 2>/dev/null || echo "0")
+    high_alerts=$(grep -c "HIGH" /var/log/health-monitor.log 2>/dev/null || echo "0")
+    medium_alerts=$(grep -c "MEDIUM" /var/log/health-monitor.log 2>/dev/null || echo "0")
+    info_messages=$(grep -c "INFO" /var/log/health-monitor.log 2>/dev/null || echo "0")
+    
+    echo "  Critical alerts: $critical_alerts"
+    echo "  High alerts: $high_alerts"
+    echo "  Medium alerts: $medium_alerts"
+    echo "  Info messages: $info_messages"
+    
+    echo ""
+    echo "Recent alerts (last 24 hours):"
+    yesterday=$(date -d '24 hours ago' '+%Y-%m-%d')
+    today=$(date '+%Y-%m-%d')
+    critical_24h=$(grep -E "($yesterday|$today)" /var/log/health-monitor.log | grep -c "CRITICAL" 2>/dev/null || echo "0")
+    high_24h=$(grep -E "($yesterday|$today)" /var/log/health-monitor.log | grep -c "HIGH" 2>/dev/null || echo "0")
+    medium_24h=$(grep -E "($yesterday|$today)" /var/log/health-monitor.log | grep -c "MEDIUM" 2>/dev/null || echo "0")
+    
+    echo "  Critical alerts in last 24h: $critical_24h"
+    echo "  High alerts in last 24h: $high_24h"
+    echo "  Medium alerts in last 24h: $medium_24h"
+else
+    echo "health-monitor.log not accessible"
+    critical_alerts=0
+    high_alerts=0
+    medium_alerts=0
+    info_messages=0
+fi
+
+echo ""
+echo "6. SYSTEM SECURITY STATUS"
+echo "========================="
+
+# Check SSH service status
+if systemctl is-active --quiet ssh || systemctl is-active --quiet sshd; then
+    echo "✓ SSH service is active"
+else
+    echo "✗ SSH service is not active"
+fi
+
+echo ""
+echo "SSH configuration check:"
+if [ -f "/etc/ssh/sshd_config" ] && [ -r "/etc/ssh/sshd_config" ]; then
+    echo "✓ SSH config file exists"
+    password_auth=$(grep -i "^PasswordAuthentication" /etc/ssh/sshd_config | tail -1 | awk '{print $2}' 2>/dev/null || echo "unknown")
+    root_login=$(grep -i "^PermitRootLogin" /etc/ssh/sshd_config | tail -1 | awk '{print $2}' 2>/dev/null || echo "unknown")
+    echo "  Password Authentication: $password_auth"
+    echo "  Root Login: $root_login"
+else
+    echo "✗ SSH config file not accessible"
+fi
+
+echo ""
+echo "7. RECENT SECURITY EVENTS"
+echo "========================="
+
+echo "Recent failed login attempts (last 10):"
+if [ -f "/var/log/auth.log" ] && [ -r "/var/log/auth.log" ]; then
+    grep -E "(Failed password|Invalid user|authentication failure)" /var/log/auth.log | tail -10
+else
+    echo "  No recent events (log not accessible)"
+fi
+
+echo ""
+echo "Recent fail2ban events (last 10):"
+if [ -f "/var/log/fail2ban.log" ] && [ -r "/var/log/fail2ban.log" ]; then
+    grep -E "(Ban |Unban )" /var/log/fail2ban.log | tail -10
+else
+    echo "  No recent events (log not accessible)"
+fi
+
+echo ""
+echo "8. SUMMARY COMPARISON"
+echo "===================="
+echo "Values that should match the daily report:"
+echo ""
+echo "Total Failed Login Attempts: $total_failed"
+echo "  • Failed Passwords: $failed_passwords"
+echo "  • Authentication Failures: $auth_failures"
+echo "  • Invalid User Attempts: $invalid_users"
+echo "  • Connection Closed: $connection_closed"
+echo "  • Pre-auth Disconnects: $preauth_disconnect"
+echo "Currently Banned IP Addresses: ${currently_banned_parsed:-0}"
+echo "Total Banned (Lifetime): ${total_banned_parsed:-0}"
+
+echo ""
+echo "=========================================="
+echo "Verification completed at $(date)"
+echo "=========================================="
+

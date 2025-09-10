@@ -41,6 +41,8 @@
     mode: "0755"
     owner: root
     group: root
+    force: true
+    backup: true
   become: true
 
 - name: Configure weekly report generation script
@@ -50,6 +52,8 @@
     mode: "0755"
     owner: root
     group: root
+    force: true
+    backup: true
   become: true
 
 - name: Configure monthly report generation script
@@ -59,6 +63,8 @@
     mode: "0755"
     owner: root
     group: root
+    force: true
+    backup: true
   become: true
 
 - name: Configure comprehensive report script
@@ -68,6 +74,8 @@
     mode: "0755"
     owner: root
     group: root
+    force: true
+    backup: true
   become: true
 
 - name: Configure report email script
@@ -77,6 +85,8 @@
     mode: "0755"
     owner: root
     group: root
+    force: true
+    backup: true
   become: true
 
 - name: Configure report cleanup script
@@ -86,6 +96,30 @@
     mode: "0755"
     owner: root
     group: root
+    force: true
+    backup: true
+  become: true
+
+- name: Configure security report verification script
+  ansible.builtin.template:
+    src: verify-security-report.sh.j2
+    dest: /opt/reports/verify-security-report.sh
+    mode: "0755"
+    owner: root
+    group: root
+    force: true
+    backup: true
+  become: true
+
+- name: Force update of report generation timestamp
+  ansible.builtin.file:
+    path: /opt/reports/.last_update
+    state: touch
+    mode: "0644"
+    owner: root
+    group: root
+    modification_time: preserve
+    access_time: now
   become: true
 
 - name: Create daily report cron job
@@ -152,10 +186,25 @@
     owner: root
     group: root
     mode: "0644"
+    force: true
+    backup: true
   become: true
 
-- name: Test report generation
+- name: Ensure all reporting scripts are executable and up-to-date
+  ansible.builtin.file:
+    path: "{{ item }}"
+    mode: "0755"
+    owner: root
+    group: root
+  loop:
+    - /opt/reports/generate-comprehensive-report.sh
+    - /opt/reports/generate-daily-report.sh
+    - /opt/reports/verify-security-report.sh
+    - /opt/reports/email-report.sh
+  become: true
+
+- name: Test updated report generation (moved to end)
   ansible.builtin.command: /opt/reports/generate-daily-report.sh
   become: true
-  changed_when: false
-  failed_when: false
+  when: configure_reporting_enabled
+  changed_when: true

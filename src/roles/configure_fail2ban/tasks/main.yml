@@ -63,3 +63,80 @@
 - name: Debug fail2ban status
   ansible.builtin.debug:
     msg: "{{ fail2ban_status.stdout_lines if fail2ban_status.rc == 0 else 'Fail2ban client not responding - check service status above' }}"
+
+- name: Check for fail2ban timezone issues
+  ansible.builtin.shell: |
+    if grep -q "timezone issue" /var/log/fail2ban.log; then
+      echo "timezone_issue_detected"
+    else
+      echo "no_timezone_issue"
+    fi
+  register: timezone_check
+  changed_when: false
+  become: true
+
+- name: Reset fail2ban database if timezone issues detected
+  ansible.builtin.shell: |
+    systemctl stop fail2ban
+    rm -f /var/lib/fail2ban/fail2ban.sqlite3
+    rm -f /var/log/fail2ban.log.1
+    systemctl start fail2ban
+  become: true
+  when: timezone_check.stdout == "timezone_issue_detected"
+  notify: Restart fail2ban
+
+- name: Create enhanced fail2ban timezone fix script
+  ansible.builtin.copy:
+    content: |
+      #!/bin/bash
+      # Enhanced fail2ban fix script
+      # Handles timezone issues and log position problems
+
+      if grep -q "timezone issue" /var/log/fail2ban.log 2>/dev/null; then
+        echo "Timezone issues detected, performing comprehensive reset..."
+        systemctl stop fail2ban
+        
+        # Remove database and rotated logs to force full reprocessing
+        rm -f /var/lib/fail2ban/fail2ban.sqlite3
+        rm -f /var/log/fail2ban.log.1
+        
+        systemctl start fail2ban
+        logger "Fail2ban: Comprehensive reset due to timezone issues"
+        echo "Fail2ban reset completed"
+      else
+        echo "No timezone issues detected"
+      fi
+    dest: /opt/security/fail2ban-timezone-fix.sh
+    mode: "0755"
+    owner: root
+    group: root
+  become: true
+
+- name: Add comprehensive fail2ban health check
+  ansible.builtin.shell: |
+    # Check if fail2ban is processing attempts correctly
+    status_output=$(fail2ban-client status sshd 2>/dev/null || echo "")
+    total_failed=$(echo "$status_output" | grep -i "total failed" | sed 's/.*: *//' | awk '{print $1}' || echo "0")
+
+    # If fail2ban shows 0 failed attempts but auth.log has many, there's a processing issue
+    auth_attempts=$(grep -c "Failed password\|Invalid user" /var/log/auth.log 2>/dev/null || echo "0")
+
+    if [ "$total_failed" -eq "0" ] && [ "$auth_attempts" -gt "100" ]; then
+      echo "processing_issue_detected"
+    else
+      echo "no_processing_issue"
+    fi
+  register: processing_check
+  changed_when: false
+  become: true
+
+- name: Reset fail2ban if not processing attempts correctly
+  ansible.builtin.shell: |
+    echo "Fail2ban processing issue detected, performing comprehensive reset..."
+    systemctl stop fail2ban
+    rm -f /var/lib/fail2ban/fail2ban.sqlite3
+    rm -f /var/log/fail2ban.log.1
+    systemctl start fail2ban
+    logger "Fail2ban: Reset due to log processing issues"
+  become: true
+  when: processing_check.stdout == "processing_issue_detected"
